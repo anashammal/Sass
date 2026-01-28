@@ -225,6 +225,7 @@ class PosController extends Controller
                                 'message' => "تجاوز العميل حد الدين المسموح!", 
                                 'current_limit' => $limit,
                                 'new_debt' => abs($newBalance),
+                                'required_limit' => abs($newBalance),
                                 'difference' => abs($newBalance) - $limit
                             ], 422);
                         }
