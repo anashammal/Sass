@@ -32,16 +32,34 @@
     .pos-layout { height: 88vh; display: flex; gap: 15px; font-family: 'Cairo', sans-serif; }
     .pos-left { flex: 1; display: flex; flex-direction: column; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
     
+    /* === تصميم عصري للوحة الدفع === */
     .pos-right { 
-        width: 380px; flex-shrink: 0; 
-        background: #2c3e50; 
+        width: 340px; /* عرض أقل */
+        flex-shrink: 0; 
+        background: linear-gradient(145deg, #2c3e50, #34495e); /* تدرج لوني فخم */
         color: white; 
-        border-radius: 12px; 
+        border-radius: 16px; 
         display: flex; flex-direction: column;
-        padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 15px; /* هوامش داخلية أقل */
+        box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+        font-size: 0.85rem; /* تصغير الخط العام */
     }
 
+    /* تحسين حقول الإدخال والقوائم */
+    .pos-right .form-select, .pos-right .form-control {
+        font-size: 0.85rem;
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.1); /* خلفية شفافة */
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+    .pos-right .form-select:focus, .pos-right .form-control:focus {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: #3498db;
+        box-shadow: none;
+        color: #fff;
+    }
+    
     .product-thumb { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
     .unit-select { border: 1px solid #3498db; padding: 2px; font-size: 0.9rem; border-radius: 4px; width: 100px; background: #f8fbff; font-weight: bold; color: #2c3e50; }
     .unit-text { font-weight: bold; color: #555; padding: 5px; }
@@ -51,7 +69,7 @@
     .payment-section-dynamic {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px; /* تقليل المسافات */
         height: auto !important;
         min-height: auto !important;
         max-height: none !important;
@@ -63,18 +81,19 @@
         display: flex;
         gap: 5px;
         align-items: center;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 6px;
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.2); /* خلفية أغمق قليلاً */
+        padding: 4px; /* تقليل الحشو */
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    .pay-select { flex: 1; background: #34495e; color: white; border: 1px solid #465c71; border-radius: 6px; }
-    .pay-input { flex: 1; background: #34495e; color: #2ecc71; border: 1px solid #465c71; border-radius: 6px; font-weight: bold; text-align: center; font-size: 1.1rem; }
-    .pay-input::placeholder { color: #7f8c8d; }
-    .btn-add-pay { background: #27ae60; color: white; border: none; border-radius: 6px; width: 35px; }
-    .btn-remove-pay { background: #c0392b; color: white; border: none; border-radius: 6px; width: 35px; }
+    .pay-select { flex: 1; height: 32px; font-size: 0.8rem; background: transparent; border: none; color: #fff; }
+    .pay-input { flex: 1; height: 32px; font-size: 0.95rem; font-weight: bold; text-align: center; background: transparent; border: none; color: #2ecc71; }
+    .pay-input::placeholder { color: rgba(255,255,255,0.3); }
+    
+    .btn-add-pay { background: #27ae60; color: white; border: none; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+    .btn-remove-pay { background: #c0392b; color: white; border: none; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
 
-    .customer-balance-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; }
+    .customer-balance-box { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; margin-bottom: 10px; display: none; font-size: 0.85rem; }
     
     /* تصميم الطباعة */
     @media print {
@@ -105,7 +124,7 @@
         border-radius: 10px; 
         transition: all 0.3s ease; 
         color: white !important;
-        font-size: 1.1rem;
+        font-size: 1rem; /* تصغير الخط */
     }
     .btn-save-invoice { 
         background: linear-gradient(135deg, #27ae60, #2ecc71); 
@@ -179,40 +198,39 @@
         <div class="pos-right">
             
             {{-- رأس القائمة (رقم الفاتورة + الأزرار) --}}
-           <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="fw-bold m-0">#{{ $nextInvoice }}</h4>
-                <div class="d-flex gap-2">
+           <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="fw-bold m-0 text-warning">#{{ $nextInvoice }}</h5>
+                <div class="d-flex gap-1">
                     {{-- ✅ زر فتح الصندوق --}}
-                    <button id="btnOpenShift" class="btn btn-success btn-sm text-white fw-bold" 
+                    <button id="btnOpenShift" class="btn btn-success btn-sm text-white fw-bold py-0" 
                             data-bs-toggle="modal" data-bs-target="#openShiftModal"
                             title="فتح وردية">
-                        <i class="fas fa-door-open"></i> فتح
+                        <i class="fas fa-door-open"></i>
                     </button>
 
                     {{-- زر الإرجاع --}}
-                    <button type="button" class="btn btn-warning btn-sm text-dark" onclick="openReturnModal()" title="إرجاع مواد">
+                    <button type="button" class="btn btn-warning btn-sm text-dark py-0" onclick="openReturnModal()" title="إرجاع مواد">
                         <i class="fas fa-undo"></i>
                     </button>
 
                     {{-- زر إغلاق الصندوق (مخفي، يظهره النظام عند الحاجة) --}}
-                    <button id="btnCloseShift" class="btn btn-warning btn-sm text-dark fw-bold d-none" onclick="openCloseShiftModal()" title="إغلاق الوردية">
-                        <i class="fas fa-cash-register"></i> إغلاق
+                    <button id="btnCloseShift" class="btn btn-warning btn-sm text-dark fw-bold d-none py-0" onclick="openCloseShiftModal()" title="إغلاق الوردية">
+                        <i class="fas fa-cash-register"></i>
                     </button>
 
                     {{-- زر الأرشيف --}}
-                    <button type="button" class="btn btn-info btn-sm text-white" onclick="openHistoryModal()" title="سجل الفواتير">
+                    <button type="button" class="btn btn-info btn-sm text-white py-0" onclick="openHistoryModal()" title="سجل الفواتير">
                         <i class="fas fa-history"></i>
                     </button>
                     
                     {{-- زر التصفير --}}
-                    <button class="btn btn-danger btn-sm" onclick="resetPosScreen()" title="تصفير الشاشة">
+                    <button class="btn btn-danger btn-sm py-0" onclick="resetPosScreen()" title="تصفير الشاشة">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
             
-            <div class="mb-3">
-                <label class=" text-white-50 mb-1">العميل</label>
+            <div class="mb-2">
                 <select id="customerSelect" class="form-select form-select-sm" style="width: 100%">
                     <option value="">عميل نقدي (عام)</option>
                 </select>
@@ -220,53 +238,52 @@
                 <div id="customerBalanceBox" class="customer-balance-box mt-2">
                     <div class="d-flex justify-content-between align-items-center">
                         <small>الرصيد الحالي:</small>
-                        <span id="balanceDisplay" class="fs-5">0.00</span>
+                        <span id="balanceDisplay" class="fw-bold">0.00</span>
                     </div>
                 </div>
             </div>
 
-            <hr class="border-secondary">
+            <hr class="border-secondary my-1">
 
             {{-- الخصم والتقريب --}}
-            <div class="mb-3">
-                <label class="small text-white-50 mb-1">خصم وتقريب</label>
-                <div class="d-flex gap-2 mb-2">
-                    <select id="discountType" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 35%" onchange="calculateRemaining()">
+            <div class="mb-2">
+                <div class="d-flex gap-1 mb-2">
+                    <select id="discountType" class="form-select form-select-sm" style="width: 35%" onchange="calculateRemaining()">
                         <option value="fixed">مبلغ</option>
                         <option value="percent">نسبة %</option>
                     </select>
-                    <input type="number" id="discountValue" class="form-control form-select-sm bg-dark text-white border-secondary text-center" placeholder="قيمة الخصم" oninput="calculateRemaining()">
+                    <input type="number" id="discountValue" class="form-control form-control-sm text-center" placeholder="قيمة الخصم" oninput="calculateRemaining()">
                 </div>
                 
-                <button class="btn btn-sm btn-outline-warning w-100" onclick="roundTotalAmount()">
-                    <i class="fas fa-magic me-1"></i> تقريب المبلغ (0.5 / 1.0)
+                <button class="btn btn-sm btn-outline-warning w-100 py-1" onclick="roundTotalAmount()" style="font-size: 0.8rem;">
+                    <i class="fas fa-magic me-1"></i> تقريب المبلغ
                 </button>
             </div>
 
             {{-- ملخص المبالغ --}}
-            <div class="mb-3">
-                <div class="d-flex justify-content-between mb-1 fs-6 text-white-50">
-                    <span>عدد المواد: <span id="itemsCount" class="fw-bold text-white">0</span></span>
+            <div class="mb-2">
+                <div class="d-flex justify-content-between mb-1 text-white-50" style="font-size: 0.8rem;">
+                    <span>المواد: <span id="itemsCount" class="fw-bold text-white">0</span></span>
                     <span>المجموع: <span id="subTotalDisplay">0.00</span></span>
                 </div>
 
-                <div class="d-flex justify-content-between fs-2 fw-bold text-success mt-2">
-                    <span>الصافي:</span>
-                    <span id="footerTotal">0.00</span>
+                <div class="d-flex justify-content-between align-items-end mt-2">
+                    <span class="fs-6">الصافي:</span>
+                    <span id="footerTotal" class="text-success fs-3">0.00</span>
                 </div>
             </div>
 
-            <hr class="border-secondary">
+            <hr class="border-secondary my-1">
 
            {{-- طرق الدفع --}}
-            <div class="mb-3">
-                <label class="small text-white-50 mb-2">طرق الدفع</label>
+            <div class="mb-2">
+                <label class="small text-white-50 mb-1">الدفع</label>
                 <div id="paymentRowsContainer" class="payment-section-dynamic">
                     <div class="pay-row" id="payRow_0">
                         <select class="form-select pay-select method-select">
                             <option value="cash">💵 نقدي</option>
-                            <option value="card">💳 شبكة / كرت</option>
-                            <option value="bank">🏦 تحويل بنكي</option>
+                            <option value="card">💳 شبكة</option>
+                            <option value="bank">🏦 تحويل</option>
                         </select>
                         <input type="number" class="form-control pay-input amount-input" placeholder="0.00" oninput="calculateRemaining()">
                         <button class="btn-add-pay" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
@@ -275,9 +292,9 @@
             </div>
 
             {{-- المتبقي وزر الحفظ --}}
-            <div class="mt-3 pt-3 border-top border-secondary">
-                <div class="d-flex justify-content-between mb-3">
-                    <span id="diffLabel">المتبقي:</span>
+            <div class="mt-auto pt-2 border-top border-secondary">
+                <div class="d-flex justify-content-between mb-2">
+                    <span id="diffLabel" class="small">المتبقي:</span>
                     <span id="remainingAmount" class="fw-bold text-success">0.00</span>
                 </div>
             </div>
