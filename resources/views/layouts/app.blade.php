@@ -68,12 +68,114 @@
         /* --- تخصيصات الثيم --- */
         body { font-family: 'Nunito', sans-serif; background-color: #f3f4f6; overflow-x: hidden; }
 
-        /* القائمة الجانبية */
-        .sidebar { background-color: #342d50; min-height: 100vh; color: #fff; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-        .sidebar .nav-link { color: rgba(255,255,255,0.8) !important; padding: 12px 20px; border-right: 4px solid transparent; transition: all 0.2s; display: flex; align-items: center; text-decoration: none; font-size: 1rem; }
-        .sidebar .nav-link i { width: 30px; font-size: 1.2rem; margin-left: 10px; text-align: center; }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #4e3a88; color: #fff !important; border-right-color: #00d2d3; }
-        .sidebar-heading { font-size: 0.85rem; text-transform: uppercase; color: rgba(255,255,255,0.4); padding: 15px 20px 5px; font-weight: bold; }
+        /* القائمة الجانبية الحديثة */
+        .sidebar { 
+            background: linear-gradient(180deg, #2d2452 0%, #1a1436 100%); 
+            min-height: 100vh; 
+            color: #fff; 
+            box-shadow: 4px 0 25px rgba(0,0,0,0.1); 
+            z-index: 1001;
+            padding: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar .nav-item {
+            margin-bottom: 5px;
+        }
+
+        .sidebar .nav-link { 
+            color: rgba(255,255,255,0.7) !important; 
+            padding: 12px 15px; 
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            display: flex; 
+            align-items: center; 
+            text-decoration: none; 
+            font-size: 0.95rem; 
+            font-weight: 600;
+            margin: 0 5px;
+        }
+
+        .sidebar .nav-link i { 
+            width: 32px; 
+            height: 32px;
+            font-size: 1.1rem; 
+            margin-left: 12px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .sidebar .nav-link:hover { 
+            background-color: rgba(255,255,255,0.1); 
+            color: #fff !important; 
+            transform: translateX(-5px);
+        }
+
+        .sidebar .nav-link.active { 
+            background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+            color: #fff !important; 
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+        }
+
+        .sidebar .nav-link.active i {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .sidebar-heading { 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            color: rgba(255,255,255,0.3); 
+            padding: 20px 20px 10px; 
+            font-weight: 800; 
+            letter-spacing: 1px;
+        }
+
+        /* تنسيق القوائم الفرعية (Sub-menus) */
+        .nav-treeview {
+            padding-right: 15px;
+            margin-top: 5px;
+            list-style: none;
+        }
+
+        .sidebar .collapse {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            margin: 0 5px 10px;
+        }
+
+        .sidebar .collapse .nav-link {
+            font-size: 0.85rem;
+            padding: 10px 15px;
+            background: transparent !important;
+            border-radius: 8px;
+        }
+
+        .sidebar .collapse .nav-link:hover {
+            color: #6366f1 !important;
+            background: rgba(99, 102, 241, 0.05) !important;
+        }
+
+        .sidebar .collapse .nav-link.active {
+            color: #fff !important;
+            background: rgba(99, 102, 241, 0.2) !important;
+            box-shadow: none;
+        }
+
+        /* إصلاح السهم في القائمة المنسدلة */
+        .nav-link[data-bs-toggle="collapse"] .fa-angle-left {
+            transition: transform 0.3s ease;
+            margin-right: auto;
+            margin-left: 0;
+            background: transparent !important;
+        }
+
+        .nav-link[aria-expanded="true"] .fa-angle-left {
+            transform: rotate(-90deg);
+        }
 
         /* الهيدر العلوي */
         .navbar-custom { background-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 70px; z-index: 1000; }
@@ -132,6 +234,141 @@
         /* تنسيق خاص للقوائم */
         select.tax, select.discount-type {
             text-align-last: center;
+        }
+
+        /* --- Modern KPI Cards Design --- */
+        .kpi-card {
+            border: none;
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .kpi-card .card-body {
+            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .kpi-icon-container {
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover .kpi-icon-container {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        /* Color Variations with Gradients and Glassmorphism */
+        .kpi-primary { background: linear-gradient(135deg, rgba(78, 58, 136, 0.05) 0%, rgba(78, 58, 136, 0.12) 100%); }
+        .kpi-primary .kpi-icon-container { background: linear-gradient(135deg, #4e3a88 0%, #6b52b3 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(78, 58, 136, 0.4); }
+        .kpi-primary .kpi-value { color: #4e3a88; }
+
+        .kpi-success { background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.12) 100%); }
+        .kpi-success .kpi-icon-container { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4); }
+        .kpi-success .kpi-value { color: #059669; }
+
+        .kpi-danger { background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.12) 100%); }
+        .kpi-danger .kpi-icon-container { background: linear-gradient(135deg, #ef4444 0%, #f87171 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4); }
+        .kpi-danger .kpi-value { color: #dc2626; }
+
+        .kpi-warning { background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.12) 100%); }
+        .kpi-warning .kpi-icon-container { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.4); }
+        .kpi-warning .kpi-value { color: #d97706; }
+
+        .kpi-info { background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.12) 100%); }
+        .kpi-info .kpi-icon-container { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4); }
+        .kpi-info .kpi-value { color: #2563eb; }
+
+        .kpi-label { font-size: 0.875rem; font-weight: 700; color: #6b7280; margin-bottom: 0.25rem; }
+        .kpi-value { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.025em; }
+        
+        /* RTL Fixes */
+        [dir="rtl"] .kpi-icon-container { margin-left: 0; margin-right: 0; }
+        [dir="rtl"] .me-3 { margin-left: 1rem !important; margin-right: 0 !important; }
+
+        /* --- Premium Buttons Design --- */
+        .btn {
+            border-radius: 12px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 700;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Primary Button */
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        /* Success Button */
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Danger Button */
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Secondary/Outline Styles */
+        .btn-outline-secondary {
+            border: 2px solid #e5e7eb;
+            color: #4b5563;
+            background: transparent;
+        }
+        .btn-outline-secondary:hover {
+            background: #f3f4f6;
+            color: #1f2937;
+            border-color: #d1d5db;
         }
     </style>
 
@@ -505,49 +742,40 @@
                                     </a>
                                 </li>
 {{-- قائمة المبيعات --}}
-<li class="nav-item {{ request()->routeIs('store.pos.*') ? 'menu-open' : '' }}">
-    <a href="#" class="nav-link {{ request()->routeIs('store.pos.*') ? 'active' : '' }}">
+<li class="nav-item">
+    <a href="#salesCollapse" class="nav-link {{ request()->routeIs('store.pos.*') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ request()->routeIs('store.pos.*') ? 'true' : 'false' }}">
         <i class="nav-icon fas fa-cash-register"></i>
-        <p>
-            المبيعات
-            <i class="right fas fa-angle-left"></i>
-        </p>
+        <span>المبيعات</span>
+        <i class="fas fa-angle-left ms-auto"></i>
     </a>
-    <ul class="nav nav-treeview">
-        {{-- رابط نقطة البيع --}}
-        <li class="nav-item">
-            <a href="{{ route('store.pos.index') }}" class="nav-link {{ request()->routeIs('store.pos.index') ? 'active' : '' }}">
-                <i class="far fa-circle nav-icon"></i>
-                <p>نقطة بيع (POS)</p>
-            </a>
-        </li>
-        
-        {{-- يمكنك إضافة رابط الفواتير هنا مستقبلاً --}}
-        {{-- 
-        <li class="nav-item">
-            <a href="#" class="nav-link">
-                <i class="far fa-circle nav-icon"></i>
-                <p>سجل الفواتير</p>
-            </a>
-        </li> 
-        --}}
-    </ul>
+    <div class="collapse {{ request()->routeIs('store.pos.*') ? 'show' : '' }}" id="salesCollapse">
+        <ul class="nav flex-column ps-3">
+            <li class="nav-item">
+                <a href="{{ route('store.pos.index') }}" class="nav-link {{ request()->routeIs('store.pos.index') ? 'active' : '' }}">
+                    <i class="far fa-circle"></i>
+                    <span>نقطة بيع (POS)</span>
+                </a>
+            </li>
+        </ul>
+    </div>
 </li>
                                 <li class="sidebar-heading">الإعدادات</li>
     {{-- قسم التقارير --}}
 <li class="nav-item">
-    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#reportsCollapse">
-        <i class="fas fa-chart-line fa-fw me-2"></i>
+    <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : 'collapsed' }}" href="#" data-bs-toggle="collapse" data-bs-target="#reportsCollapse" aria-expanded="{{ request()->routeIs('reports.*') ? 'true' : 'false' }}">
+        <i class="fas fa-chart-line"></i>
         <span>التقارير</span>
-        <i class="fas fa-angle-down ms-auto"></i>
+        <i class="fas fa-angle-left ms-auto"></i>
     </a>
-    <div id="reportsCollapse" class="collapse" data-bs-parent="#accordionSidebar">
-        <div class="bg-white py-2 collapse-inner rounded">
-            <h6 class="collapse-header">التقارير المالية:</h6>
-            <a class="collapse-item" href="{{ route('reports.shifts') }}">
-                <i class="fas fa-cash-register me-1"></i> تقرير الصناديق
-            </a>
-        </div>
+    <div id="reportsCollapse" class="collapse {{ request()->routeIs('reports.*') ? 'show' : '' }}">
+        <ul class="nav flex-column ps-3">
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('reports.shifts') ? 'active' : '' }}" href="{{ route('reports.shifts') }}">
+                    <i class="fas fa-cash-register"></i> 
+                    <span>تقرير الصناديق</span>
+                </a>
+            </li>
+        </ul>
     </div>
 </li>
                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.settings.*') ? 'active' : '' }}" href="{{ route('store.settings.index') }}"><i class="fa fa-cogs"></i> الإعدادات</a></li>
