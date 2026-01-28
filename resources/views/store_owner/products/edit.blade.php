@@ -1,0 +1,332 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container-fluid">
+    {{-- 🔥 قسم عرض الأخطاء المفقود سابقاً 🔥 --}}
+    @if(session('error'))
+        <div class="alert alert-danger shadow-sm">
+            <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div class="alert alert-success shadow-sm">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger shadow-sm">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <form action="{{ route('store.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" id="productForm" novalidate>
+        @csrf @method('PUT')
+        
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-edit me-2"></i> تعديل المنتج: {{ $product->name_ar }}</h5>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {{ $product->is_active ? 'checked' : '' }}>
+                    <label class="form-check-label fw-bold text-white" for="is_active">منتج فعال</label>
+                </div>
+            </div>
+            
+            <div class="card-body bg-light">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">اسم المنتج (عربي)</label>
+                        <input type="text" name="name_ar" class="form-control" value="{{ old('name_ar', $product->name_ar) }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">اسم المنتج (إنجليزي)</label>
+                        <input type="text" name="name_en" class="form-control" value="{{ old('name_en', $product->name_en) }}">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">التصنيف</label>
+                        <select name="category_id" class="form-select" required>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الوصف</label>
+                        <input type="text" name="description" class="form-control" value="{{ old('description', $product->description) }}">
+                    </div>
+                </div>
+
+                <hr class="my-4 text-secondary">
+
+                {{-- الوحدة الأساسية --}}
+                @php $base = $product->baseUnit; @endphp
+                <div class="card border-success shadow-sm mb-3">
+                    <div class="card-header bg-success text-white fw-bold">
+                        <i class="fas fa-cube me-1"></i> الوحدة الأساسية
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-2 text-center">
+                                <label class="form-label small fw-bold">صورة الوحدة</label>
+                                <div class="position-relative">
+                                    <img id="base_preview" src="{{ $product->getFirstMediaUrl('products') ?: asset('images/default-product.png') }}" class="img-thumbnail mb-2" style="height: 120px; width: 120px; object-fit: contain;">
+                                    <input type="file" name="base_unit_image" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'base_preview')">
+                                </div>
+                            </div>
+
+                            <div class="col-md-10">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label small">اسم الوحدة</label>
+                                        @php 
+                                            $currentUnitName = old('base_unit_name', $base->unit_name);
+                                            $isCustom = !in_array($currentUnitName, ['قطعة', 'كيلو', 'علبة']);
+                                            $selectVal = $isCustom ? 'custom' : $currentUnitName;
+                                        @endphp
+                                        <select name="base_unit_select" class="form-select" onchange="handleBaseUnitChange(this)">
+                                            <option value="قطعة" {{ $selectVal == 'قطعة' ? 'selected' : '' }}>قطعة</option>
+                                            <option value="كيلو" {{ $selectVal == 'كيلو' ? 'selected' : '' }}>كيلو</option>
+                                            <option value="علبة" {{ $selectVal == 'علبة' ? 'selected' : '' }}>علبة</option>
+                                            <option value="custom" {{ $selectVal == 'custom' ? 'selected' : '' }}>مخصص..</option>
+                                        </select>
+                                        <input type="text" name="base_unit_name" id="base_unit_input" class="form-control {{ $isCustom ? '' : 'd-none' }} mt-1" value="{{ $currentUnitName }}">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">باركود الوحدة</label>
+                                        <input type="text" name="base_barcode" class="form-control" value="{{ old('base_barcode', $base->barcode) }}">
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        <label class="form-label small">عدد القطع بالعبوة</label>
+                                        <input type="number" step="any" name="pieces_per_unit" id="pieces_per_unit" class="form-control text-center" value="{{ old('pieces_per_unit', (float)$base->conversion_factor) }}" oninput="calculateBaseCost()">
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        <label class="form-label small text-danger fw-bold">سعر الشراء</label>
+                                        <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', (float)$base->purchase_price) }}" required oninput="calculateBaseCost()">
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        <label class="form-label small text-muted">التكلفة (للقطعة)</label>
+                                        <input type="text" id="calculated_base_cost" class="form-control bg-light text-center fw-bold" readonly>
+                                        <input type="hidden" name="base_cost_price" id="base_cost">
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        <label class="form-label small">الربح %</label>
+                                        <input type="number" step="any" name="base_profit_percent" id="base_margin" class="form-control text-center text-primary" value="{{ old('base_profit_percent', (float)$base->profit_percent) }}" oninput="calculatePriceFromMargin('base')">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label small text-success fw-bold">سعر البيع</label>
+                                        <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', (float)$base->selling_price) }}" required oninput="calculateMargin('base')">
+                                    </div>
+                                    
+                                    <div class="col-md-3">
+                                        <label class="form-label small">الضريبة المضافة</label>
+                                        <select name="tax_percent" id="tax_percent" class="form-select bg-warning bg-opacity-10" onchange="calculatePriceWithTax()">
+                                            @php $storeTaxes = explode(',', Auth::user()->store->tax_rates ?? '0,15'); @endphp
+                                            @foreach($storeTaxes as $rate)
+                                                <option value="{{ $rate }}" {{ $product->tax_percent == $rate ? 'selected' : '' }}>{{ $rate }}%</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-3">
+                                        <label class="form-label small text-muted">السعر مع الضريبة</label>
+                                        <input type="text" id="price_with_tax" class="form-control bg-light fw-bold text-success" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold text-dark"><i class="fas fa-layer-group me-1"></i> الوحدات الإضافية</h6>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addExtraUnit()"><i class="fa fa-plus"></i> إضافة وحدة</button>
+                </div>
+                <div id="extra_units_container"></div>
+
+                <hr class="my-4">
+
+                <div class="row align-items-end g-3">
+                    {{-- حد تنبيه نقص الكمية --}}
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted">تنبيه نقص الكمية (بالقطعة)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-warning bg-opacity-25"><i class="fas fa-boxes"></i></span>
+                            <input type="number" name="alert_quantity" class="form-control text-center fw-bold" value="{{ $product->alert_quantity }}">
+                        </div>
+                    </div>
+
+                    {{-- 🔥 الحقل الجديد: حد تنبيه انتهاء الصلاحية --}}
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-danger">تنبيه قرب انتهاء الصلاحية (بالأيام)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-danger bg-opacity-10 text-danger"><i class="fas fa-hourglass-half"></i></span>
+                            <input type="number" name="expiry_warning_days" class="form-control text-center fw-bold text-danger border-danger" 
+                                   value="{{ $product->expiry_warning_days ?? 30 }}" placeholder="مثال: 30">
+                        </div>
+                        <div class="form-text small">سينبهك النظام قبل انتهاء المنتج بهذا العدد من الأيام.</div>
+                    </div>
+
+                    {{-- زر الحفظ --}}
+                    <div class="col-md-4 text-end">
+                        <button type="submit" class="btn btn-success btn-lg px-5 shadow w-100"><i class="fas fa-save me-2"></i> حفظ التعديلات</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<template id="unit_template">
+    <div class="unit-row card border-secondary mb-2 shadow-sm position-relative">
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-2 bg-danger" onclick="this.closest('.unit-row').remove()"></button>
+        <input type="hidden" name="units[INDEX][id]" class="unit-id">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-2 text-center">
+                    {{-- الصورة الافتراضية هنا --}}
+                    <img src="{{ asset('images/default-product.png') }}" class="img-thumbnail unit-img-preview" style="width: 100px; height: 100px; object-fit: contain;">
+                    <input type="file" name="units[INDEX][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="previewImage(this)">
+                </div>
+                <div class="col-md-10">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="small fw-bold">اسم الوحدة</label>
+                            <select name="units[INDEX][name_select]" class="form-select form-select-sm unit-select fw-bold" onchange="handleUnitChange(this)">
+                                <option value="كرتون">كرتون</option>
+                                <option value="درزن">درزن</option>
+                                <option value="شريط">شريط</option>
+                                <option value="custom">مخصص..</option>
+                            </select>
+                            <input type="text" name="units[INDEX][name]" class="form-control form-control-sm d-none mt-1 unit-custom-input fw-bold" placeholder="اكتب الاسم">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="small fw-bold">التحويل</label>
+                            <input type="number" name="units[INDEX][factor]" class="form-control form-control-sm unit-factor fw-bold" value="1" oninput="calculateUnitCost(this)">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small fw-bold">الباركود</label>
+                            <input type="text" name="units[INDEX][barcode]" class="form-control form-control-sm fw-bold">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end justify-content-start gap-3">
+                            <div class="form-check">
+                                {{-- ⚠️ تمت إزالة checked من هنا --}}
+                                <input class="form-check-input unit-buy" type="checkbox" name="units[INDEX][is_purchase]">
+                                <label class="form-check-label small fw-bold">شراء</label>
+                            </div>
+                            <div class="form-check">
+                                {{-- ⚠️ تمت إزالة checked من هنا --}}
+                                <input class="form-check-input unit-sell-check" type="checkbox" name="units[INDEX][is_sale]">
+                                <label class="form-check-label small fw-bold">بيع</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold">التكلفة (آلي)</label>
+                            <input type="number" name="units[INDEX][cost_price]" class="form-control form-control-sm bg-light unit-cost fw-bold text-danger" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-primary">الربح %</label>
+                            <input type="number" step="any" name="units[INDEX][profit_percent]" class="form-control form-control-sm unit-profit fw-bold text-primary" oninput="calcExtraUnitSell(this)">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-success fw-bold">سعر البيع</label>
+                            <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success" oninput="calcExtraUnitProfit(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+@section('scripts')
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        calculateBaseCost(); 
+        calculatePriceWithTax();
+
+        @foreach($product->units->where('is_base_unit', false) as $unit)
+            addExtraUnit({
+                id: '{{ $unit->id }}',
+                name: '{{ $unit->unit_name }}',
+                factor: {{ (float)$unit->conversion_factor }},
+                barcode: '{{ $unit->barcode }}',
+                cost: {{ (float)$unit->cost_price }},
+                profit: {{ (float)$unit->profit_percent }},
+                selling: {{ (float)$unit->selling_price }},
+                // تحويل 1/0 إلى true/false للجافاسكريبت
+                is_purchase: {{ $unit->is_purchase ? 'true' : 'false' }},
+                is_sale: {{ $unit->is_sale ? 'true' : 'false' }},
+                // ضمان وجود رابط صورة صالح
+                image: '{{ $unit->getFirstMediaUrl("unit_images") }}'
+            });
+        @endforeach
+    });
+
+    // ... (نفس الدوال المساعدة السابقة: formatNum, previewImage, الخ) ...
+    function formatNum(num) { return isNaN(num) ? 0 : parseFloat(parseFloat(num).toFixed(10)); }
+    function previewImage(input, imgId) { let img = imgId ? document.getElementById(imgId) : input.previousElementSibling; if (input.files && input.files[0]) { let r = new FileReader(); r.onload = (e) => { img.src = e.target.result; }; r.readAsDataURL(input.files[0]); } }
+    function handleBaseUnitChange(s) { let i=document.getElementById('base_unit_input'); if(s.value=='custom'){i.classList.remove('d-none');i.value='';i.focus();}else{i.classList.add('d-none');i.value=s.value;} }
+    function handleUnitChange(s) { let i=s.nextElementSibling; if(s.value=='custom'){i.classList.remove('d-none');i.value='';i.focus();}else{i.classList.add('d-none');i.value=s.value;} }
+    function calculateBaseCost() { let p=parseFloat(document.getElementById('purchase_price').value)||0; let f=parseFloat(document.getElementById('pieces_per_unit').value)||1; let c=(f>0)?(p/f):0; document.getElementById('base_cost').value=c; document.getElementById('calculated_base_cost').value=formatNum(c); updateAllUnitsCosts(); calculateMargin('base'); }
+    function calculateUnitCost(i) { let r=i.closest('.unit-row'); let b=parseFloat(document.getElementById('base_cost').value)||0; let f=parseFloat(r.querySelector('.unit-factor').value)||0; r.querySelector('.unit-cost').value=formatNum(b*f); let p=r.querySelector('.unit-profit'); calcExtraUnitSell(p); }
+    function updateAllUnitsCosts() { document.querySelectorAll('.unit-factor').forEach(i=>calculateUnitCost(i)); }
+    function calculatePriceWithTax() { let p=parseFloat(document.getElementById('base_sell').value)||0; let t=parseFloat(document.getElementById('tax_percent').value)||0; document.getElementById('price_with_tax').value=formatNum(p*(1+(t/100))); }
+    function calculateMargin(t) { if(t==='base'){ let c=parseFloat(document.getElementById('base_cost').value)||0; let s=parseFloat(document.getElementById('base_sell').value)||0; if(c>0) document.getElementById('base_margin').value=formatNum(((s-c)/c)*100); calculatePriceWithTax(); } }
+    function calculatePriceFromMargin(t) { if(t==='base'){ let c=parseFloat(document.getElementById('base_cost').value)||0; let m=parseFloat(document.getElementById('base_margin').value)||0; document.getElementById('base_sell').value=formatNum(c*(1+(m/100))); calculatePriceWithTax(); } }
+    function calcExtraUnitSell(i) { let r=i.closest('.unit-row'); let c=parseFloat(r.querySelector('.unit-cost').value)||0; let m=parseFloat(i.value)||0; if(c>0) r.querySelector('.unit-sell').value=formatNum(c*(1+(m/100))); }
+    function calcExtraUnitProfit(i) { let r=i.closest('.unit-row'); let c=parseFloat(r.querySelector('.unit-cost').value)||0; let s=parseFloat(i.value)||0; if(c>0) r.querySelector('.unit-profit').value=formatNum(((s-c)/c)*100); }
+
+    let unitIndex = 0;
+    function addExtraUnit(data = null) {
+        let tpl = document.getElementById('unit_template').innerHTML.replace(/INDEX/g, unitIndex);
+        document.getElementById('extra_units_container').insertAdjacentHTML('beforeend', tpl);
+        let row = document.getElementById('extra_units_container').lastElementChild;
+
+        if(data) {
+            // --- حالة التعديل (وحدة موجودة) ---
+            if(data.id) row.querySelector('.unit-id').value = data.id;
+            
+            let sel = row.querySelector('.unit-select');
+            let inp = row.querySelector('.unit-custom-input');
+            if(['كرتون','درزن','شريط'].includes(data.name)) sel.value = data.name;
+            else { sel.value = 'custom'; inp.classList.remove('d-none'); inp.value = data.name; }
+
+            row.querySelector('.unit-factor').value = data.factor;
+            row.querySelector('[name*="[barcode]"]').value = data.barcode;
+            row.querySelector('.unit-cost').value = data.cost;
+            row.querySelector('.unit-profit').value = data.profit;
+            row.querySelector('.unit-sell').value = data.selling;
+            
+            // 🔥 إصلاح الـ Checkboxes للبيانات القديمة 🔥
+            row.querySelector('.unit-buy').checked = data.is_purchase;
+            row.querySelector('.unit-sell-check').checked = data.is_sale;
+            
+            // 🔥 إصلاح عرض الصورة 🔥
+            // إذا كان هناك رابط صورة، ضعه في الـ src، وإلا اترك الصورة الافتراضية
+            if(data.image && data.image.length > 0) {
+                row.querySelector('.unit-img-preview').src = data.image;
+            }
+        } else {
+            // --- حالة إضافة وحدة جديدة يدوياً ---
+            // نجعل الـ Checkboxes مفعلة افتراضياً عند إضافة وحدة جديدة
+            row.querySelector('.unit-buy').checked = true;
+            row.querySelector('.unit-sell-check').checked = true;
+        }
+        
+        unitIndex++;
+    }
+</script>
+@endsection
+@endsection

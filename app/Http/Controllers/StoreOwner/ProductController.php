@@ -1,0 +1,476 @@
+<?php
+
+namespace App\Http\Controllers\StoreOwner;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Product;
+use App\Models\ProductUnit;
+use App\Models\Category;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
+
+class ProductController extends Controller
+{
+    public function index(Request $request)
+    {
+        $storeId = Auth::user()->store->id;
+        $query = Product::where('store_id', $storeId)->with(['baseUnit', 'category']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name_ar', 'like', "%{$search}%")
+                  ->orWhere('name_en', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhereHas('units', function($q2) use ($search) {
+                      $q2->where('barcode', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($request->has('category_id') && !empty($request->category_id)) {
+             $query->whereIn('category_id', (array)$request->category_id);
+        }
+
+        if ($request->has('status') && $request->status != '') {
+            $query->where('is_active', $request->status);
+        }
+
+        $products = $query->latest()->paginate($request->input('per_page', 10))->withQueryString();
+
+        $prodStats = [
+            'total' => \App\Models\Product::where('store_id', $storeId)->count(),
+            'low_stock' => \App\Models\Product::where('store_id', $storeId)
+                            ->whereColumn('current_stock', '<=', 'alert_quantity') 
+                            ->where('current_stock', '>', 0)
+                            ->count(),
+            'out_of_stock' => \App\Models\Product::where('store_id', $storeId)
+                            ->where('current_stock', '<=', 0)
+                            ->count(),
+        ];
+
+        $categories = \App\Models\Category::where('store_id', $storeId)->get();
+
+        if ($request->ajax()) {
+            return view('store_owner.products.partials.table_rows', compact('products'))->render();
+        }
+
+        return view('store_owner.products.index', compact('products', 'prodStats', 'categories'));
+    }
+
+    public function create() 
+    { 
+        $store = Auth::user()->store; 
+        $categories = Category::where('store_id', $store->id)->get(); 
+        $taxRates = explode(',', $store->tax_rates ?? '0,15');
+        return view('store_owner.products.create', compact('categories', 'store', 'taxRates')); 
+    }
+
+    public function store(Request $request) 
+    {
+        if (empty($request->base_unit_name) && $request->filled('base_unit_select')) {
+            $request->merge(['base_unit_name' => $request->base_unit_select]);
+        }
+
+        $request->validate([
+            'name_ar' => 'required|string|max:255',
+            'category_id' => 'required',
+            'base_unit_name' => 'required',
+            'base_barcode' => 'nullable|unique:product_units,barcode',
+        ]);
+
+        try {
+            DB::beginTransaction();
+            
+            $barcode = $request->base_barcode;
+            if (empty($barcode)) {
+                do {
+                    $barcode = str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT);
+                } while (ProductUnit::where('barcode', $barcode)->exists());
+            }
+
+            $product = Product::create([
+                'store_id' => Auth::user()->store->id,
+                'name_ar' => $request->name_ar,
+                'name_en' => $request->name_en,
+                'category_id' => $request->category_id,
+                'description' => $request->description,
+                'sku' => $barcode,
+                'alert_quantity' => $request->alert_quantity ?? 5,
+                'expiry_warning_days' => $request->expiry_warning_days ?? 30,
+                'tax_percent' => $request->tax_percent ?? 0,
+                'is_active' => $request->has('is_active'),
+            
+            ]);
+
+            if ($request->hasFile('base_unit_image')) {
+                $product->addMediaFromRequest('base_unit_image')->toMediaCollection('products');
+            }
+
+            $factor = (float)($request->pieces_per_unit ?? 1);
+            $purchasePrice = (float)$request->purchase_price;
+            $baseCost = ($factor > 0) ? ($purchasePrice / $factor) : 0;
+
+            $product->units()->create([
+                'unit_name' => $request->base_unit_name, 
+                'conversion_factor' => $factor,
+                'purchase_price' => $purchasePrice,
+                'cost_price' => $baseCost,
+                'selling_price' => (float)$request->base_selling_price,
+                'profit_percent' => (float)$request->base_profit_percent,
+                'barcode' => $barcode,
+                'is_base_unit' => true,
+                'is_purchase' => true, 
+                'is_sale' => true,
+            ]);
+
+            if ($request->has('units') && is_array($request->units)) {
+                foreach ($request->units as $index => $unitData) {
+                    $uName = (!empty($unitData['name'])) ? $unitData['name'] : ($unitData['name_select'] ?? 'وحدة');
+                    
+                    $uBarcode = $unitData['barcode'] ?? null;
+                    if (empty($uBarcode)) {
+                        do {
+                            $uBarcode = str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT);
+                        } while (ProductUnit::where('barcode', $uBarcode)->exists());
+                    }
+
+                    $uFactor = (float)($unitData['factor'] ?? 1);
+                    $uCost = $baseCost * $uFactor;
+
+                    $extraUnit = $product->units()->create([
+                        'unit_name' => $uName,
+                        'conversion_factor' => $uFactor,
+                        'barcode' => $uBarcode,
+                        'cost_price' => $uCost,
+                        'selling_price' => (float)($unitData['selling_price'] ?? 0),
+                        'profit_percent' => (float)($unitData['profit_percent'] ?? 0),
+                        'is_base_unit' => false,
+                        'is_purchase' => isset($unitData['is_purchase']),
+                        'is_sale' => isset($unitData['is_sale']),
+                    ]);
+                    
+                    if ($request->hasFile("units.$index.image")) {
+                        $extraUnit->addMediaFromRequest("units.$index.image")->toMediaCollection('unit_images');
+                    }
+                }
+            }
+
+            DB::commit();
+            return redirect()->route('store.products.index')->with('success', 'تم حفظ المنتج والوحدات بنجاح.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'حدث خطأ أثناء الحفظ: ' . $e->getMessage());
+        }
+    }
+
+    public function edit(Product $product) { 
+        if ($product->store_id !== Auth::user()->store->id) abort(403);
+        $categories = Category::where('store_id', Auth::user()->store->id)->get();
+        return view('store_owner.products.edit', compact('product', 'categories'));
+    }
+
+    public function update(Request $request, Product $product)
+    {
+        if ($product->store_id !== Auth::user()->store->id) abort(403);
+
+        if ($request->filled('base_unit_select') && $request->base_unit_select !== 'custom') {
+            $request->merge(['base_unit_name' => $request->base_unit_select]);
+        }
+
+        $request->validate([
+            'name_ar' => 'required|string|max:255',
+            'category_id' => 'required',
+            'base_unit_name' => 'required',
+            'purchase_price' => 'required|numeric|min:0',
+        ]);
+
+        if ($request->filled('base_barcode')) {
+            $exists = ProductUnit::where('barcode', $request->base_barcode)
+                ->where('product_id', '!=', $product->id)
+                ->exists();
+
+            if ($exists) {
+                return back()->withInput()->withErrors(['base_barcode' => 'هذا الباركود مستخدم بالفعل لمنتج آخر!']);
+            }
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $product->update([
+                'name_ar' => $request->name_ar,
+                'name_en' => $request->name_en,
+                'category_id' => $request->category_id,
+                'description' => $request->description,
+                'sku' => $request->base_barcode, 
+                'alert_quantity' => $request->alert_quantity,
+                'expiry_warning_days' => $request->expiry_warning_days,
+                'tax_percent' => $request->tax_percent ?? 0,
+                'is_active' => $request->has('is_active'),
+            ]);
+
+            if ($request->hasFile('base_unit_image')) {
+                $product->clearMediaCollection('products');
+                $product->addMediaFromRequest('base_unit_image')->toMediaCollection('products');
+            }
+
+            $factor = (float)($request->pieces_per_unit ?? 1);
+            $purchasePrice = (float)$request->purchase_price;
+            $baseCost = ($factor > 0) ? ($purchasePrice / $factor) : 0;
+
+            $product->baseUnit()->update([
+                'unit_name' => $request->base_unit_name,
+                'conversion_factor' => $factor,
+                'purchase_price' => $purchasePrice,
+                'cost_price' => $baseCost,
+                'selling_price' => (float)$request->base_selling_price,
+                'profit_percent' => (float)$request->base_profit_percent,
+                'barcode' => $request->base_barcode,
+            ]);
+
+            $submittedUnitIds = [];
+            if ($request->has('units') && is_array($request->units)) {
+                foreach ($request->units as $u) {
+                    if (isset($u['id'])) $submittedUnitIds[] = $u['id'];
+                }
+            }
+            
+            $product->units()->where('is_base_unit', false)->whereNotIn('id', $submittedUnitIds)->delete();
+
+            if ($request->has('units') && is_array($request->units)) {
+                foreach ($request->units as $index => $unitData) {
+                    $uName = (!empty($unitData['name'])) ? $unitData['name'] : ($unitData['name_select'] ?? 'وحدة');
+                    if($uName == 'custom') $uName = $unitData['name'] ?? 'وحدة';
+
+                    $uFactor = (float)($unitData['factor'] ?? 1);
+                    $uCost = $baseCost * $uFactor;
+
+                    $data = [
+                        'unit_name' => $uName,
+                        'conversion_factor' => $uFactor,
+                        'barcode' => $unitData['barcode'] ?? null,
+                        'cost_price' => $uCost,
+                        'selling_price' => (float)($unitData['selling_price'] ?? 0),
+                        'profit_percent' => (float)($unitData['profit_percent'] ?? 0),
+                        'is_base_unit' => false,
+                        'is_purchase' => isset($unitData['is_purchase']),
+                        'is_sale' => isset($unitData['is_sale']),
+                        'product_id' => $product->id,
+                    ];
+
+                    if (isset($unitData['id'])) {
+                        $existingUnit = ProductUnit::find($unitData['id']);
+                        if ($existingUnit) {
+                            $existingUnit->update($data);
+                            if ($request->hasFile("units.$index.image")) {
+                                $existingUnit->clearMediaCollection('unit_images');
+                                $existingUnit->addMediaFromRequest("units.$index.image")->toMediaCollection('unit_images');
+                            }
+                        }
+                    } else {
+                        $newUnit = ProductUnit::create($data);
+                        if ($request->hasFile("units.$index.image")) {
+                            $newUnit->addMediaFromRequest("units.$index.image")->toMediaCollection('unit_images');
+                        }
+                    }
+                }
+            }
+
+            DB::commit();
+            return redirect()->route('store.products.index')->with('success', 'تم تعديل المنتج بنجاح.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'حدث خطأ: ' . $e->getMessage());
+        }
+    }
+    
+    public function destroy(Product $product) { $product->delete(); return back()->with('success', 'تم الحذف'); }
+
+   // =========================================================
+    // 🔥 إدارة الدفعات (Batches) بدقة عالية 🔥
+    // =========================================================
+
+    public function expiredManager()
+    {
+        $storeId = Auth::user()->store_id;
+
+        // 1. جلب المنتجات المنتهية أو القريبة (كما كانت)
+        $expiredBatches = \App\Models\ProductBatch::whereHas('product', function($q) use ($storeId) {
+                $q->where('store_id', $storeId);
+            })
+            ->where('quantity', '>', 0)
+            ->where('expiry_date', '<=', \Carbon\Carbon::now()->addDays(30))
+            ->with('product')
+            ->orderBy('expiry_date', 'asc')
+            ->get();
+
+        // 2. جلب المنتجات منخفضة المخزون (الإضافة الجديدة) 🔥
+        $lowStockProducts = Product::where('store_id', $storeId)
+            ->whereColumn('current_stock', '<=', 'alert_quantity')
+            ->orderBy('current_stock', 'asc')
+            ->get();
+
+        return view('store_owner.products.expired_manager', compact('expiredBatches', 'lowStockProducts'));
+    }
+
+    // إتلاف دفعة محددة (Batch)
+    public function disposeExpired(Request $request)
+    {
+        // نستلم ID الدفعة وليس المنتج
+        $batch = \App\Models\ProductBatch::findOrFail($request->batch_id);
+        
+        // حماية: منع إتلاف دفعة غير منتهية عن طريق الخطأ (إلا إذا أردت السماح بذلك)
+        if ($batch->expiry_date >= now()->startOfDay()) {
+            return back()->with('error', 'تنبيه: هذه الدفعة لم تنتهِ صلاحيتها بعد! استخدم خيار تعديل التاريخ.');
+        }
+
+        $qty = $batch->quantity;
+        $product = $batch->product;
+
+        DB::beginTransaction();
+        try {
+            // تصفير الدفعة
+            $batch->quantity = 0;
+            $batch->save();
+
+            // تحديث مخزون المنتج الرئيسي
+            $product->current_stock = $product->batches()->sum('quantity');
+            
+            // تحديث تاريخ المنتج الرئيسي لأقرب تاريخ قادم
+            $nextBatch = $product->batches()->where('quantity', '>', 0)->orderBy('expiry_date', 'asc')->first();
+            $product->expiry_date = $nextBatch ? $nextBatch->expiry_date : null;
+            
+            $product->save();
+
+            DB::commit();
+            return back()->with('success', "تم إتلاف الدفعة المنتهية ($qty قطعة) بنجاح.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'حدث خطأ: ' . $e->getMessage());
+        }
+    }
+
+    // تجديد صلاحية دفعة محددة
+    public function renewExpiry(Request $request)
+    {
+        $request->validate([
+            'new_date' => 'required|date', // سمحنا بتاريخ اليوم أو غداً
+        ]);
+
+        $batch = \App\Models\ProductBatch::findOrFail($request->batch_id);
+        $product = $batch->product;
+        
+        $batch->expiry_date = $request->new_date;
+        $batch->save();
+
+        // تحديث المنتج الرئيسي ليعكس أقرب تاريخ جديد
+        $nextBatch = $product->batches()->where('quantity', '>', 0)->orderBy('expiry_date', 'asc')->first();
+        if ($nextBatch) {
+            $product->expiry_date = $nextBatch->expiry_date;
+            $product->save();
+        }
+
+        Log::warning("تجديد صلاحية دفعة يدوياً", [
+            'user' => Auth::user()->name,
+            'product' => $product->name_ar,
+            'old_date' => $batch->getOriginal('expiry_date'),
+            'new_date' => $request->new_date
+        ]);
+
+        return back()->with('success', 'تم تعديل تاريخ الصلاحية بنجاح.');
+    }
+    
+    // =========================================================
+    
+    public function checkBarcode(Request $request)
+    {
+        $barcode = $request->barcode;
+        if (!$barcode) return response()->json(['exists' => false]);
+
+        $exists = ProductUnit::whereHas('product', function($q) {
+            $q->where('store_id', Auth::user()->store->id);
+        })->where('barcode', $barcode)->first();
+
+        if ($exists) {
+            return response()->json([
+                'exists' => true,
+                'product_name' => $exists->product->name_ar,
+                'product_id' => $exists->product_id
+            ]);
+        }
+        return response()->json(['exists' => false]);
+    }
+
+   public function search(Request $request)
+    {
+        $term = $request->term; 
+        $storeId = Auth::user()->store->id;
+
+        $products = Product::where('store_id', $storeId)
+            ->where(function($q) use ($term) {
+                $q->where('name_ar', 'LIKE', "%{$term}%")
+                  ->orWhere('sku', 'LIKE', "%{$term}%")
+                  ->orWhereHas('units', function($q2) use ($term) {
+                      $q2->where('barcode', 'LIKE', "%{$term}%");
+                  });
+            })
+            ->with(['units' => function($q) {
+                $q->select(
+                    'id', 
+                    'product_id', 
+                    'unit_name', 
+                    'conversion_factor', 
+                    'purchase_price', 
+                    'cost_price', 
+                    'selling_price', 
+                    'barcode', 
+                    'is_base_unit'
+                );
+            }])
+            ->take(20) 
+            ->get();
+
+        return response()->json($products);
+    }
+
+    // ==========================================
+    // 🔥 الدوال الجديدة (الآن هي داخل الكلاس بشكل صحيح) 🔥
+    // ==========================================
+
+    // تحديث المخزون السريع (على مسؤولية المحرر)
+    public function quickUpdateStock(Request $request)
+    {
+        $product = Product::where('id', $request->product_id)->where('store_id', Auth::user()->store->id)->firstOrFail();
+        
+        $oldStock = $product->current_stock;
+        $product->current_stock = $request->new_stock;
+        $product->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "تم تحديث المخزون من " . (float)$oldStock . " إلى " . (float)$product->current_stock,
+        ]);
+    }
+
+    // تحديث حد التنبيه السريع
+    public function quickUpdateAlert(Request $request)
+    {
+        $product = Product::where('id', $request->product_id)->where('store_id', Auth::user()->store->id)->firstOrFail();
+        
+        $product->alert_quantity = $request->new_alert;
+        $product->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "تم تعديل حد التنبيه ليصبح " . (float)$product->alert_quantity,
+        ]);
+    }
+
+} // ✅ هذا القوس هو نهاية الملف ويغلق الكلاس كاملاً

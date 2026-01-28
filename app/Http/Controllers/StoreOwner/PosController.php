@@ -1,0 +1,717 @@
+<?php
+
+namespace App\Http\Controllers\StoreOwner;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Product;
+use App\Models\Contact;
+use App\Models\Sale;
+use App\Models\SaleItem;
+use App\Models\Payment;
+use App\Models\ProductUnit;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Services\InventoryService;
+use Illuminate\Support\Facades\Http; // ضروري للواتساب
+use Illuminate\Support\Facades\Log;  // ضروري لتسجيل الأخطاء
+use Illuminate\Support\Facades\Mail; // <--- أضف هذا السطر ضروري جداً
+
+class PosController extends Controller
+{
+    public function index()
+    {
+        try { \Illuminate\Support\Facades\Artisan::call('optimize:clear'); } catch (\Exception $e) {}
+        $nextInvoice = 'INV-' . date('ymd-Hi');
+        return view('store_owner.pos.index', compact('nextInvoice'));
+    }
+
+    // 1. بحث المنتجات
+    public function searchProducts(Request $request)
+    {
+        try {
+            $term = $request->term;
+            $storeId = Auth::user()->store->id;
+
+            $products = Product::where('store_id', $storeId)
+                ->where('is_active', true)
+                ->where(function($q) use ($term) {
+                    $q->where('name_ar', 'LIKE', "%{$term}%")
+                      ->orWhere('sku', 'LIKE', "%{$term}%")
+                      ->orWhereHas('units', function($q2) use ($term) {
+                          $q2->where('barcode', 'LIKE', "%{$term}%");
+                      });
+                })
+                ->with(['baseUnit', 'units']) 
+                ->take(20)
+                ->get();
+
+            $results = $products->map(function($p) use ($term) {
+                $productImg = $p->image_url; 
+                
+                $hasExpired = \App\Models\ProductBatch::where('product_id', $p->id)
+                    ->where('quantity', '>', 0)
+                    ->whereDate('expiry_date', '<', now())
+                    ->exists();
+                
+                $isNearExpiry = \App\Models\ProductBatch::where('product_id', $p->id)
+                    ->where('quantity', '>', 0)
+                    ->whereDate('expiry_date', '>=', now())
+                    ->whereRaw('expiry_date <= DATE_ADD(NOW(), INTERVAL alert_days DAY)')
+                    ->exists();
+
+                $units = collect();
+                if($p->baseUnit) {
+                    $units->push([
+                        'unit_id' => $p->baseUnit->id, 
+                        'unit_name' => $p->baseUnit->unit_name ?? 'قطعة', 
+                        'price' => $p->baseUnit->selling_price, 
+                        'barcode' => $p->baseUnit->barcode ?? $p->sku, 
+                        'image' => $productImg,
+                        'factor' => 1
+                    ]);
+                }
+                
+                foreach($p->units as $u) {
+                    if($u->is_base_unit) continue;
+                    
+                    $unitImg = $u->image;
+
+                    $units->push([
+                        'unit_id' => $u->id, 
+                        'unit_name' => $u->unit_name, 
+                        'price' => $u->selling_price, 
+                        'barcode' => $u->barcode, 
+                        'image' => $unitImg,
+                        'factor' => $u->conversion_factor ?? 1 
+                    ]);
+                }
+
+                $matchedUnit = $units->firstWhere('barcode', $term);
+                $defaultUnit = $matchedUnit ?? $units->first();
+                $displayQty = (float)($p->current_stock ?? 0);
+
+                return [
+                    'id' => $p->id,
+                    'name_ar' => $p->name_ar,
+                    'image' => $productImg,
+                    'base_image' => $productImg, 
+                    'quantity' => max(0, $displayQty), 
+                    'base_quantity' => $displayQty, // سيظهر الآن بدون أصفار زائدة
+                    'alert_status' => $hasExpired ? 'expired' : ($isNearExpiry ? 'near' : 'ok'),
+                    'alert_msg' => $hasExpired ? '⚠️ يوجد كميات منتهية!' : ($isNearExpiry ? '⚠️ قارب على الانتهاء' : ''),
+                    'default_unit_id' => $defaultUnit['unit_id'] ?? null,
+                    'default_price' => (float)($defaultUnit['price'] ?? 0),
+                    'default_barcode' => $defaultUnit['barcode'] ?? $p->sku,
+                    'available_units' => $units->values()
+                ];
+            });
+
+            return response()->json($results);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    // 2. بحث العملاء
+    public function searchCustomers(Request $request)
+    {
+        $term = $request->term;
+        $storeId = Auth::user()->store->id;
+
+        $customers = Contact::where('store_id', $storeId)
+            ->whereIn('type', ['customer', 'both']) 
+            ->where(function($q) use ($term) {
+                $q->where('contact_name', 'LIKE', "%{$term}%")
+                  ->orWhere('phone', 'LIKE', "%{$term}%");
+            })
+            ->take(10)->get();
+
+        $results = $customers->map(function($c) {
+            return [
+                'id' => $c->id,
+                'text' => $c->contact_name . ' (' . ($c->phone ?? '-') . ')', 
+                'balance' => $c->balance ?? 0
+            ];
+        });
+
+        return response()->json(['results' => $results]);
+    }
+
+    // 3. حفظ الفاتورة (نسخة معدلة لتدعم الإيميل والواتساب)
+    public function storeInvoice(Request $request, InventoryService $inventoryService) 
+    {
+        $user = Auth::user();
+        $store = $user->store;
+        $storeId = $store->id;
+        
+        $customerId = $request->input('customer_id');
+        $netTotal = (float) $request->input('total', 0);
+        $discountAmount = (float) $request->input('discount_amount', 0);
+        $roundingDiff = (float) $request->input('rounding_diff', 0);
+        $payments = $request->input('payments', []);
+        $items = $request->input('items', []);
+
+        DB::beginTransaction();
+
+        try {
+            // 1. الحسابات
+            $totalPaid = 0;
+            foreach ($payments as $pay) { $totalPaid += (float)($pay['amount'] ?? 0); }
+            $debtAmount = round($netTotal - $totalPaid, 2);
+
+            if ($debtAmount > 0.01 && empty($customerId)) {
+                return response()->json(['error' => 'customer_required', 'message' => '⚠️ لا يمكن تسجيل دين على عميل عام.'], 422);
+            }
+
+            $itemsCosts = [];
+            $stockAlerts = []; 
+
+            // 2. معالجة الأصناف
+            foreach ($items as $index => $item) {
+                $product = Product::where('id', $item['id'])->lockForUpdate()->first();
+                if ($product) {
+                    $factor = 1;
+                    $selUnitId = $item['selected_unit_id'] ?? null;
+                    if ($selUnitId) {
+                        $unit = \App\Models\ProductUnit::where('id', $selUnitId)->where('product_id', $product->id)->first();
+                        if ($unit) $factor = ($unit->is_base_unit || $unit->id == $product->base_unit_id) ? 1 : $unit->conversion_factor;
+                    }
+                    
+                    $qtyToDeduct = $item['qty'] * $factor;
+
+                    if ($product->track_stock && (float)$product->current_stock < $qtyToDeduct) {
+                        return response()->json(['error' => 'stock_error', 'message' => "الكمية غير كافية للمنتج: <b>{$product->name_ar}</b>"], 422);
+                    }
+
+                    $itemsCosts[$index] = $inventoryService->reduceStock($product, $qtyToDeduct);
+                    
+                    // منطق التنبيه
+                    $product->refresh();
+                    if ($product->track_stock) {
+                        $currentStock = (float)$product->current_stock;
+                        if ($currentStock <= 0) {
+                            $stockAlerts[] = "🔴 نفذت الكمية: {$product->name_ar}";
+                        } elseif ($currentStock <= $product->alert_quantity) {
+                            $stockAlerts[] = "⚠️ مخزون منخفض: {$product->name_ar} (باقي: {$currentStock})";
+                        }
+                    }
+                }
+            }
+
+            // 3. معالجة رصيد العميل (تم التعديل لرفع الحد)
+            if ($customerId) {
+                $contact = Contact::where('id', $customerId)->where('store_id', $storeId)->lockForUpdate()->first();
+                if ($contact) { 
+                    // 🔥 تحديث حد الدين فوراً وتحديث الكائن (refresh) لضمان قراءة القيمة الجديدة
+                    if ($request->has('update_limit_to') && is_numeric($request->update_limit_to)) {
+                        $contact->credit_limit = $request->update_limit_to;
+                        $contact->save();
+                        $contact->refresh(); // <--- هذا السطر يحل مشكلة التكرار
+                    }
+
+                    $currentBalance = (float)($contact->balance ?? 0);
+                    $newBalance = $currentBalance;
+                    
+                    if ($debtAmount > 0) {
+                        $newBalance -= $debtAmount;
+                        $limit = (float)($contact->credit_limit ?? 0);
+                        
+                        // الفحص
+                        if ($limit > 0 && $newBalance < 0 && abs($newBalance) > $limit) {
+                            return response()->json([
+                                'error' => 'credit_limit_exceeded', 
+                                'message' => "تجاوز العميل حد الدين المسموح!", 
+                                'current_limit' => $limit,
+                                'new_debt' => abs($newBalance),
+                                'difference' => abs($newBalance) - $limit
+                            ], 422);
+                        }
+                    } elseif ($debtAmount < 0) {
+                        $newBalance += abs($debtAmount);
+                    }
+                    
+                    $contact->balance = $newBalance;
+                    $contact->save();
+                }
+            }
+
+            // 4. حفظ الفاتورة
+            $sale = new Sale();
+            $sale->store_id = $storeId; $sale->contact_id = $customerId;
+            $sale->user_id = $user->id;
+            $sale->total = $netTotal; $sale->discount = $discountAmount;
+            $sale->rounding = $roundingDiff; $sale->paid = $totalPaid;
+            $sale->due = max(0, $debtAmount);
+            $sale->save();
+
+            foreach ($payments as $pay) Payment::create(['sale_id' => $sale->id, 'method' => $pay['method'], 'amount' => $pay['amount']]);
+            foreach ($items as $index => $item) {
+                SaleItem::create([
+                    'sale_id' => $sale->id, 'product_id' => $item['id'],
+                    'quantity' => $item['qty'], 'price' => $item['price'],
+                    'total' => $item['qty'] * $item['price'], 
+                    'unit_id' => $item['selected_unit_id'] ?? null,
+                    'cost' => $itemsCosts[$index] ?? 0
+                ]);
+            }
+
+            DB::commit(); 
+
+          // ============================================================
+            // 🔥 منطقة الإشعارات (إيميل وواتساب منفصلين تماماً) 🔥
+            // ============================================================
+            try {
+                // أولاً: تجهيز بيانات الفاتورة للمقارنة
+                $isCredit = ($sale->due > 0);
+                
+                // 1. تجهيز تنبيهات المخزون
+                $stockAlertLines = [];
+                foreach ($items as $item) {
+                    $prod = Product::with('baseUnit')->find($item['id']);
+                    if ($prod && $prod->track_stock) {
+                        $currentStock = (float)$prod->current_stock;
+                        $alertLimit = (float)$prod->alert_quantity;
+                        $barcode = $prod->baseUnit ? $prod->baseUnit->barcode : $prod->sku;
+                        $barcodeStr = $barcode ? $barcode : '---';
+
+                        if ($currentStock <= 0) {
+                            $stockAlertLines[] = "🔴 *نفذت الكمية*\n📦 {$prod->name_ar}\n🔢 {$barcodeStr}\n📉 الحالية: {$currentStock}";
+                        } elseif ($currentStock <= $alertLimit) {
+                            $stockAlertLines[] = "⚠️ *مخزون منخفض*\n📦 {$prod->name_ar}\n🔢 {$barcodeStr}\n📉 الحالية: {$currentStock}";
+                        }
+                    }
+                }
+                $stockBody = !empty($stockAlertLines) ? implode("\n\n──────────\n\n", $stockAlertLines) : "";
+
+                // 🟢 منطق الواتساب (مستقل) 🟢
+                if ($store->notify_whatsapp && $store->phone_number) {
+                    $waSend = false;
+                    $waMsg = "";
+
+                    // أ) هل نرسل المخزون؟
+                    if ($store->wa_notify_stock && !empty($stockBody)) {
+                        $waMsg .= $stockBody . "\n\n";
+                        $waSend = true;
+                    }
+
+                    // ب) هل نرسل الفاتورة؟
+                    if ($store->wa_notify_sales) {
+                        $sendInv = false;
+                        if ($store->wa_sales_credit_only) {
+                            // شرط الدين فقط
+                            if ($isCredit && $sale->due >= $store->wa_sales_credit_min) $sendInv = true;
+                        } else {
+                            // شرط عام (مبلغ الفاتورة أو مبلغ الدين)
+                            if ($netTotal >= $store->wa_sales_min) $sendInv = true;
+                            if ($isCredit && $sale->due >= $store->wa_sales_credit_min) $sendInv = true;
+                        }
+
+                        if ($sendInv) {
+                            $waMsg .= "🧾 *فاتورة مبيعات #{$sale->id}*\n";
+                            $waMsg .= "💰 القيمة: " . number_format($netTotal, 2) . "\n";
+                            if($isCredit) $waMsg .= "❗️ دين: " . number_format($sale->due, 2) . "\n";
+                            $waMsg .= "👤 العميل: " . ($sale->contact ? $sale->contact->contact_name : 'نقدي');
+                            $waSend = true;
+                        }
+                    }
+
+                    if ($waSend && !empty($waMsg)) {
+                        Http::timeout(2)->post('https://wa.tech-sys.online/send-message', [
+                            'phone' => $store->phone_number,
+                            'message' => trim($waMsg),
+                            'session_id' => 'store_' . $storeId
+                        ]);
+                    }
+                }
+
+                // 📧 منطق الإيميل (مستقل) 📧
+                if ($store->notify_email && $store->email) {
+                    $emailSend = false;
+                    $emailSubject = "إشعار من النظام";
+                    $emailBody = "مرحباً،\n\n";
+
+                    // أ) هل نرسل الفاتورة؟
+                    if ($store->email_notify_sales) {
+                        $sendInv = false;
+                        if ($store->email_sales_credit_only) {
+                            if ($isCredit && $sale->due >= $store->email_sales_credit_min) $sendInv = true;
+                        } else {
+                            if ($netTotal >= $store->email_sales_min) $sendInv = true;
+                            if ($isCredit && $sale->due >= $store->email_sales_credit_min) $sendInv = true;
+                        }
+
+                        if ($sendInv) {
+                            $emailSubject = "فاتورة بيع #{$sale->id}";
+                            $emailBody .= "✅ *تفاصيل الفاتورة*\n";
+                            $emailBody .= "رقم الفاتورة: #{$sale->id}\n";
+                            $emailBody .= "المجموع: " . number_format($netTotal, 2) . "\n";
+                            $emailBody .= "الدين: " . number_format($sale->due, 2) . "\n";
+                            $emailBody .= "----------------------\n\n";
+                            $emailSend = true;
+                        }
+                    }
+
+                    // ب) هل نرسل المخزون؟
+                    if ($store->email_notify_stock && !empty($stockBody)) {
+                        if (!$emailSend) $emailSubject = "🚨 تنبيهات مخزون"; // تغيير العنوان إذا كان مخزون فقط
+                        $emailBody .= "🚨 *تنبيهات المخزون:*\n" . $stockBody . "\n\n";
+                        $emailSend = true;
+                    }
+
+                    if ($emailSend) {
+                        Mail::raw($emailBody, function($msg) use ($store, $emailSubject) {
+                            $msg->to($store->email)->subject($emailSubject);
+                        });
+                    }
+                }
+
+            } catch (\Exception $e) {
+                Log::error("Notification Logic Error: " . $e->getMessage());
+            }
+
+            return response()->json(['success' => true, 'message' => 'تم الحفظ بنجاح', 'invoice_id' => $sale->id]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'server_error', 'message' => $e->getMessage()], 500);
+        }
+    }
+    // تعديل المخزون الذكي
+    public function quickAdjustStock(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'new_qty' => 'required|numeric|min:0'
+        ]);
+
+        $product = Product::where('store_id', Auth::user()->store->id)->where('id', $request->product_id)->firstOrFail();
+        $oldQty = $product->current_stock;
+        
+        $product->current_stock = $request->new_qty;
+        $product->quantity = $request->new_qty;
+        $product->save();
+
+        try {
+            DB::table('notifications')->insert([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'type' => 'App\Notifications\StockAdjustment',
+                'notifiable_type' => 'App\Models\User',
+                'notifiable_id' => Auth::id(),
+                'data' => json_encode([
+                    'title' => 'تعديل مخزون يدوي',
+                    'message' => 'قام ' . Auth::user()->name . ' بتعديل مخزون (' . $product->name_ar . ') من ' . $oldQty . ' إلى ' . $request->new_qty,
+                    'user' => Auth::user()->name,
+                    'time' => now()
+                ]),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        } catch (\Exception $e) {}
+
+        return response()->json(['success' => true, 'message' => 'تم تعديل المخزون بنجاح']);
+    }
+
+    // تحديث تاريخ الصلاحية
+    public function updateProductExpiry(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required',
+            'new_date' => 'required|date|after:today',
+            'reason' => 'required|string|min:5'
+        ]);
+
+        $user = Auth::user();
+        $store = $user->store;
+
+        $batch = \App\Models\ProductBatch::where('product_id', $request->product_id)
+            ->where('quantity', '>', 0)
+            ->orderBy('expiry_date', 'asc')
+            ->first();
+
+        if (!$batch) {
+            return response()->json(['error' => 'لا توجد دفعات لهذا المنتج لتحديثها'], 404);
+        }
+
+        $oldDate = $batch->expiry_date;
+        $batch->expiry_date = $request->new_date;
+        $batch->save();
+
+        $message = "قام الموظف ({$user->name}) بتمديد صلاحية المنتج ({$batch->product->name_ar}) من ($oldDate) إلى ({$request->new_date}). السبب: {$request->reason}";
+
+        try {
+            DB::table('notifications')->insert([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'type' => 'App\Notifications\ExpiryUpdate',
+                'notifiable_type' => 'App\Models\User',
+                'notifiable_id' => $store->owner_id,
+                'data' => json_encode([
+                    'title' => '⚠️ تعديل تاريخ صلاحية يدوي',
+                    'message' => $message,
+                    'time' => now()
+                ]),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        } catch (\Exception $e) {}
+
+        return response()->json(['success' => true, 'message' => 'تم تحديث التاريخ وتوثيق العملية، يمكنك البيع الآن']);
+    }
+
+    // 4. جلب سجل المبيعات
+    public function getRecentSales(Request $request)
+    {
+        try {
+            $storeId = Auth::user()->store->id;
+            $query = Sale::where('store_id', $storeId)->with(['contact', 'user']);
+
+            if ($request->filled('invoice_no')) {
+                $query->where(function($q) use ($request) {
+                    $q->where('id', 'LIKE', "%{$request->invoice_no}%")
+                      ->orWhereRaw("CONCAT('INV-', id) LIKE ?", ["%{$request->invoice_no}%"]);
+                });
+            }
+
+            if ($request->filled('customer_id') && $request->customer_id != 'all') {
+                if($request->customer_id == 'cash') $query->whereNull('contact_id');
+                else $query->where('contact_id', $request->customer_id);
+            }
+            if ($request->filled('from_date')) $query->whereDate('created_at', '>=', $request->from_date);
+            if ($request->filled('to_date')) $query->whereDate('created_at', '<=', $request->to_date);
+
+            if ($request->filled('payment_status')) {
+                $status = $request->payment_status;
+                if ($status == 'paid') $query->where('due', '<=', 0.01)->whereRaw('paid <= total');
+                elseif ($status == 'unpaid') $query->where('paid', 0);
+                elseif ($status == 'partial') $query->where('paid', '>', 0)->where('due', '>', 0.01);
+                elseif ($status == 'overpaid') $query->whereRaw('paid > total + 0.01');
+            }
+
+            $query->orderBy($request->input('sort_by', 'created_at'), $request->input('sort_order', 'desc'));
+            
+            $perPage = $request->input('per_page', 10);
+            $sales = ($perPage == 'all') ? $query->paginate(200) : $query->paginate((int)$perPage);
+
+            $sales->getCollection()->transform(function($s) {
+                $st = 'unpaid'; 
+                if ($s->paid > $s->total + 0.01) $st = 'overpaid';
+                elseif ($s->due <= 0.01) $st = 'paid';
+                elseif ($s->paid > 0) $st = 'partial';
+
+                return [
+                    'id' => $s->id,
+                    'invoice_number' => 'INV-' . $s->id,
+                    'customer_name' => optional($s->contact)->contact_name ?? 'عميل نقدي',
+                    'user_name' => optional($s->user)->name ?? 'غير محدد',
+                    'total' => (float)$s->total,
+                    'paid' => (float)$s->paid,
+                    'due' => (float)$s->due,
+                    'status' => $st,
+                    'date' => $s->created_at->format('Y-m-d h:i A'),
+                ];
+            });
+
+            $store = Auth::user()->store;
+            $fixPath = function($p) { return $p ? asset('storage/'.str_replace(['public/','storage/'], '', $p)) : null; };
+
+            return response()->json([
+                'sales' => $sales,
+                'store_info' => [
+                    'name' => $store->name,
+                    'logo' => $fixPath($store->logo_path ?? $store->logo)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    // 5. تفاصيل الفاتورة
+    public function getSaleDetails($id)
+    {
+        try {
+            $storeId = Auth::user()->store->id;
+            $sale = Sale::where('store_id', $storeId)->where('id', $id)->with(['contact', 'items.product'])->first();
+            if (!$sale) return response()->json(['error' => 'غير موجودة'], 404);
+
+            $store = Auth::user()->store;
+            
+            $fixUrl = function($path) {
+                if (empty($path)) return null;
+                $clean = str_replace(['public/', 'storage/'], '', $path);
+                return asset('storage/' . $clean);
+            };
+
+            $storeData = [
+                'name' => $store->name, 'address' => $store->address, 'tax_number' => $store->tax_number,
+                'logo_url'      => $fixUrl($store->logo_path),
+                'stamp_url'     => $fixUrl($store->stamp_path),
+                'signature_url' => $fixUrl($store->signature_path),
+            ];
+
+            $items = $sale->items->map(function($item) {
+                $uName = 'قطعة';
+                if($item->unit_id && $u = \App\Models\ProductUnit::find($item->unit_id)) $uName = $u->unit_name;
+                elseif($item->product && $item->product->baseUnit) $uName = $item->product->baseUnit->unit_name;
+
+                return [
+                    'name' => optional($item->product)->name_ar ?? 'محذوف',
+                    'unit' => $uName,
+                    'qty' => (float)$item->quantity,
+                    'price' => (float)$item->price,
+                    'total' => (float)$item->total
+                ];
+            });
+
+            return response()->json(['sale' => $sale, 'items' => $items, 'store' => $storeData]);
+        } catch (\Exception $e) { return response()->json(['error' => $e->getMessage()], 500); }
+    }
+
+    // 6. حذف الفاتورة
+    public function deleteSale($id)
+    {
+        DB::beginTransaction();
+        try {
+            $storeId = Auth::user()->store->id;
+            $sale = Sale::where('store_id', $storeId)->where('id', $id)->with('items')->first();
+
+            if (!$sale) return response()->json(['message' => 'الفاتورة غير موجودة'], 404);
+
+            foreach ($sale->items as $item) {
+                $factor = 1;
+                if ($item->unit_id) {
+                    $unit = \App\Models\ProductUnit::find($item->unit_id);
+                    if ($unit) {
+                        $factor = $unit->conversion_factor;
+                    }
+                }
+
+                $qtyToReturn = $item->quantity * $factor;
+
+                if (\Schema::hasColumn('products', 'current_stock')) {
+                    Product::where('id', $item->product_id)->increment('current_stock', $qtyToReturn);
+                } elseif (\Schema::hasColumn('products', 'quantity')) {
+                    Product::where('id', $item->product_id)->increment('quantity', $qtyToReturn);
+                }
+            }
+            
+            if ($sale->due > 0 && $sale->contact_id) {
+                $contact = Contact::find($sale->contact_id);
+                if($contact) {
+                    $contact->increment('balance', $sale->due); 
+                }
+            }
+
+            $sale->items()->delete();
+            $sale->delete();
+
+            DB::commit();
+            return response()->json(['message' => 'تم حذف الفاتورة وإرجاع المخزون الصحيح بنجاح']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'حدث خطأ أثناء الحذف: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // 7. دوال الإرجاع
+    public function searchReturnInvoices(Request $request)
+    {
+        $term = $request->term;
+        $customerId = $request->customer_id;
+        $storeId = Auth::user()->store->id;
+
+        $productIds = Product::where('store_id', $storeId)
+            ->where(function($q) use ($term) {
+                $q->where('name_ar', 'LIKE', "%{$term}%")
+                  ->orWhere('sku', 'LIKE', "%{$term}%");
+            })->pluck('id');
+
+        if($productIds->isEmpty()) return response()->json(['invoices' => []]);
+
+        $query = SaleItem::whereIn('product_id', $productIds)
+            ->whereHas('sale', function($q) use ($storeId, $customerId) {
+                $q->where('store_id', $storeId);
+                if ($customerId) $q->where('contact_id', $customerId);
+            })
+            ->with(['sale', 'product', 'unit'])
+            ->latest()
+            ->take(30);
+
+        $items = $query->get()->map(function($item) {
+            return [
+                'sale_id' => $item->sale->id,
+                'invoice_no' => 'INV-' . $item->sale->id,
+                'date' => $item->sale->created_at->format('Y-m-d H:i'),
+                'product_name' => $item->product->name_ar,
+                'unit_name' => $item->unit->unit_name ?? 'قطعة',
+                'qty' => $item->quantity,
+                'price' => $item->price,
+                'item_id' => $item->id
+            ];
+        });
+
+        return response()->json(['invoices' => $items]);
+    }
+
+    public function processReturn(Request $request)
+    {
+        $itemId = $request->item_id;
+        $qtyToReturn = (float) $request->return_qty;
+        
+        DB::beginTransaction();
+        try {
+            $saleItem = SaleItem::with(['sale', 'product', 'unit'])->findOrFail($itemId);
+            
+            if ($qtyToReturn > $saleItem->quantity) {
+                return response()->json(['error' => 'الكمية المراد إرجاعها أكبر من المباعة'], 422);
+            }
+
+            $factor = ($saleItem->unit && !$saleItem->unit->is_base_unit) ? $saleItem->unit->conversion_factor : 1;
+            $stockToAdd = $qtyToReturn * $factor;
+            
+            if (\Schema::hasColumn('products', 'current_stock')) {
+                $saleItem->product->increment('current_stock', $stockToAdd);
+            } else {
+                $saleItem->product->increment('quantity', $stockToAdd);
+            }
+
+            $refundAmount = $qtyToReturn * $saleItem->price;
+
+            $saleItem->decrement('quantity', $qtyToReturn);
+            $saleItem->decrement('total', $refundAmount);
+            if ($saleItem->quantity <= 0) $saleItem->delete();
+
+            $sale = $saleItem->sale;
+            $sale->decrement('total', $refundAmount);
+            
+            if ($sale->due > 0) {
+                $deduct = min($sale->due, $refundAmount);
+                $sale->decrement('due', $deduct);
+                $refundAmount -= $deduct; 
+                
+                if ($sale->contact_id) {
+                    Contact::find($sale->contact_id)->increment('balance', $deduct);
+                }
+            }
+            
+            if ($refundAmount > 0) {
+                Payment::create([
+                    'sale_id' => $sale->id,
+                    'method' => 'cash', 
+                    'amount' => -$refundAmount 
+                ]);
+            }
+
+            $sale->save();
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'تم الإرجاع بنجاح']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+}

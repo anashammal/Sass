@@ -1,0 +1,16 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes +FollowSymLinks
+    </IfModule>
+
+    # 👈🏻 إضافة السطر الحاسم: تعيين server.php كملف الفهرس الأساسي
+    DirectoryIndex server.php 
+
+    RewriteEngine On
+
+    # توجيه جميع الطلبات إلى server.php
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ server.php/$1 [L]
+
+</IfModule>

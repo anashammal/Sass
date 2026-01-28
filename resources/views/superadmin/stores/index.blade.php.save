@@ -1,0 +1,69 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0">إدارة المتاجر (Stores Management)</h5>
+
+                    {{-- زر إضافة متجر جديد --}}
+                    <a href="{{ route('superadmin.stores.create') }}" class="btn btn-primary">
+                        <i class="fa fa-plus"></i> إضافة متجر جديد
+                    </a>
+                </div>
+
+                <div class="card-body">
+
+                    {{-- !! هذا الكود لعرض رسالة النجاح الخضراء بعد إنشاء المتجر !! --}}
+                    @if (session('success'))
+                        <div class="alert alert-success" role="alert">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    {{-- !! هذا هو الجدول الجديد !! --}}
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">اسم المتجر</th>
+                                <th scope="col">الدومين الفرعي</th>
+                                <th scope="col">صاحب المتجر</th>
+                                <th scope="col">تاريخ الإنشاء</th>
+                                <th scope="col">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{-- سنتحقق إذا كانت المتاجر فارغة أولاً --}}
+                            @forelse ($stores as $store)
+                                <tr>
+                                    <th scope="row">{{ $store->id }}</th>
+                                    <td>{{ $store->name }}</td>
+                                    <td>{{ $store->subdomain }}.tech-sys.online</td>
+                                    {{-- سنقوم بجلب اسم صاحب المتجر عبر العلاقة (سنبنيها لاحقاً) --}}
+                                    {{-- <td>{{  {{-- <td>{{ $store->owner->name ?? 'غير محدد' }}</td> --}}
+$store->owner->name ?? 'غير محدد' }}</td> --}}
+                                    <td>{{ $store->created_at->format('Y-m-d') }}</td> {{-- تنسيق التاريخ --}}
+                                    <td>
+                                        {{-- سنضيف أزرار التعديل والحذف هنا لاحقاً --}}
+                                        <a href="#" class="btn btn-sm btn-outline-secondary">تعديل</a>
+                                        <a href="#" class="btn btn-sm btn-outline-danger">حذف</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                {{-- سيظهر هذا السطر إذا لم يكن هناك أي متاجر --}}
+                                <tr>
+                                    <td colspan="6" class="text-center">لا توجد متاجر لعرضها حالياً. قم بإضافة متجر جديد.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
