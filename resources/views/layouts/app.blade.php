@@ -71,12 +71,23 @@
         /* القائمة الجانبية الحديثة */
         .sidebar { 
             background: linear-gradient(180deg, #2d2452 0%, #1a1436 100%); 
-            min-height: 100vh; 
+            /* Fix for zoom: 0.90 (100vh / 0.9 = 111.11vh) */
+            height: calc(111.11vh - 70px); 
+            position: sticky;
+            top: 70px; 
+            overflow-y: auto;
             color: #fff; 
             box-shadow: 4px 0 25px rgba(0,0,0,0.1); 
             z-index: 1001;
             padding: 10px;
             transition: all 0.3s ease;
+            
+            /* Hide Scrollbar */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .sidebar::-webkit-scrollbar { 
+            display: none; 
         }
 
         .sidebar .nav-item {
@@ -178,7 +189,7 @@
         }
 
         /* الهيدر العلوي */
-        .navbar-custom { background-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 70px; z-index: 1000; }
+        .navbar-custom { background-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 70px; z-index: 1002; }
         
         /* الشعار */
         .brand-container { display: flex; align-items: center; }
@@ -730,7 +741,7 @@
                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('superadmin.stores.*') ? 'active' : '' }}" href="{{ route('superadmin.stores.index') }}"><i class="fa fa-store"></i> إدارة المتاجر</a></li>
                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('superadmin.settings.*') ? 'active' : '' }}" href="{{ route('superadmin.settings.index') }}"><i class="fa fa-cogs"></i> إعدادات النظام</a></li>
                             @else
-                                <li class="sidebar-heading">إدارة المتجر</li>
+                                {{-- <li class="sidebar-heading">إدارة المتجر</li> --}}
                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.dashboard') ? 'active' : '' }}" href="{{ route('store.dashboard') }}"><i class="fa fa-home"></i> الرئيسية</a></li>
                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.products.*') ? 'active' : '' }}" href="{{ route('store.products.index') }}"><i class="fa fa-box-open"></i> المنتجات</a></li>
                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.categories.*') ? 'active' : '' }}" href="{{ route('store.categories.index') }}"><i class="fa fa-tags"></i> التصنيفات</a></li>
@@ -743,7 +754,7 @@
                                 </li>
 {{-- قائمة المبيعات --}}
 <li class="nav-item">
-    <a href="#salesCollapse" class="nav-link {{ request()->routeIs('store.pos.*') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ request()->routeIs('store.pos.*') ? 'true' : 'false' }}">
+    <a href="#" class="nav-link {{ request()->routeIs('store.pos.*') ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#salesCollapse" role="button" aria-expanded="{{ request()->routeIs('store.pos.*') ? 'true' : 'false' }}">
         <i class="nav-icon fas fa-cash-register"></i>
         <span>المبيعات</span>
         <i class="fas fa-angle-left ms-auto"></i>
