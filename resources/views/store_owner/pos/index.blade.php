@@ -1342,7 +1342,10 @@
 
             $('#historyList').html(rows);
             $('#sumTotal').text(t.toFixed(2)); $('#sumPaid').text(p.toFixed(2)); $('#sumDue').text(d.toFixed(2));
+            $('#historyList').html(rows);
+            $('#sumTotal').text(t.toFixed(2)); $('#sumPaid').text(p.toFixed(2)); $('#sumDue').text(d.toFixed(2));
             renderPagination(meta);
+            applyColumnVisibility(); // ✅ تطبيق إخفاء الأعمدة على البيانات الجديدة
         }).fail(() => {
             $('#historyList').html('<tr><td colspan="9" class="text-danger text-center">خطأ في الاتصال (Recent Sales)</td></tr>');
         });
@@ -1528,9 +1531,23 @@
 
         // ✅ إضافة مستمع لتغيير الفلاتر وتحديث الجدول تلقائياً
         $('.auto-filter').on('change', function() {
-            getRecentSales(1); // إعادة التحميل من الصفحة الأولى عند تغيير الفلتر
+            getRecentSales(1); 
+        });
+
+        // ✅ تفعيل فلتر الأعمدة
+        $('.col-toggle').on('change', function() {
+            applyColumnVisibility();
         });
     });
+
+    function applyColumnVisibility() {
+        $('.col-toggle').each(function() {
+            let col = $(this).data('col');
+            let isVisible = $(this).is(':checked');
+            let elements = $('.c-' + col); // يشمل الرؤوس والخلايا
+            if(isVisible) elements.show(); else elements.hide();
+        });
+    }
 
     // ==========================================
     // دوال الصندوق (Shift)
