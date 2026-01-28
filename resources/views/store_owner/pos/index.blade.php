@@ -199,32 +199,32 @@
             
             {{-- رأس القائمة (رقم الفاتورة + الأزرار) --}}
            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="fw-bold m-0 text-warning">#{{ $nextInvoice }}</h5>
+                <span class="fw-bold m-0 text-warning" style="font-size: 1rem;">#{{ $nextInvoice }}</span>
                 <div class="d-flex gap-1">
                     {{-- ✅ زر فتح الصندوق --}}
-                    <button id="btnOpenShift" class="btn btn-success btn-sm text-white fw-bold py-0" 
+                    <button id="btnOpenShift" class="btn btn-success btn-sm text-white fw-bold py-1 px-2" 
                             data-bs-toggle="modal" data-bs-target="#openShiftModal"
                             title="فتح وردية">
                         <i class="fas fa-door-open"></i>
                     </button>
 
                     {{-- زر الإرجاع --}}
-                    <button type="button" class="btn btn-warning btn-sm text-dark py-0" onclick="openReturnModal()" title="إرجاع مواد">
+                    <button type="button" class="btn btn-warning btn-sm text-dark py-1 px-2" onclick="openReturnModal()" title="إرجاع مواد">
                         <i class="fas fa-undo"></i>
                     </button>
 
                     {{-- زر إغلاق الصندوق (مخفي، يظهره النظام عند الحاجة) --}}
-                    <button id="btnCloseShift" class="btn btn-warning btn-sm text-dark fw-bold d-none py-0" onclick="openCloseShiftModal()" title="إغلاق الوردية">
+                    <button id="btnCloseShift" class="btn btn-warning btn-sm text-dark fw-bold d-none py-1 px-2" onclick="openCloseShiftModal()" title="إغلاق الوردية">
                         <i class="fas fa-cash-register"></i>
                     </button>
 
                     {{-- زر الأرشيف --}}
-                    <button type="button" class="btn btn-info btn-sm text-white py-0" onclick="openHistoryModal()" title="سجل الفواتير">
+                    <button type="button" class="btn btn-info btn-sm text-white py-1 px-2" onclick="openHistoryModal()" title="سجل الفواتير">
                         <i class="fas fa-history"></i>
                     </button>
                     
                     {{-- زر التصفير --}}
-                    <button class="btn btn-danger btn-sm py-0" onclick="resetPosScreen()" title="تصفير الشاشة">
+                    <button class="btn btn-danger btn-sm py-1 px-2" onclick="resetPosScreen()" title="تصفير الشاشة">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -293,9 +293,9 @@
 
             {{-- المتبقي وزر الحفظ --}}
             <div class="mt-auto pt-2 border-top border-secondary">
-                <div class="d-flex justify-content-between mb-2">
-                    <span id="diffLabel" class="small">المتبقي:</span>
-                    <span id="remainingAmount" class="fw-bold text-success">0.00</span>
+                <div class="d-flex justify-content-between align-items-end mb-2">
+                    <span id="diffLabel" class="fs-6 fw-bold">المتبقي:</span>
+                    <span id="remainingAmount" class="fw-bold text-success fs-3">0.00</span>
                 </div>
             </div>
         </div>
