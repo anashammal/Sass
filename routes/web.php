@@ -111,6 +111,12 @@ Route::middleware(['auth'])->group(function () {
         
         // 1. الروابط المخصصة (يجب أن تكون في الأعلى لتجنب تضارب الـ ID)
         Route::get('products/expired-manager', [ProductController::class, 'expiredManager'])->name('products.expired_manager');
+        
+        // New Routes for Advanced Expiry Management
+        Route::post('products/dispose-stock', [ProductController::class, 'disposeStock'])->name('products.dispose');
+        Route::post('products/extend-expiry', [ProductController::class, 'extendExpiry'])->name('products.extend');
+        
+        // Legacy routes (kept for safety if old links exist, though UI is updated)
         Route::post('products/expired/dispose', [ProductController::class, 'disposeExpired'])->name('products.expired.dispose');
         Route::post('products/expired/renew', [ProductController::class, 'renewExpiry'])->name('products.expired.renew');
         

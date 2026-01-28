@@ -296,60 +296,97 @@ class ProductController extends Controller
     // 🔥 إدارة الدفعات (Batches) بدقة عالية 🔥
     // =========================================================
 
+    // =========================================================
+    // 🔥 إدارة الدفعات (Batches) المتقدمة - الإصدار الجديد 🔥
+    // =========================================================
+
     public function expiredManager()
     {
         $storeId = Auth::user()->store_id;
 
-        // 1. جلب المنتجات المنتهية أو القريبة (كما كانت)
-        $expiredBatches = \App\Models\ProductBatch::whereHas('product', function($q) use ($storeId) {
-                $q->where('store_id', $storeId);
+        // جلب المنتجات التي لديها دفعات منتهية أو قريبة للانتهاء
+        // سنقوم بتجميعها حسب المنتج لعرض الحالة الكاملة (منتهي، قريب، سليم)
+        $productsWithIssues = Product::where('store_id', $storeId)
+            ->whereHas('batches', function($q) {
+                $q->where('quantity', '>', 0)
+                  ->where('expiry_date', '<=', \Carbon\Carbon::now()->addDays(30));
             })
-            ->where('quantity', '>', 0)
-            ->where('expiry_date', '<=', \Carbon\Carbon::now()->addDays(30))
-            ->with('product')
-            ->orderBy('expiry_date', 'asc')
+            ->with(['batches' => function($q) {
+                $q->where('quantity', '>', 0)->orderBy('expiry_date', 'asc');
+            }])
             ->get();
 
-        // 2. جلب المنتجات منخفضة المخزون (الإضافة الجديدة) 🔥
+        // تجهيز بيانات العرض
+        $productGroups = $productsWithIssues->map(function($product) {
+            $batches = $product->batches;
+            $today = \Carbon\Carbon::now()->startOfDay();
+            $warningDate = $today->copy()->addDays($product->expiry_warning_days ?? 30);
+
+            return [
+                'product' => $product,
+                'expired' => $batches->filter(fn($b) => $b->expiry_date < $today),
+                'near_expiry' => $batches->filter(fn($b) => $b->expiry_date >= $today && $b->expiry_date <= $warningDate),
+                'valid' => $batches->filter(fn($b) => $b->expiry_date > $warningDate),
+                'total_stock' => $product->batches->sum('quantity'),
+            ];
+        });
+
+        // 2. جلب المنتجات منخفضة المخزون
         $lowStockProducts = Product::where('store_id', $storeId)
             ->whereColumn('current_stock', '<=', 'alert_quantity')
             ->orderBy('current_stock', 'asc')
             ->get();
 
-        return view('store_owner.products.expired_manager', compact('expiredBatches', 'lowStockProducts'));
+        return view('store_owner.products.expired_manager', compact('productGroups', 'lowStockProducts'));
     }
 
-    // إتلاف دفعة محددة (Batch)
-    public function disposeExpired(Request $request)
+    // إتلاف (جزئي أو كلي)
+    public function disposeStock(Request $request)
     {
-        // نستلم ID الدفعة وليس المنتج
+        $request->validate([
+            'batch_id' => 'required',
+            'quantity' => 'required|numeric|min:0.01',
+            'proof_image' => 'required|image|max:2048', // مطلوب للإثبات
+            'reason' => 'required|string|max:255',
+        ]);
+
         $batch = \App\Models\ProductBatch::findOrFail($request->batch_id);
         
-        // حماية: منع إتلاف دفعة غير منتهية عن طريق الخطأ (إلا إذا أردت السماح بذلك)
-        if ($batch->expiry_date >= now()->startOfDay()) {
-            return back()->with('error', 'تنبيه: هذه الدفعة لم تنتهِ صلاحيتها بعد! استخدم خيار تعديل التاريخ.');
+        if ($request->quantity > $batch->quantity) {
+             return back()->with('error', 'الكمية المراد إتلافها أكبر من المتوفر في هذه الدفعة!');
         }
-
-        $qty = $batch->quantity;
-        $product = $batch->product;
 
         DB::beginTransaction();
         try {
-            // تصفير الدفعة
-            $batch->quantity = 0;
+            // 1. خصم الكمية
+            $batch->quantity -= $request->quantity;
             $batch->save();
 
-            // تحديث مخزون المنتج الرئيسي
+            // 2. تحديث المنتج الرئيسي
+            $product = $batch->product;
             $product->current_stock = $product->batches()->sum('quantity');
-            
-            // تحديث تاريخ المنتج الرئيسي لأقرب تاريخ قادم
             $nextBatch = $product->batches()->where('quantity', '>', 0)->orderBy('expiry_date', 'asc')->first();
             $product->expiry_date = $nextBatch ? $nextBatch->expiry_date : null;
-            
             $product->save();
 
+            // 3. رفع الصورة
+            $imagePath = $request->file('proof_image')->store('expiry_proofs', 'public');
+
+            // 4. تسجيل العملية في السجل
+            \App\Models\InventoryActionLog::create([
+                'store_id' => $product->store_id,
+                'product_id' => $product->id,
+                'batch_id' => $batch->id,
+                'user_id' => Auth::id(),
+                'action' => 'dispose',
+                'quantity' => $request->quantity,
+                'old_date' => $batch->expiry_date,
+                'reason' => $request->reason,
+                'proof_image' => $imagePath,
+            ]);
+
             DB::commit();
-            return back()->with('success', "تم إتلاف الدفعة المنتهية ($qty قطعة) بنجاح.");
+            return back()->with('success', "تم إتلاف {$request->quantity} قطعة بنجاح وتم تسجيل الإثبات.");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -357,34 +394,78 @@ class ProductController extends Controller
         }
     }
 
-    // تجديد صلاحية دفعة محددة
-    public function renewExpiry(Request $request)
+    // تمديد/تصحيح (جزئي أو كلي)
+    public function extendExpiry(Request $request)
     {
         $request->validate([
-            'new_date' => 'required|date', // سمحنا بتاريخ اليوم أو غداً
+            'batch_id' => 'required',
+            'quantity' => 'required|numeric|min:0.01',
+            'new_date' => 'required|date|after:today',
+            'proof_image' => 'required|image|max:2048', // مطلوب للإثبات
+            'reason' => 'required|string|max:255',
         ]);
 
         $batch = \App\Models\ProductBatch::findOrFail($request->batch_id);
-        $product = $batch->product;
         
-        $batch->expiry_date = $request->new_date;
-        $batch->save();
-
-        // تحديث المنتج الرئيسي ليعكس أقرب تاريخ جديد
-        $nextBatch = $product->batches()->where('quantity', '>', 0)->orderBy('expiry_date', 'asc')->first();
-        if ($nextBatch) {
-            $product->expiry_date = $nextBatch->expiry_date;
-            $product->save();
+        if ($request->quantity > $batch->quantity) {
+            return back()->with('error', 'الكمية المحددة أكبر من المتوفر في الدفعة!');
         }
 
-        Log::warning("تجديد صلاحية دفعة يدوياً", [
-            'user' => Auth::user()->name,
-            'product' => $product->name_ar,
-            'old_date' => $batch->getOriginal('expiry_date'),
-            'new_date' => $request->new_date
-        ]);
+        DB::beginTransaction();
+        try {
+            $product = $batch->product;
+            $originalDate = $batch->expiry_date;
 
-        return back()->with('success', 'تم تعديل تاريخ الصلاحية بنجاح.');
+            // السيناريو أ: الكمية كاملة -> تحديث الدفعة مباشرة
+            if ($request->quantity == $batch->quantity) {
+                $batch->expiry_date = $request->new_date;
+                $batch->save();
+            } 
+            // السيناريو ب: جزء من الكمية -> تقسيم الدفعة
+            else {
+                // 1. خصم من القديم
+                $batch->quantity -= $request->quantity;
+                $batch->save();
+
+                // 2. إنشاء دفعة جديدة بالتاريخ الجديد
+                $newBatch = $product->batches()->create([
+                    'sku' => $batch->sku, // نفس الباركود
+                    'quantity' => $request->quantity,
+                    'expiry_date' => $request->new_date,
+                    'purchase_price' => $batch->purchase_price,
+                    'supplier_id' => $batch->supplier_id,
+                ]);
+            }
+
+            // تحديث المنتج الرئيسي
+            $nextBatch = $product->batches()->where('quantity', '>', 0)->orderBy('expiry_date', 'asc')->first();
+            $product->expiry_date = $nextBatch ? $nextBatch->expiry_date : null;
+            $product->save();
+
+            // رفع الصورة
+            $imagePath = $request->file('proof_image')->store('expiry_proofs', 'public');
+
+            // تسجيل العملية
+            \App\Models\InventoryActionLog::create([
+                'store_id' => $product->store_id,
+                'product_id' => $product->id,
+                'batch_id' => $batch->id, // نربطها بالدفعة الأصلية للتاريخ
+                'user_id' => Auth::id(),
+                'action' => 'extend_expiry',
+                'quantity' => $request->quantity,
+                'old_date' => $originalDate,
+                'new_date' => $request->new_date,
+                'reason' => $request->reason,
+                'proof_image' => $imagePath,
+            ]);
+
+            DB::commit();
+            return back()->with('success', "تم تصحيح تاريخ الصلاحية لـ {$request->quantity} قطعة بنجاح.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'حدث خطأ: ' . $e->getMessage());
+        }
     }
     
     // =========================================================
