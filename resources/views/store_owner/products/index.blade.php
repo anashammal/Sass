@@ -14,33 +14,45 @@
 <div class="row g-3 mb-4 no-print">
     {{-- 1. إجمالي المنتجات --}}
     <div class="col">
-        <div class="card border-0 shadow-sm bg-primary bg-opacity-10 h-100">
-            <div class="card-body p-3 text-center">
-                <div class="bg-primary text-white rounded-circle p-2 d-inline-block mb-2"><i class="fas fa-box-open fa-lg"></i></div>
-                <h6 class="text-muted small mb-1">إجمالي المنتجات</h6>
-                <h4 class="fw-bold mb-0 text-primary">{{ $prodStats['total'] ?? 0 }}</h4>
+        <div class="card kpi-card kpi-primary h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="kpi-icon-container me-3">
+                    <i class="fas fa-box-open"></i>
+                </div>
+                <div>
+                    <div class="kpi-label">إجمالي المنتجات</div>
+                    <div class="kpi-value english-num">{{ $prodStats['total'] ?? 0 }}</div>
+                </div>
             </div>
         </div>
     </div>
 
     {{-- 2. مخزون منخفض --}}
     <div class="col">
-        <div class="card border-0 shadow-sm bg-warning bg-opacity-10 h-100">
-            <div class="card-body p-3 text-center">
-                <div class="bg-warning text-white rounded-circle p-2 d-inline-block mb-2"><i class="fas fa-exclamation-triangle fa-lg"></i></div>
-                <h6 class="text-muted small mb-1">مخزون منخفض</h6>
-                <h4 class="fw-bold mb-0 text-warning" style="color: #d35400 !important;">{{ $prodStats['low_stock'] ?? 0 }}</h4>
+        <div class="card kpi-card kpi-warning h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="kpi-icon-container me-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="kpi-label">مخزون منخفض</div>
+                    <div class="kpi-value english-num">{{ $prodStats['low_stock'] ?? 0 }}</div>
+                </div>
             </div>
         </div>
     </div>
 
     {{-- 3. نافذ من المخزون --}}
     <div class="col">
-        <div class="card border-0 shadow-sm bg-danger bg-opacity-10 h-100">
-            <div class="card-body p-3 text-center">
-                <div class="bg-danger text-white rounded-circle p-2 d-inline-block mb-2"><i class="fas fa-times-circle fa-lg"></i></div>
-                <h6 class="text-muted small mb-1">نافذ (0 كمية)</h6>
-                <h4 class="fw-bold mb-0 text-danger">{{ $prodStats['out_of_stock'] ?? 0 }}</h4>
+        <div class="card kpi-card kpi-danger h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="kpi-icon-container me-3">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div>
+                    <div class="kpi-label">نافذ (0 كمية)</div>
+                    <div class="kpi-value english-num">{{ $prodStats['out_of_stock'] ?? 0 }}</div>
+                </div>
             </div>
         </div>
     </div>

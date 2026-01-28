@@ -15,34 +15,40 @@
     {{-- بطاقات الملخص (تتغير حسب الفلترة) --}}
     <div class="row g-3 mb-4 no-print">
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 h-100">
+            <div class="card kpi-card kpi-info h-100">
                 <div class="card-body d-flex align-items-center">
-                    <div class="bg-primary text-white rounded-circle p-3 me-3"><i class="fas fa-file-invoice-dollar fa-lg"></i></div>
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
                     <div>
-                        <h6 class="text-muted mb-1">إجمالي الفواتير ({{ $totals['count'] }})</h6>
-                        <h4 class="fw-bold mb-0">{{ number_format($totals['sum_total'], 2) }}</h4>
+                        <div class="kpi-label">إجمالي الفواتير ({{ $totals['count'] }})</div>
+                        <div class="kpi-value english-num">{{ number_format($totals['sum_total'], 2) }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-success bg-opacity-10 h-100">
+            <div class="card kpi-card kpi-success h-100">
                 <div class="card-body d-flex align-items-center">
-                    <div class="bg-success text-white rounded-circle p-3 me-3"><i class="fas fa-check-circle fa-lg"></i></div>
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
                     <div>
-                        <h6 class="text-muted mb-1">إجمالي المدفوع</h6>
-                        <h4 class="fw-bold mb-0 text-success">{{ number_format($totals['sum_paid'], 2) }}</h4>
+                        <div class="kpi-label">إجمالي المدفوع</div>
+                        <div class="kpi-value english-num">{{ number_format($totals['sum_paid'], 2) }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 h-100">
+            <div class="card kpi-card kpi-danger h-100">
                 <div class="card-body d-flex align-items-center">
-                    <div class="bg-danger text-white rounded-circle p-3 me-3"><i class="fas fa-hand-holding-usd fa-lg"></i></div>
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
                     <div>
-                        <h6 class="text-muted mb-1">المتبقي (الآجل)</h6>
-                        <h4 class="fw-bold mb-0 text-danger">{{ number_format($totals['sum_due'], 2) }}</h4>
+                        <div class="kpi-label">المتبقي (الأجل)</div>
+                        <div class="kpi-value english-num">{{ number_format($totals['sum_due'], 2) }}</div>
                     </div>
                 </div>
             </div>

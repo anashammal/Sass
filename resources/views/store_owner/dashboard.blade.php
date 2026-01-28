@@ -3,28 +3,45 @@
 @section('content')
 <div class="container">
     {{-- 1. بطاقات الإحصائيات العلوية --}}
-    <div class="row mb-4 text-center">
+    <div class="row mb-4 g-3">
         <div class="col-md-4">
-            <div class="card bg-primary text-white shadow-sm">
-                <div class="card-body">
-                    <h3>{{ $stats['products_count'] ?? 0 }}</h3>
-                    <p class="mb-0"><i class="fas fa-boxes"></i> إجمالي المنتجات</p>
+            <div class="card kpi-card kpi-primary h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div>
+                        <div class="kpi-label">إجمالي المنتجات</div>
+                        <div class="kpi-value english-num">{{ $stats['products_count'] ?? 0 }}</div>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card {{ ($stats['low_stock_count'] ?? 0) > 0 ? 'bg-warning text-dark' : 'bg-success text-white' }} shadow-sm">
-                <div class="card-body">
-                    <h3 class="fw-bold">{{ $stats['low_stock_count'] ?? 0 }}</h3>
-                    <p class="mb-0"><i class="fas fa-exclamation-triangle"></i> نواقص المخزون</p>
+            @php $isLow = ($stats['low_stock_count'] ?? 0) > 0; @endphp
+            <div class="card kpi-card {{ $isLow ? 'kpi-warning' : 'kpi-success' }} h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <div class="kpi-label">نواقص المخزون</div>
+                        <div class="kpi-value english-num">{{ $stats['low_stock_count'] ?? 0 }}</div>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card {{ ($expiredBatches->count() ?? 0) > 0 ? 'bg-danger text-white' : 'bg-success text-white' }} shadow-sm">
-                <div class="card-body">
-                    <h3 class="fw-bold">{{ $expiredBatches->count() ?? 0 }}</h3>
-                    <p class="mb-0"><i class="fas fa-calendar-times"></i> منتجات منتهية/قريبة</p>
+            @php $isExp = ($expiredBatches->count() ?? 0) > 0; @endphp
+            <div class="card kpi-card {{ $isExp ? 'kpi-danger' : 'kpi-success' }} h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-calendar-times"></i>
+                    </div>
+                    <div>
+                        <div class="kpi-label">منتجات منتهية/قريبة</div>
+                        <div class="kpi-value english-num">{{ $expiredBatches->count() ?? 0 }}</div>
+                    </div>
                 </div>
             </div>
         </div>

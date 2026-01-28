@@ -14,34 +14,40 @@
     {{-- بطاقات الملخص --}}
     <div class="row g-3 mb-4 no-print">
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 h-100">
+            <div class="card kpi-card kpi-primary h-100">
                 <div class="card-body d-flex align-items-center">
-                    <div class="bg-primary text-white rounded-circle p-3 me-3"><i class="fas fa-box-open fa-lg"></i></div>
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-box-open"></i>
+                    </div>
                     <div>
-                        <h6 class="text-muted mb-1">إجمالي المنتجات</h6>
-                        <h4 class="fw-bold mb-0">{{ $productsStats['total_count'] }}</h4>
+                        <div class="kpi-label">إجمالي المنتجات</div>
+                        <div class="kpi-value english-num">{{ $productsStats['total_count'] }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-warning bg-opacity-10 h-100">
+            <div class="card kpi-card kpi-warning h-100">
                 <div class="card-body d-flex align-items-center">
-                    <div class="bg-warning text-white rounded-circle p-3 me-3"><i class="fas fa-exclamation-triangle fa-lg"></i></div>
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
                     <div>
-                        <h6 class="text-muted mb-1">نواقص المخزون</h6>
-                        <h4 class="fw-bold mb-0 text-warning">{{ $productsStats['low_stock'] }}</h4>
+                        <div class="kpi-label">نواقص المخزون</div>
+                        <div class="kpi-value english-num">{{ $productsStats['low_stock'] }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-success bg-opacity-10 h-100">
+            <div class="card kpi-card kpi-success h-100">
                 <div class="card-body d-flex align-items-center">
-                    <div class="bg-success text-white rounded-circle p-3 me-3"><i class="fas fa-coins fa-lg"></i></div>
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-coins"></i>
+                    </div>
                     <div>
-                        <h6 class="text-muted mb-1">قيمة المخزون (شراء)</h6>
-                        <h4 class="fw-bold mb-0 text-success">{{ number_format($productsStats['total_value'], 2) }}</h4>
+                        <div class="kpi-label">قيمة المخزون (شراء)</div>
+                        <div class="kpi-value english-num">{{ number_format($productsStats['total_value'], 2) }}</div>
                     </div>
                 </div>
             </div>
