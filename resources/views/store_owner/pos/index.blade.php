@@ -53,6 +53,13 @@
         border: 1px solid rgba(255, 255, 255, 0.2);
         color: #fff;
     }
+    
+    /* ✅ إصلاح مشكلة اختفاء النص داخل القوائم */
+    .pos-right select option {
+        background-color: #fff !important;
+        color: #333 !important;
+    }
+
     .pos-right .form-select:focus, .pos-right .form-control:focus {
         background-color: rgba(255, 255, 255, 0.2);
         border-color: #3498db;
@@ -1518,6 +1525,11 @@
         $('#btn_open_cols').click(function(e) { e.stopPropagation(); $('#menu_cols').toggle(); });
         $(document).click(function(e) { if (!$(e.target).closest('#menu_cols, #btn_open_cols').length) { $('#menu_cols').hide(); } });
         $('#menu_cols').click(function(e){ e.stopPropagation(); });
+
+        // ✅ إضافة مستمع لتغيير الفلاتر وتحديث الجدول تلقائياً
+        $('.auto-filter').on('change', function() {
+            getRecentSales(1); // إعادة التحميل من الصفحة الأولى عند تغيير الفلتر
+        });
     });
 
     // ==========================================
