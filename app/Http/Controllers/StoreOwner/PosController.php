@@ -13,7 +13,8 @@ use App\Models\ProductUnit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Services\InventoryService;
-use Illuminate\Support\Facades\Http; // ضروري للواتساب
+use App\Mail\StockAlertMail;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;  // ضروري لتسجيل الأخطاء
 use Illuminate\Support\Facades\Mail; // <--- أضف هذا السطر ضروري جداً
 
@@ -324,59 +325,87 @@ class PosController extends Controller
                 ]);
             }
 
-            DB::commit(); 
-
-            // لا إشعارات للمسحوبات
-            if ($isWithdrawal) {
-                return response()->json(['success' => true, 'message' => 'تم تسجيل المسحوبات', 'invoice_id' => $sale->id]);
-            }
+            DB::commit();
 
             // ============================================================
-            // 🔥 منطقة الإشعارات (إيميل وواتساب منفصلين تماماً) 🔥
+            // 🔥 منطقة الإشعارات (إيميل وواتساب) 🔥
             // ============================================================
             try {
-                // ... (نفس كود الإشعارات السابق) ...
-                // اختصاراً، سنعيد نفس المنطق ولكن لن نكرره هنا لتوفير المساحة إلا إذا تطلب الأمر
-                // سأضطر لإعادته إذا حذفت الكود القديم. لذا سأقوم بنسخ المنطق الموجود سابقاً.
-                
                 $isCredit = ($sale->due > 0);
                 $stockAlertLines = [];
-                // ... (stock alert building logic same as before) ...
-                 foreach ($items as $item) {
+                $emailAlertData = [];
+                
+                foreach ($items as $item) {
                     $prod = Product::with('baseUnit')->find($item['id']);
                     if ($prod && $prod->track_stock) {
-                        $currentStock = (float)$prod->current_stock; $alertLimit = (float)$prod->alert_quantity;
-                        if ($currentStock <= 0 || $currentStock <= $alertLimit) {
-                            $barcode = $prod->baseUnit ? $prod->baseUnit->barcode : $prod->sku; $barcodeStr = $barcode ? $barcode : '---';
-                            $stockAlertLines[] = "⚠️ {$prod->name_ar} ({$barcodeStr}): {$currentStock}";
+                        $currentStock = (float)$prod->current_stock; 
+                        $alertLimit = (float)$prod->alert_quantity;
+                        
+                        if ($currentStock <= $alertLimit) {
+                            $barcode = $prod->baseUnit ? $prod->baseUnit->barcode : $prod->sku; 
+                            $barcodeStr = $barcode ? $barcode : '---';
+                            
+                            $header = $currentStock <= 0 ? "🔴 نفذت الكمية" : "⚠️ مخزون منخفض";
+                            $msgSuffix = $isWithdrawal ? " (بسبب سحب صاحب المتجر)" : "";
+                            
+                            $stockAlertLines[] = "{$header}{$msgSuffix}\n📦 {$prod->name_ar}\n🔢 {$barcodeStr}\n📉 الحالية: {$currentStock}";
+                            
+                            $emailAlertData[] = [
+                                'name' => $prod->name_ar,
+                                'stock' => $currentStock
+                            ];
                         }
                     }
                 }
+                
                 $stockBody = !empty($stockAlertLines) ? implode("\n", $stockAlertLines) : "";
 
-                // ... (WhatsApp & Email Logic - kept intact mostly but shortened for brevity in this replacement) ...
-                // (Assuming previous logic is fine, just re-inserting it in a cleaner way or relying on the user not needing drastic changes there)
-                // For safety, I will keep the original notification logic structure logic.
-
-                 // 🟢 منطق الواتساب (مستقل) 🟢
+                // 🟢 1. منطق الواتساب 🟢
                 if ($store->notify_whatsapp && $store->phone_number) {
                     $waMsg = "";
-                    if ($store->wa_notify_stock && !empty($stockBody)) $waMsg .= $stockBody . "\n\n";
-                    if ($store->wa_notify_sales) {
+                    if ($store->wa_notify_stock && !empty($stockBody)) {
+                        $waMsg .= $stockBody . "\n\n";
+                    }
+                    
+                    // إشعار المبيعات (فقط إذا لم يكن سحباً)
+                    if (!$isWithdrawal && $store->wa_notify_sales) {
                         $sendInv = false;
-                        if ($store->wa_sales_credit_only) { if ($isCredit && $sale->due >= $store->wa_sales_credit_min) $sendInv = true; } 
-                        else { if ($netTotal >= $store->wa_sales_min) $sendInv = true; if ($isCredit && $sale->due >= $store->wa_sales_credit_min) $sendInv = true; }
-
+                        if ($store->wa_sales_credit_only) { 
+                            if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
+                        } else { 
+                            if ($netTotal >= ($store->wa_sales_min ?? 0)) $sendInv = true; 
+                            if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
+                        }
                         if ($sendInv) {
                             $waMsg .= "🧾 *فاتورة #{$sale->id}*\n💰 {$netTotal}\n👤 " . ($sale->contact ? $sale->contact->contact_name : 'نقدي');
                         }
                     }
+
                     if (!empty($waMsg)) {
-                         Http::timeout(2)->post('https://wa.tech-sys.online/send-message', ['phone' => $store->phone_number, 'message' => trim($waMsg), 'session_id' => 'store_' . $storeId]);
+                        Http::timeout(2)->post('https://wa.tech-sys.online/send-message', [
+                            'phone' => $store->phone_number, 
+                            'message' => trim($waMsg), 
+                            'session_id' => 'store_' . $storeId
+                        ]);
                     }
                 }
 
-            } catch (\Exception $e) { Log::error("Notif Error: " . $e->getMessage()); }
+                // 🔵 2. منطق الإيميل 🔵
+                if ($store->notify_email && $store->email) {
+                    // تنبيه المخزون عبر الإيميل
+                    if ($store->email_notify_stock && !empty($emailAlertData)) {
+                        $reason = $isWithdrawal ? "سحب كمية من قبل صاحب المتجر" : "عملية بيع جديدة";
+                        Mail::to($store->email)->send(new StockAlertMail($emailAlertData, $store->name, $reason));
+                    }
+                }
+
+            } catch (\Exception $e) { 
+                Log::error("Notif Error: " . $e->getMessage()); 
+            }
+
+            if ($isWithdrawal) {
+                return response()->json(['success' => true, 'message' => 'تم تسجيل المسحوبات', 'invoice_id' => $sale->id]);
+            }
 
             return response()->json(['success' => true, 'message' => 'تم الحفظ بنجاح', 'invoice_id' => $sale->id]);
 
