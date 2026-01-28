@@ -146,6 +146,7 @@ Route::resource('products', ProductController::class)->except(['show']);
         Route::get('pos/search-customers', [PosController::class, 'searchCustomers'])->name('pos.search-customers');
         Route::post('pos/save', [PosController::class, 'storeInvoice'])->name('pos.save');
         Route::get('pos/recent-sales', [PosController::class, 'getRecentSales'])->name('pos.recent-sales');
+        Route::get('pos/withdrawals', [PosController::class, 'getWithdrawalsReport'])->name('pos.withdrawals');
         Route::get('pos/sale-details/{id}', [PosController::class, 'getSaleDetails'])->name('pos.sale-details');
         Route::delete('pos/delete-sale/{id}', [PosController::class, 'deleteSale'])->name('pos.delete-sale');
         Route::post('/pos/adjust-stock', [PosController::class, 'quickAdjustStock'])->name('pos.adjustStock');

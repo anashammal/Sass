@@ -18,8 +18,9 @@ class InventoryService
     public function reduceStock(Product $product, float $quantitySold): float
     {
         // 1. إذا كان المنتج لا يتتبع المخزون (مثل خدمة توصيل)
+        // لا يزال بإمكاننا تقدير التكلفة بناءً على "آخر سعر شراء" مسجل
         if (!$product->track_stock) {
-            return 0;
+            return (float)($quantitySold * ($product->last_cost_price ?? 0));
         }
 
         // 2. التحقق هل المنتج عبارة عن وجبة/وصفة (نظام المطاعم)
@@ -96,13 +97,66 @@ class InventoryService
 
         // إذا بقي كمية لم نجد لها رصيد (بيعة بالسالب/على المكشوف)
         if ($remainingQty > 0) {
-            // هنا نسجل الكمية المتبقية بتكلفة "آخر سعر شراء" مسجل للمنتج
-            $totalCost += ($remainingQty * $product->last_cost_price);
+            // محاولة جلب تكلفة من آخر دفعة مسجلة حتى لو كميتها صفر (كأفضل تقدير)
+            $fallbackCost = $product->last_cost_price;
+            if (!$fallbackCost || $fallbackCost == 0) {
+                $lastBatch = $product->batches()->latest()->first();
+                if ($lastBatch) $fallbackCost = $lastBatch->cost_price;
+            }
+            
+            // ✅ إضافة: فحص سعر التكلفة من الوحدات كحل أخير (مهم للخبز والسلع المباشرة)
+            if (!$fallbackCost || $fallbackCost == 0) {
+                $baseUnit = $product->units()->where('is_base_unit', true)->first();
+                if (!$baseUnit) $baseUnit = $product->units()->first();
+                if ($baseUnit) $fallbackCost = $baseUnit->cost_price;
+            }
+
+            $totalCost += ($remainingQty * ($fallbackCost ?? 0));
             
             // نجعل المخزون الكلي بالسالب
             $product->decrement('current_stock', $remainingQty);
         }
 
         return $totalCost;
+    }
+
+    /**
+     * إرجاع المخزون (عند حذف فاتورة أو إرجاع صنف)
+     * سيتم إعادة الكمية لآخر دفعة مسجلة للمنتج
+     */
+    public function incrementStock(Product $product, float $quantityToReturn): void
+    {
+        if (!$product->track_stock) return;
+
+        // 1. إذا كان المنتج عبارة عن وجبة، نرجع المكونات
+        $recipes = $product->recipes;
+        if ($recipes->count() > 0) {
+            foreach ($recipes as $recipe) {
+                $ingredientQty = $recipe->quantity * $quantityToReturn;
+                if ($recipe->wastage_percent > 0) {
+                    $ingredientQty += ($ingredientQty * ($recipe->wastage_percent / 100));
+                }
+                $this->incrementStock($recipe->ingredient, $ingredientQty);
+            }
+            return;
+        }
+
+        // 2. محاولة إرجاع الكمية لآخر دفعة نشطة (أو آخر دفعة تم إنشاؤها)
+        $batch = $product->batches()->latest()->first();
+        
+        if ($batch) {
+            $batch->increment('quantity', $quantityToReturn);
+        } else {
+            // إذا لم يكن هناك دفعات (حالة نادرة)، ننشئ دفعة افتراضية لإرجاع المخزون إليها
+            ProductBatch::create([
+                'product_id' => $product->id,
+                'quantity' => $quantityToReturn,
+                'cost_price' => $product->last_cost_price ?? 0,
+                'expiry_date' => $product->expiry_date,
+            ]);
+        }
+
+        // 3. تحديث المخزون الكلي للمنتج
+        $product->increment('current_stock', $quantityToReturn);
     }
 }

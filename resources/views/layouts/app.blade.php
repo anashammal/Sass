@@ -759,7 +759,7 @@
         <span>المبيعات</span>
         <i class="fas fa-angle-left ms-auto"></i>
     </a>
-    <div class="collapse {{ request()->routeIs('store.pos.*') ? 'show' : '' }}" id="salesCollapse">
+    <div class="collapse {{ request()->routeIs('store.pos.*') && !request()->routeIs('store.pos.withdrawals') ? 'show' : '' }}" id="salesCollapse">
         <ul class="nav flex-column ps-3">
             <li class="nav-item">
                 <a href="{{ route('store.pos.index') }}" class="nav-link {{ request()->routeIs('store.pos.index') ? 'active' : '' }}">
@@ -778,12 +778,18 @@
         <span>التقارير</span>
         <i class="fas fa-angle-left ms-auto"></i>
     </a>
-    <div id="reportsCollapse" class="collapse {{ request()->routeIs('reports.*') ? 'show' : '' }}">
+    <div id="reportsCollapse" class="collapse {{ request()->routeIs('reports.*') || request()->routeIs('store.pos.withdrawals') ? 'show' : '' }}">
         <ul class="nav flex-column ps-3">
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('reports.shifts') ? 'active' : '' }}" href="{{ route('reports.shifts') }}">
                     <i class="fas fa-cash-register"></i> 
                     <span>تقرير الصناديق</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('store.pos.withdrawals') ? 'active' : '' }}" href="{{ route('store.pos.withdrawals') }}">
+                    <i class="fas fa-hand-holding-usd"></i> 
+                    <span>مسحوبات المالك</span>
                 </a>
             </li>
         </ul>

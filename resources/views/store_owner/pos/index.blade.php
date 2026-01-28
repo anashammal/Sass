@@ -206,7 +206,7 @@
             
             {{-- رأس القائمة (رقم الفاتورة + الأزرار) --}}
            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="fw-bold m-0 text-warning" style="font-size: 1rem;">#{{ $nextInvoice }}</span>
+                <span id="invoiceNumberDisplay" class="fw-bold m-0 text-warning" style="font-size: 1rem;">#{{ $nextInvoice }}</span>
                 <div class="d-flex gap-1">
                     {{-- ✅ زر فتح الصندوق --}}
                     <button id="btnOpenShift" class="btn btn-success btn-sm text-white fw-bold py-1 px-2" 
@@ -615,8 +615,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-{{-- Bootstrap Bundle for Modals --}}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{{-- Bootstrap Bundle already loaded in layout --}}
 
 <script>
     let cart = [];
@@ -625,6 +624,10 @@
     let selectedCustomer = null;
     let isShiftOpen = false;
     let roundingDifference = 0; 
+
+    // متغيرات أرقام الفواتير القادمة
+    const nextInvoiceNumber = "#{{ $nextInvoice }}";
+    const nextWithdrawalNumber = "#{{ $nextWithdrawal ?? 'SOV-Unknown' }}"; 
 
     // تعريف النوافذ
     let historyModal;
@@ -660,8 +663,19 @@
                 processResults: function (data) {
                     if (data.results.length === 1) {
                         let c = data.results[0];
-                        selectedCustomer = { id: c.id, name: c.text, balance: parseFloat(c.balance || 0) };
+                        // ✅ تحسين: التأكد من تمرير كل الخصائص بما فيها is_store_owner
+                        let isStoreOwner = c.is_store_owner || (c.text && c.text.includes('صاحب المتجر')) || false;
+                        
+                        selectedCustomer = { 
+                            id: c.id, 
+                            name: c.text, 
+                            balance: parseFloat(c.balance || 0),
+                            is_store_owner: isStoreOwner 
+                        };
+                        
                         updateCustomerBalanceDisplay();
+                        toggleWithdrawalMode(isStoreOwner); // ✅ تفعيل وضع المسحوبات فوراً
+
                         let option = new Option(c.text, c.id, true, true);
                         $customerSelect.append(option).trigger('change');
                         $customerSelect.select2('close');
@@ -678,23 +692,77 @@
         $customerSelect.on('select2:select', function (e) {
             let data = e.params.data;
             if (!data.balance && $(this).find(':selected').data('data')) { data = $(this).find(':selected').data('data'); }
-            selectedCustomer = { id: data.id, name: data.text || data.contact_name, balance: parseFloat(data.balance || 0) };
+            
+            // ✅ فحص هل هو صاحب المتجر (تحسين الفحص ليشمل الاسم أيضاً)
+            let isStoreOwner = data.is_store_owner || (data.text && data.text.includes('صاحب المتجر')) || false;
+            if (isStoreOwner) isStoreOwner = true; // ضمان التحويل لبوليان
+
+            selectedCustomer = { 
+                id: data.id, 
+                name: data.text || data.contact_name, 
+                balance: parseFloat(data.balance || 0),
+                is_store_owner: isStoreOwner // تخزين الحالة
+            };
+            
             updateCustomerBalanceDisplay();
+            toggleWithdrawalMode(isStoreOwner);
         });
 
         $customerSelect.on('select2:clear', function (e) {
             selectedCustomer = null;
             $('#customerBalanceBox').fadeOut(200);
+            toggleWithdrawalMode(false);
         });
 
         $('#barcodeInput').focus();
         checkShiftStatus(); // فحص الصندوق عند التحميل
     });
+    
+    // ✅ وظيفة تبديل وضع المسحوبات
+    function toggleWithdrawalMode(enable) {
+        if(enable) {
+            $('.pos-right').css('background', 'linear-gradient(145deg, #7f8c8d, #2c3e50)'); // لون رمادي مميز
+            
+            // ✅ إخفاء تام لقسم الدفع
+            $('#paymentRowsContainer').parent().addClass('d-none'); 
+            $('#discountType').parent().parent().addClass('d-none');
+            $('#diffLabel').parent().parent().addClass('d-none');
+            
+            $('.btn-save-invoice').removeClass('btn-save-invoice').addClass('btn-withdrawal-save')
+                .html('<i class="fas fa-file-export me-2"></i> تسجيل مسحوبات')
+                .css('background', '#e67e22');
+                
+            // تغيير رقم الفاتورة
+            $('#invoiceNumberDisplay').text(nextWithdrawalNumber);
+
+        } else {
+            $('.pos-right').css('background', 'linear-gradient(145deg, #2c3e50, #34495e)');
+            
+            // ✅ إظهار قسم الدفع
+            $('#paymentRowsContainer').parent().removeClass('d-none');
+            $('#discountType').parent().parent().removeClass('d-none');
+            $('#diffLabel').parent().parent().removeClass('d-none');
+
+            $('.btn-withdrawal-save').removeClass('btn-withdrawal-save').addClass('btn-save-invoice')
+                .html('<i class="fas fa-save me-2"></i> حفظ وطباعة (F9)')
+                .css('background', '');
+
+            // استعادة رقم الفاتورة الطبيعي
+            $('#invoiceNumberDisplay').text(nextInvoiceNumber);
+        }
+    }
 
     function updateCustomerBalanceDisplay() {
         let box = $('#customerBalanceBox');
         let display = $('#balanceDisplay');
         if (!selectedCustomer) { box.css('display', 'none'); return; }
+        
+        // إذا كان صاحب المتجر لا نعرض الرصيد
+        if(selectedCustomer.is_store_owner) { 
+            box.css('display', 'none'); 
+            return; 
+        }
+
         let bal = parseFloat(selectedCustomer.balance);
         box.css('display', 'block');
         let htmlContent = '';
@@ -1088,8 +1156,8 @@
     };
 
     window.submitInvoice = (extraData = {}) => {
-        // 🛑 فحص الصندوق أولاً 🛑
-        if (!isShiftOpen) {
+        // 🛑 فحص الصندوق أولاً، إلا في حالة المسحوبات 🛑
+        if (!selectedCustomer?.is_store_owner && !isShiftOpen) {
             Swal.fire({
                 icon: 'info',
                 title: 'الصندوق مغلق',
@@ -1103,26 +1171,15 @@
             });
             return; // إيقاف تنفيذ دالة البيع
         }
+
         if(cart.length === 0) return toastr.error('السلة فارغة');
         
         let total = parseFloat($('#footerTotal').text());
         let pay = []; 
         let totalPaid = 0;
         
-        // 🔥 التعديل هنا: نمر على الصف بالكامل لنجلب النوع والمبلغ معاً
-       $('.pay-row').each(function() {
-            let method = $(this).find('select.method-select').val(); // تأكد من وجود الكلاس
-            let amountVal = $(this).find('input.amount-input').val(); // تأكد من وجود الكلاس
-            let v = parseFloat(amountVal);
-
-            if (v > 0 && method) {
-                pay.push({ method: method, amount: v });
-                totalPaid += v;
-            }
-        });
-        
-        let diff = total - totalPaid;
-        let currentBalance = selectedCustomer ? parseFloat(selectedCustomer.balance) : 0;
+        // ✅ فحص صارم لصاحب المتجر (بناء على العلامة أو الاسم)
+        const isOwner = selectedCustomer?.is_store_owner || (selectedCustomer?.name && selectedCustomer.name.includes('صاحب المتجر'));
 
         const performAjaxSave = (finalData) => {
             let data = {
@@ -1135,7 +1192,7 @@
 
             $.post("{{ route('store.pos.save') }}", data)
              .done(() => { 
-                 Swal.fire({icon:'success', title:'تمت العملية بنجاح', timer:1000, showConfirmButton:false}); 
+                 Swal.fire({icon:'success', title: isOwner ? 'تم تسجيل المسحوبات' : 'تمت العملية بنجاح', timer:1000, showConfirmButton:false}); 
                  setTimeout(() => location.reload(), 1000);
              })
              .fail((xhr) => { 
@@ -1163,6 +1220,34 @@
                  }
              });
         };
+
+        if (!isOwner) {
+           $('.pay-row').each(function() {
+                let method = $(this).find('select.method-select').val();
+                let amountVal = $(this).find('input.amount-input').val();
+                let v = parseFloat(amountVal);
+
+                if (v > 0 && method) {
+                    pay.push({ method: method, amount: v });
+                    totalPaid += v;
+                }
+            });
+        }
+        
+        // --- تعديل هام جداً: تجاوز حساب الفروقات للمسحوبات ---
+        if(isOwner) {
+             performAjaxSave({});
+             return;
+        }
+        
+        let diff = total - totalPaid;
+        let currentBalance = selectedCustomer ? parseFloat(selectedCustomer.balance) : 0;
+
+        // تجاوز فحوصات الدفع للمسحوبات (تم نقله للأعلى لضمان عدم الوصول للكود السفلي)
+        // if (selectedCustomer?.is_store_owner) { ... }
+
+        // تجاوز فحوصات الدفع للمسحوبات (تم نقله للأعلى لضمان عدم الوصول للكود السفلي)
+        // if (selectedCustomer?.is_store_owner) { ... }
 
         if (diff > 0.01 && !extraData.bypass_confirm) {
             if (!selectedCustomer) return Swal.fire({icon: 'error', title: 'مطلوب عميل', text: 'لا يمكن تسجيل دين لعميل عام'});
