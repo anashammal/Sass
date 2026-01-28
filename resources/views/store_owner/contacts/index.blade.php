@@ -14,55 +14,75 @@
     <div class="row g-3 mb-4">
         {{-- 1. الكل --}}
         <div class="col">
-            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-primary text-white rounded-circle p-2 d-inline-block mb-2"><i class="fas fa-users fa-lg"></i></div>
-                    <h6 class="text-muted small mb-1">العدد الكلي</h6>
-                    <h4 class="fw-bold mb-0 text-primary">{{ $stats['total'] ?? 0 }}</h4>
+            <div class="card kpi-card kpi-primary h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="kpi-label">العدد الكلي</div>
+                        <div class="kpi-value english-num">{{ $stats['total'] ?? 0 }}</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- 2. عدد الزبائن (جديد) --}}
         <div class="col">
-            <div class="card border-0 shadow-sm bg-info bg-opacity-10 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-info text-white rounded-circle p-2 d-inline-block mb-2"><i class="fas fa-user-tag fa-lg"></i></div>
-                    <h6 class="text-muted small mb-1">عدد الزبائن</h6>
-                    <h4 class="fw-bold mb-0 text-info">{{ $stats['customers_count'] ?? 0 }}</h4>
+            <div class="card kpi-card kpi-info h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-user-tag"></i>
+                    </div>
+                    <div>
+                        <div class="kpi-label">عدد الزبائن</div>
+                        <div class="kpi-value english-num">{{ $stats['customers_count'] ?? 0 }}</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- 3. عدد الموردين (جديد) --}}
         <div class="col">
-            <div class="card border-0 shadow-sm bg-warning bg-opacity-10 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-warning text-white rounded-circle p-2 d-inline-block mb-2"><i class="fas fa-truck fa-lg"></i></div>
-                    <h6 class="text-muted small mb-1">عدد الموردين</h6>
-                    <h4 class="fw-bold mb-0 text-warning" style="color: #d35400 !important;">{{ $stats['suppliers_count'] ?? 0 }}</h4>
+            <div class="card kpi-card kpi-warning h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div>
+                        <div class="kpi-label">عدد الموردين</div>
+                        <div class="kpi-value english-num">{{ $stats['suppliers_count'] ?? 0 }}</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- 4. ديون لنا --}}
         <div class="col">
-            <div class="card border-0 shadow-sm bg-success bg-opacity-10 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-success text-white rounded-circle p-2 d-inline-block mb-2"><i class="fas fa-arrow-down fa-lg"></i></div>
-                    <h6 class="text-muted small mb-1">مجموع رصيد الزباين</h6>
-                    <h5 class="fw-bold mb-0 text-success">{{ number_format($stats['receivables'] ?? 0, 0) }}</h5>
+            <div class="card kpi-card kpi-success h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div>
+                        <div class="kpi-label">رصيد الزباين</div>
+                        <div class="kpi-value english-num">{{ number_format($stats['receivables'] ?? 0, 0) }}</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- 5. ديون علينا --}}
         <div class="col">
-            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-danger text-white rounded-circle p-2 d-inline-block mb-2"><i class="fas fa-arrow-up fa-lg"></i></div>
-                    <h6 class="text-muted small mb-1">مجموع الديون</h6>
-                    <h5 class="fw-bold mb-0 text-danger">{{ number_format(abs($stats['payables'] ?? 0), 0) }}</h5>
+            <div class="card kpi-card kpi-danger h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div>
+                        <div class="kpi-label">مجموع الديون</div>
+                        <div class="kpi-value english-num">{{ number_format(abs($stats['payables'] ?? 0), 0) }}</div>
+                    </div>
                 </div>
             </div>
         </div>
