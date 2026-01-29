@@ -352,6 +352,13 @@ class ProductController extends Controller
 
         $batch = \App\Models\ProductBatch::findOrFail($request->batch_id);
         
+        // ✅ التحقق من الكسور
+        $prod = $batch->product;
+        $uName = $prod->baseUnit ? $prod->baseUnit->unit_name : 'قطعة';
+        if (!preg_match('/kilo|kg|كيلو|كغ/i', $uName) && fmod((float)$request->quantity, 1) !== 0.0) {
+            return back()->with('error', "الوحدة ($uName) لا تقبل الكسور!");
+        }
+        
         if ($request->quantity > $batch->quantity) {
              return back()->with('error', 'الكمية المراد إتلافها أكبر من المتوفر في هذه الدفعة!');
         }
@@ -406,6 +413,13 @@ class ProductController extends Controller
         ]);
 
         $batch = \App\Models\ProductBatch::findOrFail($request->batch_id);
+
+        // ✅ التحقق من الكسور
+        $prod = $batch->product;
+        $uName = $prod->baseUnit ? $prod->baseUnit->unit_name : 'قطعة';
+        if (!preg_match('/kilo|kg|كيلو|كغ/i', $uName) && fmod((float)$request->quantity, 1) !== 0.0) {
+            return back()->with('error', "الوحدة ($uName) لا تقبل الكسور!");
+        }
         
         if ($request->quantity > $batch->quantity) {
             return back()->with('error', 'الكمية المحددة أكبر من المتوفر في الدفعة!');

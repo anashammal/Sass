@@ -145,7 +145,7 @@
                                                                     @csrf
                                                                     <div class="mb-3">
                                                                         <label class="form-label fw-bold">اختر الدفعة (Batch) المراد إتلافها:</label>
-                                                                        <select name="batch_id" class="form-select batch-select" required onchange="updateMaxQty(this)">
+                                                                        <select name="batch_id" class="form-select batch-select" required onchange="updateMaxQty(this)" data-unit-name="{{ $product->baseUnit->unit_name ?? '' }}">
                                                                             <option value="">-- اختر الدفعة --</option>
                                                                             @foreach($group['expired'] as $batch)
                                                                                 <option value="{{ $batch->id }}" data-max="{{ $batch->quantity }}" class="text-danger">
@@ -199,7 +199,7 @@
 
                                                                     <div class="mb-3">
                                                                         <label class="form-label fw-bold">اختر الدفعة:</label>
-                                                                        <select name="batch_id" class="form-select batch-select" required onchange="updateMaxQty(this)">
+                                                                        <select name="batch_id" class="form-select batch-select" required onchange="updateMaxQty(this)" data-unit-name="{{ $product->baseUnit->unit_name ?? '' }}">
                                                                             <option value="">-- اختر --</option>
                                                                             {{-- نعرض كل الدفعات هنا أيضاً --}}
                                                                             @foreach($product->batches as $batch)
@@ -316,6 +316,11 @@
         const display = form.querySelector('.max-qty-display');
         const input = form.querySelector('.qty-input');
         
+        // ✅ تحديد الدقة بناء على الوحدة
+        const unitName = selectElement.getAttribute('data-unit-name') || '';
+        const isKilo = /kilo|kg|كيلو|كغ/i.test(unitName);
+        input.step = isKilo ? "0.001" : "1";
+
         if (max) {
             display.innerText = parseFloat(max);
             input.max = max;

@@ -249,6 +249,16 @@ class PosController extends Controller
 
                     $itemsCosts[$index] = $inventoryService->reduceStock($product, $qtyToDeduct);
                     
+                    // ✅ التحقق من الكسور (Validation for Fractions)
+                    $unitName = 'قطعة';
+                    if ($selUnitId && isset($unit)) $unitName = $unit->unit_name;
+                    elseif ($product->baseUnit) $unitName = $product->baseUnit->unit_name;
+                    
+                    $isKilo = preg_match('/kilo|kg|كيلو|كغ/i', $unitName);
+                    if (!$isKilo && fmod((float)$item['qty'], 1) !== 0.0) {
+                         return response()->json(['error' => 'stock_error', 'message' => "خطأ: الوحدة ($unitName) للمنتج ({$product->name_ar}) لا تقبل الكسور!"], 422);
+                    }
+                    
                     // منطق التنبيه
                     $product->refresh();
                     if ($product->track_stock) {

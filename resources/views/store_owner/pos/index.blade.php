@@ -930,6 +930,15 @@
                 unitHtml = `<span class="unit-text">${item.units[0]?.unit_name || 'قطعة'}</span>`;
             }
 
+            let currentUnitObj = (item.units && item.units.length > 1) 
+                ? item.units.find(u => u.unit_id == item.selected_unit_id)
+                : (item.units[0] || {});
+            let currentUnitName = currentUnitObj.unit_name || 'قطعة';
+            
+            // ✅ فحص الكيلو للسماح بالكسور
+            let isKilo = /kilo|kg|كيلو|كغ/i.test(currentUnitName);
+            let stepVal = isKilo ? "0.001" : "1";
+
             tbody.innerHTML += `
                 <tr>
                     <td><img src="${item.image}" class="product-thumb"></td>
@@ -940,9 +949,9 @@
                     <td class="text-center align-middle">
                         <div class="input-group input-group-sm justify-content-center" style="width: 100px;">
                             <button class="btn btn-outline-secondary" onclick="updateQty(${index}, 1)">+</button>
-                            <input type="number" min="0.1" step="any" class="form-control text-center p-0 fw-bold text-primary" 
+                            <input type="number" min="0.001" step="${stepVal}" class="form-control text-center p-0 fw-bold text-primary" 
                                    value="${item.qty}" 
-                                   onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 46"
+                                   onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || (event.charCode == 46 && ${isKilo}) "
                                    oninput="this.value = this.value.replace(/[^0-9.]/g, '')"
                                    onchange="updateQtyManual(${index}, this.value)" 
                                    onfocus="this.select()">
@@ -1041,6 +1050,18 @@
     window.updateQtyManual = (index, value) => {
         let newQty = parseFloat(value);
         let item = cart[index];
+        
+        let currentUnitObj = (item.units && item.units.length > 1) 
+            ? item.units.find(u => u.unit_id == item.selected_unit_id)
+            : (item.units[0] || {});
+        let isKilo = /kilo|kg|كيلو|كغ/i.test(currentUnitObj.unit_name || '');
+
+        // ✅ منع الكسور لغير الكيلو
+        if (!isKilo && !Number.isInteger(newQty)) {
+            toastr.warning('هذه الوحدة لا تقبل الكسور');
+            newQty = Math.round(newQty);
+            if(newQty < 1) newQty = 1;
+        }
 
         if (newQty > 0) {
             let unit = item.units.find(u => u.unit_id == item.selected_unit_id);
@@ -1064,7 +1085,8 @@
             }
             item.qty = newQty;
         } else {
-            toastr.warning('الكمية يجب أن تكون 1 على الأقل');
+        } else {
+            toastr.warning('الكمية غير صحيحة');
             item.qty = 1;
         }
         renderCart();
