@@ -26,7 +26,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-bold">مصاريف اليوم</small>
-                        <h4 class="fw-bold mb-0 mt-1">{{ number_format($totals['today'], 2) }}</h4>
+                        <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['today'] == (int)$totals['today'] ? number_format($totals['today'], 0) : number_format($totals['today'], 2) }}</h4>
                     </div>
                     <div class="bg-danger bg-opacity-10 p-3 rounded-circle text-danger">
                         <i class="fas fa-calendar-day fa-lg"></i>
@@ -39,7 +39,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-bold">مصاريف الشهر</small>
-                        <h4 class="fw-bold mb-0 mt-1">{{ number_format($totals['month'], 2) }}</h4>
+                        <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['month'] == (int)$totals['month'] ? number_format($totals['month'], 0) : number_format($totals['month'], 2) }}</h4>
                     </div>
                     <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
                         <i class="fas fa-calendar-alt fa-lg"></i>
@@ -52,7 +52,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-bold">إجمالي المصاريف (المفلترة)</small>
-                        <h4 class="fw-bold mb-0 mt-1">{{ number_format($totals['total'], 2) }}</h4>
+                        <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['total'] == (int)$totals['total'] ? number_format($totals['total'], 0) : number_format($totals['total'], 2) }}</h4>
                     </div>
                     <div class="bg-secondary bg-opacity-10 p-3 rounded-circle text-secondary">
                         <i class="fas fa-filter fa-lg"></i>
@@ -120,10 +120,19 @@
                                         {{ $expense->category->name }}
                                     </span>
                                 </td>
-                                <td class="fw-bold">{{ number_format($expense->amount, 2) }}</td>
+                                <td class="fw-bold">
+                                    {{ (float)$expense->amount == (int)$expense->amount ? number_format($expense->amount, 0) : number_format($expense->amount, 2) }}
+                                </td>
                                 <td class="text-muted small text-truncate" style="max-width: 200px;" title="{{ $expense->notes }}">{{ $expense->notes ?? '-' }}</td>
                                 <td class="small text-muted">{{ $expense->user->name }}</td>
                                 <td class="text-end px-4">
+                                    @if($expense->attachment)
+                                        <button class="btn btn-sm btn-outline-info" 
+                                            onclick="previewAttachment('{{ asset('storage/' . $expense->attachment) }}')"
+                                            title="عرض المرفق">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    @endif
                                     <button class="btn btn-sm btn-outline-primary" 
                                         onclick="editExpense({{ json_encode([
                                             'id' => $expense->id,
@@ -263,11 +272,111 @@
     function editExpense(data) {
         document.getElementById('editExpenseForm').action = `{{ url('store-owner/expenses') }}/${data.id}`;
         document.getElementById('edit_category_id').value = data.category_id;
-        document.getElementById('edit_amount').value = data.amount;
+        // تقريب الرقم ليظهر بدون أصفار زائدة إذا كان صحيحاً
+        document.getElementById('edit_amount').value = parseFloat(data.amount); 
         document.getElementById('edit_expense_date').value = data.expense_date;
         document.getElementById('edit_notes').value = data.notes ?? '';
         
         new bootstrap.Modal(document.getElementById('editExpenseModal')).show();
     }
+
+    function previewAttachment(url) {
+        const body = document.getElementById('previewModalBody');
+        const extension = url.split('.').pop().toLowerCase();
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        body.innerHTML = ''; // تنظيف المعاينة السابقة
+        
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension)) {
+            body.innerHTML = `<div class="p-3 text-center"><img src="${url}" class="img-fluid rounded shadow-sm max-vh-70"></div>`;
+        } 
+        else if (['mp4', 'webm', 'ogg'].includes(extension)) {
+            body.innerHTML = `
+                <div class="p-3">
+                    <video controls class="w-100 rounded shadow-sm" style="max-height: 500px;">
+                        <source src="${url}" type="video/${extension === 'mp4' ? 'mp4' : (extension === 'ogg' ? 'ogg' : 'webm')}">
+                        متصفحك لا يدعم تشغيل الفيديو.
+                    </video>
+                </div>`;
+        }
+        else if (['mp3', 'wav', 'ogg'].includes(extension)) {
+            body.innerHTML = `
+                <div class="p-5 text-center">
+                    <i class="fas fa-music fa-4x mb-4 text-primary opacity-25"></i>
+                    <audio controls class="w-100 mb-3">
+                        <source src="${url}" type="audio/${extension === 'mp3' ? 'mpeg' : (extension === 'wav' ? 'wav' : 'ogg')}">
+                        متصفحك لا يدعم تشغيل الصوت.
+                    </audio>
+                    <p class="text-muted">مشغل ملفات الصوت</p>
+                </div>`;
+        }
+        else if (extension === 'pdf') {
+            body.innerHTML = `<iframe src="${url}" width="100%" height="600px" style="border:none;"></iframe>`;
+        } 
+        else if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension)) {
+            if (!isLocal) {
+                body.innerHTML = `
+                    <div class="ratio ratio-16x9">
+                        <iframe src="https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true" frameborder="0"></iframe>
+                    </div>`;
+            } else {
+                body.innerHTML = `
+                    <div class="text-center py-5 px-3">
+                        <div class="mb-4">
+                            <span class="fa-stack fa-4x">
+                                <i class="fas fa-file fa-stack-1x text-primary opacity-25"></i>
+                                <i class="fas fa-laptop-code fa-stack-1x text-dark shadow-sm" style="font-size: 0.5em; margin-top: 25px;"></i>
+                            </span>
+                        </div>
+                        <h4 class="fw-bold">معاينة ملفات Office (نظام محلي)</h4>
+                        <p class="text-muted mb-4">أنت تعمل حالياً على <b>Localhost</b>. خدمات المعاينة السحابية (مثل Google/Microsoft) لا يمكنها الوصول لملفات جهازك الشخصي لأسباب أمنية.</p>
+                        <div class="alert alert-warning d-inline-block shadow-sm">
+                            <i class="fas fa-info-circle me-2"></i> عند رفع النظام على الإنترنت (Live Server)، ستظهر المعاينة هنا تلقائياً.
+                        </div>
+                        <div class="mt-4 pt-2">
+                            <a href="${url}" download class="btn btn-primary btn-lg px-5 shadow">
+                                <i class="fas fa-download me-2"></i> تحميل وفتح الملف الآن
+                            </a>
+                        </div>
+                    </div>`;
+            }
+        } 
+        else {
+            // لأي امتداد آخر غير معروف
+            body.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-file-alt fa-4x mb-4 text-secondary opacity-25"></i>
+                    <h4>ملف غير مدعوم للمعاينة المباشرة</h4>
+                    <p class="text-muted mb-4">الامتداد: ( ${extension.toUpperCase()} )</p>
+                    <a href="${url}" download class="btn btn-dark px-5">
+                        <i class="fas fa-download me-2"></i> تحميل المرفق
+                    </a>
+                </div>`;
+        }
+        
+        document.getElementById('downloadPreviewLink').href = url;
+        new bootstrap.Modal(document.getElementById('attachmentPreviewModal')).show();
+    }
 </script>
+
+<!-- Attachment Preview Modal -->
+<div class="modal fade" id="attachmentPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">معاينة المرفق</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="previewModalBody">
+                <!-- Preview content injected here -->
+            </div>
+            <div class="modal-footer border-0">
+                <a href="#" id="downloadPreviewLink" download class="btn btn-outline-secondary">
+                    <i class="fas fa-download me-1"></i> تحميل النسخة الأصلية
+                </a>
+                <button type="button" class="btn btn-danger px-4" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

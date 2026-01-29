@@ -703,6 +703,14 @@ class PosController extends Controller
         } catch (\Exception $e) { return response()->json(['error' => $e->getMessage()], 500); }
     }
 
+    public function showSalePartial($id)
+    {
+        $storeId = Auth::user()->store->id;
+        $sale = Sale::where('store_id', $storeId)->where('id', $id)->with(['contact', 'items.product', 'items.unit'])->firstOrFail();
+        
+        return view('store_owner.pos.partials.show_modal', compact('sale'))->render();
+    }
+
     // 6. حذف الفاتورة
     public function deleteSale($id, InventoryService $inventoryService)
     {

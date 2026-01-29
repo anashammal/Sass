@@ -48,6 +48,7 @@ class PaymentController extends Controller
 
         foreach ($sales as $s) {
             $merged->push((object)[
+                'id' => $s->id,
                 'date' => $s->date,
                 'type' => 'sale',
                 'reference' => 'فاتورة مبيعات ' . ($s->reference ?? '#' . $s->id),
@@ -58,6 +59,7 @@ class PaymentController extends Controller
 
         foreach ($purchases as $p) {
             $merged->push((object)[
+                'id' => $p->id,
                 'date' => $p->date,
                 'type' => 'purchase',
                 'reference' => 'فاتورة مشتريات ' . ($p->reference ? '#' . $p->reference : '#' . $p->id),
@@ -67,13 +69,6 @@ class PaymentController extends Controller
         }
 
         foreach ($payments as $pay) {
-            // تحديد تأثير الدفعة: 
-            // إذا كانت مرتبطة ببيع (sale_id) -> فهي 'قبض' من عميل -> تزيد الرصيد
-            // إذا كانت مرتبطة بشراء (purchase_id) -> فهي 'صرف' لمورد -> تنقص الرصيد
-            // إذا كانت مستقلة -> نعتمد على كونها 'قبض' أو 'صرف'؟
-            // لجعلها بسيطة: سنفترض أن الدفعة المستقلة تزيد الرصيد (قبض) إلا لو كان الموظف اختار 'صرف'
-            // سأفترض حالياً أن الدفعات للبيع تزيد، وللشراء تنقص.
-            
             $payEffect = $pay->amount;
             $payRef = 'دفعة مالية';
             if ($pay->sale_id) {
@@ -82,15 +77,10 @@ class PaymentController extends Controller
             } elseif ($pay->purchase_id) {
                 $payEffect = -$pay->amount;
                 $payRef = 'دفعة مشتريات #' . $pay->purchase_id;
-            } else {
-                // دفعات يدوية: سنحتاج لعمول يحدد هل هي دخل أم خرج. 
-                // سأعتبر الموجب (إضافة للرصيد = قبض) والسالب (خصم من الرصيد = دفع)
-                // في Controller::store، نحن نستخدم increment/decrement.
-                // سنحفظ إشارة المبلغ في عمود النوع أو نجعله مسجلاً بالكنترولر.
-                // حالياً سأفترض القبض (توفير دفعة من عميل) هو الموجب.
             }
 
             $merged->push((object)[
+                'id' => $pay->id,
                 'date' => $pay->date ?? $pay->created_at,
                 'type' => 'payment',
                 'reference' => $payRef . ($pay->reference ? ' (' . $pay->reference . ')' : ''),

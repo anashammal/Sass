@@ -73,7 +73,15 @@
                             <tr>
                                 <td class="px-4 text-nowrap">{{ \Carbon\Carbon::parse($row->date)->format('Y-m-d') }}</td>
                                 <td><span class="{{ $typeClass }}">{{ $typeLabel }}</span></td>
-                                <td class="text-muted small text-start">{{ $row->reference }}</td>
+                                <td class="text-muted small text-start">
+                                    @if(in_array($row->type, ['sale', 'purchase']))
+                                        <a href="javascript:void(0)" onclick="viewMovementDetails('{{ $row->type }}', {{ $row->id }})" class="text-info fw-bold text-decoration-none">
+                                            <i class="fas fa-search-plus me-1"></i> {{ $row->reference }}
+                                        </a>
+                                    @else
+                                        {{ $row->reference }}
+                                    @endif
+                                </td>
                                 <td class="fw-bold {{ $effect > 0 ? 'text-success' : 'text-danger' }}" dir="ltr">
                                     {{ ($effect > 0 ? '+' : '') . number_format($effect, 2) }}
                                 </td>
@@ -112,3 +120,69 @@
     }
 </style>
 @endsection
+
+<!-- Movement Detail Modal -->
+<div class="modal fade" id="movementDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-light">
+                <h5 class="modal-title fw-bold">تفاصيل الحركة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="movementDetailBody">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">جاري تحميل التفاصيل...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function viewMovementDetails(type, id) {
+        const modal = new bootstrap.Modal(document.getElementById('movementDetailModal'));
+        const body = document.getElementById('movementDetailBody');
+        
+        body.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2">جاري التحميل...</p></div>';
+        modal.show();
+
+        let url = '';
+        if (type === 'sale') {
+            url = "{{ route('store.pos.sales.partial', ':id') }}".replace(':id', id);
+        } else if (type === 'purchase') {
+            url = "{{ route('store.purchases.show', ':id') }}".replace(':id', id);
+        }
+
+        if (url) {
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.text())
+                .then(html => {
+                    body.innerHTML = html;
+                })
+                .catch(err => {
+                    body.innerHTML = '<div class="alert alert-danger">خطأ أثناء تحميل البيانات</div>';
+                });
+        }
+    }
+
+    function printInvoiceContent() {
+        const content = document.getElementById('movementDetailBody').innerHTML;
+        const originalBody = document.body.innerHTML;
+        
+        // استخدام نافذة جديدة للطباعة للحفاظ على حالة الصفحة الحالية
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write('<html><head><title>Print Invoice</title>');
+        printWindow.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">');
+        printWindow.document.write('<style>body{direction:rtl; font-family: Cairo, sans-serif; padding:20px;} .no-print{display:none !important;}</style>');
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(content);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    }
+</script>

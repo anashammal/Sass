@@ -160,6 +160,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('pos/recent-sales', [PosController::class, 'getRecentSales'])->name('pos.recent-sales');
         Route::get('pos/withdrawals', [PosController::class, 'getWithdrawalsReport'])->name('pos.withdrawals');
         Route::get('pos/sale-details/{id}', [PosController::class, 'getSaleDetails'])->name('pos.sale-details');
+        Route::get('pos/sales/{id}/partial', [PosController::class, 'showSalePartial'])->name('pos.sales.partial');
         Route::delete('pos/delete-sale/{id}', [PosController::class, 'deleteSale'])->name('pos.delete-sale');
         Route::post('/pos/adjust-stock', [PosController::class, 'quickAdjustStock'])->name('pos.adjustStock');
         // رابط تحديث الصلاحية (للمنتجات المنتهية)
