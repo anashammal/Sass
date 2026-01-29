@@ -564,7 +564,8 @@ class PosController extends Controller
         
         $query = Sale::where('store_id', $storeId)
                      ->where('is_withdrawal', true)
-                     ->with(['items.product']); // لجلب التكلفة
+                     ->where('is_withdrawal', true)
+                     ->with(['items.product.baseUnit', 'items.product.units']); // تحديث: جلب الوحدات لحساب التكلفة
 
         if ($request->filled('from_date')) $query->whereDate('created_at', '>=', $request->from_date);
         if ($request->filled('to_date')) $query->whereDate('created_at', '<=', $request->to_date);
@@ -581,8 +582,33 @@ class PosController extends Controller
             $itemsCount = 0;
             
             foreach($sale->items as $item) {
-                // استخدام التكلفة المحفوظة وقت البيع (رأس المال)
-                $cost += (float)$item->cost;
+                // ✅ تحديث: حساب التكلفة بناءً على بطاقة المنتج الحالية (حسب طلب المستخدم)
+                $itemCost = 0;
+                $prod = $item->product;
+                
+                if ($prod) {
+                    // محاولة العثور على الوحدة المستخدمة
+                    $u = null;
+                    if($item->unit_id) {
+                         // نبحث عنها في الوحدات المحملة مسبقاً لتجنب الاستعلامات الزائدة
+                         $u = $prod->units->where('id', $item->unit_id)->first();
+                    } else {
+                         $u = $prod->baseUnit;
+                    }
+
+                    if ($u && !empty($u->cost_price) && $u->cost_price > 0) {
+                        $itemCost = (float)$u->cost_price * $item->quantity;
+                    } else {
+                        $baseCost = (float)$prod->last_cost_price;
+                        $factor = ($u) ? (float)$u->conversion_factor : 1;
+                        $itemCost = ($baseCost * $factor) * $item->quantity;
+                    }
+                } else {
+                    // fallback للمنتجات المحذوفة: نستخدم التكلفة المخزنة
+                    $itemCost = (float)$item->cost;
+                }
+
+                $cost += $itemCost;
                 $itemsCount++;
             }
 
@@ -638,11 +664,30 @@ class PosController extends Controller
                 if($item->unit_id && $u = \App\Models\ProductUnit::find($item->unit_id)) $uName = $u->unit_name;
                 elseif($item->product && $item->product->baseUnit) $uName = $item->product->baseUnit->unit_name;
 
+                // ✅ تحديث: قراءة التكلفة من بطاقة المنتج مباشرة (حسب طلب المستخدم)
+                $currentUnitCost = 0;
+                $prod = $item->product;
+                if ($prod) {
+                    $u = $item->unit_id ? \App\Models\ProductUnit::find($item->unit_id) : ($prod->baseUnit ?? null);
+                    
+                    // 1. إذا كان للوحدة سعر تكلفة محدد
+                    if ($u && !empty($u->cost_price) && $u->cost_price > 0) {
+                        $currentUnitCost = (float)$u->cost_price;
+                    } 
+                    // 2. إذا لم يكن، نحسب بناءً على سعر التكلفة الأساسي * معامل التحويل
+                    else {
+                        $baseCost = (float)$prod->last_cost_price;
+                        $factor = ($u) ? (float)$u->conversion_factor : 1;
+                        $currentUnitCost = $baseCost * $factor;
+                    }
+                }
+
                 return [
-                    'name' => optional($item->product)->name_ar ?? 'محذوف',
+                    'name' => optional($prod)->name_ar ?? 'محذوف',
+                    'barcode' => $prod->sku ?? ($prod->baseUnit->barcode ?? '---'),
                     'unit' => $uName,
                     'qty' => (float)$item->quantity,
-                    'cost' => (float)$item->cost, // إضافة التكلفة (رأس المال)
+                    'cost' => $currentUnitCost * (float)$item->quantity, // إرسال التكلفة الحالية × الكمية
                     'price' => (float)$item->price,
                     'total' => (float)$item->total
                 ];

@@ -461,17 +461,21 @@
                             <tr>
                                 <th>#</th>
                                 <th>المنتج</th>
-                                <th>الوحدة</th>
+                                <th>الباركود</th>
                                 <th>الكمية</th>
-                                <th>السعر</th>
+                                <th class="text-danger">ت. الوحدة</th>
+                                <th class="text-danger">إجمالي التكلفة</th>
+                                <th>سعر البيع</th>
                                 <th>الإجمالي</th>
                             </tr>
                         </thead>
                         <tbody id="invItemsBody"></tbody>
                         <tfoot class="fw-bold">
                             <tr>
-                                <td colspan="5" class="text-end">الإجمالي الكلي</td>
-                                <td id="invTotal"></td>
+                                <td colspan="5" class="text-end">الإجمالي النهائية</td>
+                                <td id="invTotalCost" class="text-danger fs-5"></td>
+                                <td></td>
+                                <td id="invTotal" class="text-dark fs-5"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1085,7 +1089,6 @@
             }
             item.qty = newQty;
         } else {
-        } else {
             toastr.warning('الكمية غير صحيحة');
             item.qty = 1;
         }
@@ -1608,12 +1611,24 @@
                 if (st.signature_url) { $('#signatureOptionDiv').show(); $('#invSignature').attr('src', st.signature_url); } else { $('#signatureOptionDiv').hide(); }
 
                 let h = ''; 
+                let totalCostSum = 0;
                 items.forEach((i, x) => {
-                    h += `<tr><td>${x + 1}</td><td>${i.name}</td><td>${i.unit}</td><td>${i.qty}</td><td>${parseFloat(i.price).toFixed(2)}</td><td>${parseFloat(i.total).toFixed(2)}</td></tr>`;
+                    totalCostSum += parseFloat(i.cost);
+                    h += `<tr>
+                        <td>${x + 1}</td>
+                        <td>${i.name}</td>
+                        <td><span class="badge bg-secondary">${i.barcode || '---'}</span></td>
+                        <td>${i.qty} ${i.unit}</td>
+                        <td class="text-danger">${(i.cost / i.qty).toFixed(2)}</td> 
+                        <td class="text-danger fw-bold">${i.cost.toFixed(2)}</td>
+                        <td>${parseFloat(i.price).toFixed(2)}</td>
+                        <td>${parseFloat(i.total).toFixed(2)}</td>
+                    </tr>`;
                 });
                 
                 $('#invItemsBody').html(h); 
                 $('#invTotal').text(parseFloat(s.total).toFixed(2));
+                $('#invTotalCost').text(totalCostSum.toFixed(2));
             },
             error: function(err) { $('#invoiceModal').modal('hide'); toastr.error('فشل تحميل الفاتورة'); }
         });

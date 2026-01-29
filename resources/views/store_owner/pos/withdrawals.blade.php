@@ -130,25 +130,40 @@
                     <thead class="bg-light">
                         <tr>
                             <th>المنتج</th>
+                            <th>الباركود</th>
                             <th>الكمية</th>
-                            <th class="text-danger">التكلفة (رأس المال)</th>
+                            <th class="text-danger">ت. الوحدة (رأس المال)</th>
+                            <th class="text-danger">إجمالي التكلفة</th>
                             <th class="text-success">سعر البيع</th>
                             <th>الإجمالي (مالي)</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
+            let totalCostSum = 0;
             res.items.forEach(item => {
+                totalCostSum += parseFloat(item.cost);
                 html += `
                     <tr>
                         <td>${item.name}</td>
+                        <td><span class="badge bg-secondary">${item.barcode}</span></td>
                         <td>${item.qty} ${item.unit}</td>
-                        <td class="text-danger fw-bold">${(item.cost / item.qty).toFixed(2)}</td>
+                        <td class="text-danger">${(item.cost / item.qty).toFixed(2)}</td>
+                        <td class="text-danger fw-bold">${item.cost.toFixed(2)}</td>
                         <td class="text-success fw-bold">${item.price.toFixed(2)}</td>
                         <td>${item.total.toFixed(2)}</td>
                     </tr>`;
             });
-            html += `</tbody><tfoot><tr class="fw-bold bg-light"><td colspan="4">الإجمالي النهائي</td><td>${res.sale.total}</td></tr></tfoot></table>`;
+            html += `</tbody>
+                <tfoot>
+                    <tr class="fw-bold bg-light">
+                        <td colspan="4" class="text-end">الإجمالي النهائي</td>
+                        <td class="text-danger fs-5">${totalCostSum.toFixed(2)}</td>
+                        <td></td>
+                        <td class="text-dark fs-5">${res.sale.total}</td>
+                    </tr>
+                </tfoot>
+            </table>`;
             
             $('#detailsModalBody').html(html);
         });
