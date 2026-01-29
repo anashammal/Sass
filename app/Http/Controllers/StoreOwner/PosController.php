@@ -85,7 +85,7 @@ class PosController extends Controller
                     ->exists();
 
                 $units = collect();
-                if($p->baseUnit) {
+                if($p->baseUnit && $p->baseUnit->is_sale) {
                     $units->push([
                         'unit_id' => $p->baseUnit->id, 
                         'unit_name' => $p->baseUnit->unit_name ?? 'قطعة', 
@@ -97,7 +97,7 @@ class PosController extends Controller
                 }
                 
                 foreach($p->units as $u) {
-                    if($u->is_base_unit) continue;
+                    if($u->is_base_unit || !$u->is_sale) continue;
                     
                     $unitImg = $u->image;
 

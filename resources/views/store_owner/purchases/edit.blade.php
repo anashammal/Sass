@@ -169,6 +169,7 @@
     const storeTaxRates = @json($taxRates); 
     // التأكد من أن البيانات تأتي مصفوفة سليمة حتى لو كانت فارغة
     const oldItems = @json($purchase->items ?? []); 
+    window.productsData = {}; // 🟢 تهيئة مصفوفة المنتجات 
 
     // --- دوال التنسيق والحسابات ---
 
@@ -182,6 +183,7 @@ function formatNum(num) {
     // إضافة صف منتج (سواء جديد أو قادم من الداتابيس)
     function addProductRow(product, savedItem = null) {
         document.getElementById('emptyState') ? document.getElementById('emptyState').style.display = 'none' : '';
+        window.productsData[rowIdx] = product; // 🟢 حفظ المنتج في الذاكرة
         
         // تحديد الوحدة
         let selectedUnitId;
@@ -216,24 +218,8 @@ function formatNum(num) {
         let imgUrl = product.image_url; 
         let taxOptionsHtml = storeTaxRates.map(rate => `<option value="${rate}">${rate}%</option>`).join('');
 
-        // الوحدات المرتبطة
-        let relatedUnitsHtml = '';
-        if(product.units){
-            product.units.forEach(u => {
-                if (u.id == selectedUnitId) return;
-                let uCost = parseFloat(u.cost_price) || 0;
-                let uSell = parseFloat(u.selling_price) || 0;
-                let uProfit = (uCost > 0 && uSell > 0) ? ((uSell - uCost) / uCost) * 100 : 0;
-                let factor = u.is_base_unit ? 1 : (parseFloat(u.conversion_factor) || 1);
-                relatedUnitsHtml += `
-                    <div class="row g-2 align-items-center mb-2 related-unit-row" data-unit-id="${u.id}" data-factor="${factor}">
-                        <div class="col-md-2"><span class="badge bg-secondary">${u.unit_name}</span><small class="d-block text-muted">(x${factor})</small></div>
-                        <div class="col-md-3"><input type="number" class="form-control form-control-sm text-center bg-light" value="${formatNum(uCost)}" readonly></div>
-                        <div class="col-md-3"><input type="number" class="form-control form-control-sm text-center" value="${formatNum(uProfit)}"></div>
-                        <div class="col-md-4"><input type="number" class="form-control form-control-sm text-center fw-bold" value="${formatNum(uSell)}"></div>
-                    </div>`;
-            });
-        }
+        // الوحدات المرتبطة (سيتم بناؤها عبر الدالة)
+        // let relatedUnitsHtml = '';
 
         const tr = document.createElement('tr');
         tr.id = `row_${rowIdx}`;
@@ -252,7 +238,7 @@ function formatNum(num) {
             <td><input type="text" class="form-control form-control-sm text-center bg-white barcode-display" value="${initialBarcode}" readonly></td>
             <td>
                 <select name="items[${rowIdx}][unit_id]" class="form-select form-select-sm unit-select" onchange="updateRowData(${rowIdx}, this)">
-                    ${product.units.map(u => {
+                    ${product.units.filter(u => u.is_purchase == 1).map(u => {
                         let uP = parseFloat(u.purchase_price) || 0; let uC = parseFloat(u.cost_price) || 0; let baseP = uP > 0 ? uP : uC;
                         return `<option value="${u.id}" 
                                 data-barcode="${u.barcode || '-'}" 
@@ -306,8 +292,10 @@ function formatNum(num) {
         detailsTr.id = `details_${rowIdx}`;
         detailsTr.style.display = 'none';
         detailsTr.className = "bg-light";
-        detailsTr.innerHTML = `<td colspan="14"><div class="p-3 border rounded bg-white"><h6 class="fw-bold text-primary mb-2">الوحدات المرتبطة</h6>${relatedUnitsHtml}</div></td>`;
+        detailsTr.innerHTML = `<td colspan="14"><div class="p-3 border rounded bg-white"><h6 class="fw-bold text-primary mb-2"><i class="fas fa-sitemap"></i> تحديث الوحدات المرتبطة</h6><div id="related_units_container_${rowIdx}"></div></div></td>`;
         document.getElementById('tableBody').appendChild(detailsTr);
+
+        renderRelatedUnits(rowIdx, selectedUnitId); // 🟢 استدعاء الدالة الموحدة
 
         calcTotals(rowIdx); 
         rowIdx++;
@@ -329,6 +317,7 @@ function formatNum(num) {
         row.querySelector('.profit').value = formatNum(profit);
         row.querySelector('.barcode-display').value = barcode;
 
+        renderRelatedUnits(idx, opt.value); // 🟢 إعادة رسم الوحدات عند تغيير الوحدة المختارة
         calcTotals(idx);
     }
 
@@ -408,7 +397,177 @@ function formatNum(num) {
 
     function syncSubUnits(idx) {
         calcTotals(idx);
-        calcProfitPercent(idx); // تحديث نسبة الربح عند تغير سعر الشراء
+        let row = document.getElementById(`row_${idx}`);
+        
+        let mainPrice = parseFloat(row.querySelector('.price').value) || 0; 
+        
+        // تحديث ربح الوحدة الأساسية
+        let mainSellInput = row.querySelector('.sell');
+        let mainProfitInput = row.querySelector('.profit');
+        let currentSell = parseFloat(mainSellInput.value) || 0;
+        
+        if (mainPrice > 0) {
+            let newMainProfit = ((currentSell - mainPrice) / mainPrice) * 100;
+            mainProfitInput.value = formatNum(newMainProfit);
+        }
+
+        // جلب المعامل الحالي
+        let select = row.querySelector('.unit-select');
+        let selectedOption = select.options[select.selectedIndex];
+        let currentFactor = parseFloat(selectedOption.getAttribute('data-factor')) || 1;
+        let costPerPiece = (currentFactor > 0) ? (mainPrice / currentFactor) : 0;
+
+        let container = document.getElementById(`related_units_container_${idx}`);
+        if(container) {
+            container.querySelectorAll('.related-unit-row').forEach(subRow => {
+                let subFactor = parseFloat(subRow.getAttribute('data-factor')) || 1;
+                let originalSubProfit = parseFloat(subRow.getAttribute('data-original-profit')) || 0;
+                
+                let newSubCost = costPerPiece * subFactor;
+                
+                subRow.querySelector('.sub-cost').value = formatNum(newSubCost);
+                subRow.querySelector('.hidden-sub-cost').value = newSubCost.toFixed(4);
+
+                let currentSubSell = parseFloat(subRow.querySelector('.sub-sell').value) || 0;
+                let newSubProfit = 0;
+                if(newSubCost > 0) {
+                    newSubProfit = ((currentSubSell - newSubCost) / newSubCost) * 100;
+                }
+                
+                subRow.querySelector('.sub-profit').value = formatNum(newSubProfit);
+                subRow.querySelector('.hidden-sub-profit').value = formatNum(newSubProfit);
+
+                // 🟢 تحديث تحذير الوحدات الفرعية
+                let subWarningDiv = subRow.querySelector('.warning-container');
+                if(subWarningDiv){
+                    subWarningDiv.innerHTML = '';
+                    if (newSubProfit <= 0) {
+                        subWarningDiv.innerHTML = `<span class="text-danger fw-bold small">خسارة ⚠️</span>`;
+                    } 
+                    else if (newSubProfit < originalSubProfit - 0.1) {
+                        subWarningDiv.innerHTML = `<span class="text-warning text-dark fw-bold small">📉 انخفاض الربح</span>`;
+                    }
+                }
+            });
+        }
+    }
+
+    // --- دوال الوحدات المرتبطة الجديدة ---
+    function renderRelatedUnits(idx, currentUnitId) {
+        let product = window.productsData[idx];
+        let container = document.getElementById(`related_units_container_${idx}`);
+        if(!container || !product) return;
+        
+        container.innerHTML = '';
+
+        let row = document.getElementById(`row_${idx}`);
+        let mainPrice = parseFloat(row.querySelector('.price').value) || 0;
+        let select = row.querySelector('.unit-select');
+        let currentFactor = parseFloat(select.options[select.selectedIndex].getAttribute('data-factor')) || 1;
+        let trueBaseCost = (currentFactor > 0) ? (mainPrice / currentFactor) : 0;
+
+        let html = '';
+        product.units.forEach(u => {
+            if (u.id == currentUnitId) return; 
+
+            let isBase = (u.is_base_unit == 1);
+            let safeFactor = isBase ? 1 : (parseFloat(u.conversion_factor) || 1);
+            let calculatedCost = trueBaseCost * safeFactor; 
+            
+            let uSell = parseFloat(u.selling_price) || 0;
+            let originalProfit = parseFloat(u.profit_percent) || 0; 
+            
+            let uProfit = 0;
+            if(calculatedCost > 0) uProfit = ((uSell - calculatedCost) / calculatedCost) * 100;
+            
+            let uImg = u.image_url || product.main_image;
+
+            html += `
+                <div class="row g-2 align-items-center mb-2 related-unit-row border-bottom pb-2" 
+                     data-unit-id="${u.id}" 
+                     data-factor="${safeFactor}"
+                     data-original-profit="${originalProfit}"> 
+                    
+                    <input type="hidden" name="items[${idx}][related_updates][${u.id}][price]" class="hidden-sub-cost" value="${calculatedCost.toFixed(4)}">
+                    <input type="hidden" name="items[${idx}][related_updates][${u.id}][selling_price]" class="hidden-sub-sell" value="${uSell}">
+                    <input type="hidden" name="items[${idx}][related_updates][${u.id}][profit_percent]" class="hidden-sub-profit" value="${formatNum(uProfit)}">
+
+                    <div class="col-md-2 d-flex align-items-center">
+                        <img src="${uImg}" class="rounded me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                        <div>
+                            <span class="badge bg-secondary">${u.unit_name}</span>
+                            <small class="d-block text-muted" style="font-size: 0.75rem;">(x${safeFactor})</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light text-muted">شراء</span>
+                            <input type="text" class="form-control text-center bg-light sub-cost text-danger fw-bold" 
+                                   value="${formatNum(calculatedCost)}" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">ربح %</span>
+                            <input type="text" inputmode="decimal" class="form-control text-center sub-profit" value="${formatNum(uProfit)}" oninput="calcSubUnitSell(this)" onfocus="this.select()">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">بيع</span>
+                            <input type="text" inputmode="decimal" class="form-control text-center fw-bold sub-sell text-success" 
+                                   value="${formatNum(uSell)}" oninput="calcSubUnitProfit(this)" onfocus="this.select()">
+                        </div>
+                        <div class="warning-container mt-1" style="min-height:20px;"></div>
+                    </div>
+                </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function calcSubUnitSell(input) {
+        let row = input.closest('.related-unit-row');
+        let cost = parseFloat(row.querySelector('.sub-cost').value) || 0;
+        let profit = parseFloat(input.value) || 0;
+        
+        let sell = cost * (1 + profit / 100);
+        row.querySelector('.sub-sell').value = formatNum(sell);
+        row.querySelector('.hidden-sub-sell').value = sell.toFixed(2);
+        row.querySelector('.hidden-sub-profit').value = profit;
+        
+        // تحديث التحذير
+        calcSubUnitProfit(row.querySelector('.sub-sell'), true);
+    }
+
+    function calcSubUnitProfit(input, fromProfitCalc = false) {
+        let row = input.closest('.related-unit-row');
+        let cost = parseFloat(row.querySelector('.sub-cost').value) || 0;
+        let sell = parseFloat(row.querySelector('.sub-sell').value) || 0;
+
+        // إذا لم يتم الاستدعاء من دالة حساب البيع، نقوم بحساب الربح
+        if(!fromProfitCalc) {
+            let row = input.closest('.related-unit-row');
+            row.querySelector('.hidden-sub-sell').value = sell;
+            
+            let newProfit = 0;
+            if (cost > 0) newProfit = ((sell - cost) / cost) * 100;
+            
+            row.querySelector('.sub-profit').value = formatNum(newProfit);
+            row.querySelector('.hidden-sub-profit').value = newProfit;
+        }
+
+        let profitVal = parseFloat(row.querySelector('.sub-profit').value) || 0;
+        let originalProfit = parseFloat(row.getAttribute('data-original-profit')) || 0;
+        let warningDiv = row.querySelector('.warning-container');
+        
+        warningDiv.innerHTML = ''; 
+
+        if (profitVal <= 0) {
+            warningDiv.innerHTML = `<span class="text-danger fw-bold small">خسارة ⚠️</span>`;
+        } 
+        else if (profitVal < originalProfit - 0.1) {
+            warningDiv.innerHTML = `<span class="text-warning text-dark fw-bold small">📉 انخفاض الربح</span>`;
+        }
     }
 
     // --- Search Logic ---

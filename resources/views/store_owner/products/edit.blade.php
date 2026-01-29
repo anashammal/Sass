@@ -103,6 +103,17 @@
                                         <input type="text" name="base_barcode" class="form-control" value="{{ old('base_barcode', $base->barcode) }}">
                                     </div>
 
+                                    <div class="col-md-3 d-flex align-items-end justify-content-start gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="base_is_purchase" id="base_is_purchase" {{ old('base_is_purchase', $base->is_purchase ?? 1) ? 'checked' : '' }}>
+                                            <label class="form-check-label small fw-bold" for="base_is_purchase">شراء</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" {{ old('base_is_sale', $base->is_sale ?? 1) ? 'checked' : '' }}>
+                                            <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+                                        </div>
+                                    </div>
+
                                     <div class="col-md-2">
                                         <label class="form-label small">عدد القطع بالعبوة</label>
                                         <input type="number" step="any" name="pieces_per_unit" id="pieces_per_unit" class="form-control text-center" value="{{ old('pieces_per_unit', (float)$base->conversion_factor) }}" oninput="calculateBaseCost()">

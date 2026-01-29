@@ -144,6 +144,17 @@
                                         <input type="text" name="base_barcode" class="form-control" placeholder="تلقائي إذا فارغ" value="{{ old('base_barcode') }}">
                                     </div>
 
+                                    <div class="col-md-3 d-flex align-items-end justify-content-start gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="base_is_purchase" id="base_is_purchase" {{ old('base_is_purchase', 'on') == 'on' ? 'checked' : '' }}>
+                                            <label class="form-check-label small fw-bold" for="base_is_purchase">شراء</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" {{ old('base_is_sale', 'on') == 'on' ? 'checked' : '' }}>
+                                            <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+                                        </div>
+                                    </div>
+
                                                                             <div class="col-md-3">
                                         <label class="form-label small text-success fw-bold">سعر البيع</label>
                                         <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', 0) }}" required oninput="calculateMargin('base')">

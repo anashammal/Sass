@@ -465,7 +465,7 @@
         tr.id = `row_${rowIdx}`;
         tr.className = "align-middle";
 
-        let optionsHtml = product.units.map(u => {
+        let optionsHtml = product.units.filter(u => u.is_purchase == 1).map(u => {
             let isBase = u.is_base_unit == 1;
             let safeFactor = isBase ? 1 : (parseFloat(u.conversion_factor) || 1);
             let mathPrice = trueBaseCost * safeFactor;

@@ -123,8 +123,8 @@ class ProductController extends Controller
                 'profit_percent' => (float)$request->base_profit_percent,
                 'barcode' => $barcode,
                 'is_base_unit' => true,
-                'is_purchase' => true, 
-                'is_sale' => true,
+                'is_purchase' => $request->has('base_is_purchase'), 
+                'is_sale' => $request->has('base_is_sale'),
             ]);
 
             if ($request->has('units') && is_array($request->units)) {
@@ -231,6 +231,8 @@ class ProductController extends Controller
                 'selling_price' => (float)$request->base_selling_price,
                 'profit_percent' => (float)$request->base_profit_percent,
                 'barcode' => $request->base_barcode,
+                'is_purchase' => $request->has('base_is_purchase'),
+                'is_sale' => $request->has('base_is_sale'),
             ]);
 
             $submittedUnitIds = [];

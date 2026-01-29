@@ -520,6 +520,12 @@ class PurchaseController extends Controller
                 }
                 $product->main_image = $mainImg;
 
+                // 🔥 تم إزالة الفلترة لعرض جميع الوحدات (حتى البيع فقط) في قسم "الوحدات المرتبطة" 🔥
+                //$filteredUnits = $product->units->filter(function($u) {
+                //    return $u->is_purchase;
+                //});
+                //$product->setRelation('units', $filteredUnits->values());
+
                 foreach($product->units as $unit) {
                     $unitMedia = DB::table('media')->where('model_type', 'App\Models\ProductUnit')->where('model_id', $unit->id)->first();
                     $unit->image_url = $unitMedia ? asset('storage/' . $unitMedia->id . '/' . $unitMedia->file_name) : $mainImg;
