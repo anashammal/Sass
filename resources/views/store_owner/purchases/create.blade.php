@@ -430,7 +430,10 @@
         return parseFloat(clean) || 0;
     }
 
-    function formatNum(num) { return parseMoney(num).toFixed(2); }
+    function formatNum(num) { 
+        if (num === null || num === undefined || num === '') return 0;
+        return parseFloat(num); 
+    }
 
     // --- دالة إضافة صف المنتج المصححة ---
     function addProductRow(product) {

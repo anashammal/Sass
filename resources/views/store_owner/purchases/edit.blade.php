@@ -184,7 +184,13 @@ function formatNum(num) {
     function addProductRow(product, savedItem = null) {
         document.getElementById('emptyState') ? document.getElementById('emptyState').style.display = 'none' : '';
         window.productsData[rowIdx] = product; // 🟢 حفظ المنتج في الذاكرة
-        
+
+        // حسابات التكلفة (Normalization) لمعالجة تضارب الأسعار في الداتابيس
+        let maxUnit = product.units.reduce((prev, curr) => (parseFloat(prev.conversion_factor) > parseFloat(curr.conversion_factor)) ? prev : curr);
+        let maxUnitCost = parseFloat(maxUnit.cost_price) || parseFloat(maxUnit.purchase_price) || 0;
+        let maxFactor = parseFloat(maxUnit.conversion_factor) || 1;
+        let trueBaseCost = maxUnitCost / maxFactor; 
+
         // تحديد الوحدة
         let selectedUnitId;
         if (savedItem) {
@@ -194,17 +200,19 @@ function formatNum(num) {
         }
 
         let selectedUnit = product.units.find(u => u.id == selectedUnitId);
+        let selectedFactor = (selectedUnit.is_base_unit) ? 1 : (parseFloat(selectedUnit.conversion_factor) || 1);
+        
+        // السعر المحسوب (الموحد)
+        let calculatedPrice = trueBaseCost * selectedFactor;
 
         // القيم الافتراضية
         let initialBarcode = selectedUnit ? (selectedUnit.barcode || '-') : '-';
-        let rawPurchase = parseFloat(selectedUnit.purchase_price) || 0;
-        let rawCost = parseFloat(selectedUnit.cost_price) || 0;
-        let defaultPrice = rawPurchase > 0 ? rawPurchase : rawCost;
         let defaultSell = parseFloat(selectedUnit.selling_price) || 0;
         
-        // استرجاع القيم المحفوظة
+        // استرجاع القيم المحفوظة (مع الحفاظ على السعر القديم إذا كان مخصصاً)
+        // ملاحظة: في حالة الإضافة الجديدة نستخدم السعر المحسوب لتفادي القفزات
         let qty = savedItem ? parseFloat(savedItem.quantity) : 1;
-        let price = savedItem ? parseFloat(savedItem.unit_price) : defaultPrice;
+        let price = savedItem ? parseFloat(savedItem.unit_price) : parseFloat(calculatedPrice.toFixed(4));
         let sellPrice = defaultSell; 
         let discountVal = 0;
 
@@ -217,9 +225,6 @@ function formatNum(num) {
         
         let imgUrl = product.image_url; 
         let taxOptionsHtml = storeTaxRates.map(rate => `<option value="${rate}">${rate}%</option>`).join('');
-
-        // الوحدات المرتبطة (سيتم بناؤها عبر الدالة)
-        // let relatedUnitsHtml = '';
 
         const tr = document.createElement('tr');
         tr.id = `row_${rowIdx}`;
@@ -239,12 +244,15 @@ function formatNum(num) {
             <td>
                 <select name="items[${rowIdx}][unit_id]" class="form-select form-select-sm unit-select" onchange="updateRowData(${rowIdx}, this)">
                     ${product.units.filter(u => u.is_purchase == 1).map(u => {
-                        let uP = parseFloat(u.purchase_price) || 0; let uC = parseFloat(u.cost_price) || 0; let baseP = uP > 0 ? uP : uC;
+                        let isBase = u.is_base_unit == 1;
+                        let safeFactor = isBase ? 1 : (parseFloat(u.conversion_factor) || 1);
+                        let mathPrice = trueBaseCost * safeFactor;
                         return `<option value="${u.id}" 
                                 data-barcode="${u.barcode || '-'}" 
-                                data-price="${baseP}" 
+                                data-price="${mathPrice.toFixed(4)}" 
                                 data-sell="${u.selling_price}" 
                                 data-profit="${u.profit_percent}" 
+                                data-factor="${safeFactor}" 
                                 ${u.id == selectedUnitId ? 'selected' : ''}>
                                 ${u.unit_name}
                                 </option>`;
