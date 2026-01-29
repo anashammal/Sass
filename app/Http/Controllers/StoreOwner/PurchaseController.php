@@ -540,4 +540,35 @@ class PurchaseController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function getProductHistory($id)
+    {
+        try {
+            $storeId = Auth::user()->store->id;
+            
+            $history = \App\Models\PurchaseItem::where('product_id', $id)
+                ->whereHas('purchase', function($q) use ($storeId) {
+                    $q->where('store_id', $storeId)
+                      ->where('status', 'approved'); 
+                })
+                ->with(['purchase.supplier', 'unit'])
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'date' => $item->purchase->invoice_date ? $item->purchase->invoice_date->format('Y-m-d') : $item->created_at->format('Y-m-d'),
+                        'supplier' => $item->purchase->supplier ? ($item->purchase->supplier->contact_name ?? $item->purchase->supplier->company_name) : 'مورد عام',
+                        'price' => (float)$item->unit_price,
+                        'unit' => $item->unit ? $item->unit->unit_name : '---',
+                        'qty' => (float)$item->quantity
+                    ];
+                });
+
+            return response()->json($history);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

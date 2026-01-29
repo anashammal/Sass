@@ -582,30 +582,36 @@ class PosController extends Controller
             $itemsCount = 0;
             
             foreach($sale->items as $item) {
-                // ✅ تحديث: حساب التكلفة بناءً على بطاقة المنتج الحالية (حسب طلب المستخدم)
+                // ✅ تحديث (FIFO): قراءة التكلفة المخزنة أولاً
                 $itemCost = 0;
-                $prod = $item->product;
                 
-                if ($prod) {
-                    // محاولة العثور على الوحدة المستخدمة
-                    $u = null;
-                    if($item->unit_id) {
-                         // نبحث عنها في الوحدات المحملة مسبقاً لتجنب الاستعلامات الزائدة
-                         $u = $prod->units->where('id', $item->unit_id)->first();
-                    } else {
-                         $u = $prod->baseUnit;
-                    }
+                if (!is_null($item->cost) && $item->cost > 0) {
+                     $itemCost = $item->cost;
+                } 
+                else {
+                    // Fallback (طريقة الحساب القديمة)
+                    $prod = $item->product;
+                    
+                    if ($prod) {
+                        // محاولة العثور على الوحدة المستخدمة
+                        $u = null;
+                        if($item->unit_id) {
+                             $u = $prod->units->where('id', $item->unit_id)->first();
+                        } else {
+                             $u = $prod->baseUnit;
+                        }
 
-                    if ($u && !empty($u->cost_price) && $u->cost_price > 0) {
-                        $itemCost = (float)$u->cost_price * $item->quantity;
+                        if ($u && !empty($u->cost_price) && $u->cost_price > 0) {
+                            $itemCost = (float)$u->cost_price * $item->quantity;
+                        } else {
+                            $baseCost = (float)$prod->last_cost_price;
+                            $factor = ($u) ? (float)$u->conversion_factor : 1;
+                            $itemCost = ($baseCost * $factor) * $item->quantity;
+                        }
                     } else {
-                        $baseCost = (float)$prod->last_cost_price;
-                        $factor = ($u) ? (float)$u->conversion_factor : 1;
-                        $itemCost = ($baseCost * $factor) * $item->quantity;
+                        // fallback للمنتجات المحذوفة (إذا لم يكن هناك cost مخزن أصلاً)
+                        $itemCost = 0; 
                     }
-                } else {
-                    // fallback للمنتجات المحذوفة: نستخدم التكلفة المخزنة
-                    $itemCost = (float)$item->cost;
                 }
 
                 $cost += $itemCost;

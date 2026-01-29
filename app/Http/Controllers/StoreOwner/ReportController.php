@@ -76,21 +76,25 @@ class ReportController extends Controller
                     // 1. الإيراد (سعر البيع الفعلي * الكمية)
                     $totalRevenue += ($item->price * $item->quantity);
                     
-                    // 2. التكلفة (Cost)
-                    $unitCost = 0;
+                    // 2. التكلفة (FIFO Cost) - ✅ المصدر الأساسي هو القيمة المخزنة
+                    if (!is_null($item->cost) && $item->cost > 0) {
+                        $totalCost += $item->cost;
+                    } else {
+                        // fallback: طريقة الحساب القديمة (للفواتير القديمة قبل تفعيل FIFO)
+                        $unitCost = 0;
 
-                    // أ) محاولة جلب التكلفة من الوحدة المباعة مباشرة (إذا كانت وحدة إضافية مثل الطبق)
-                    if ($item->unit && $item->unit->cost_price > 0) {
-                        $unitCost = $item->unit->cost_price;
-                    } 
-                    // ب) إذا لم يكن للوحدة تكلفة خاصة، أو كانت الوحدة الأساسية، نأخذ تكلفة المنتج الأم
-                    elseif ($item->product) {
-                        // إذا كانت الوحدة مباعة ولها معامل تحويل (مثلاً كرتون فيه 12 حبة)، نضرب تكلفة الحبة في المعامل
-                        $factor = ($item->unit) ? $item->unit->conversion_factor : 1;
-                        $unitCost = $item->product->last_cost_price * $factor;
+                        // أ) محاولة جلب التكلفة من الوحدة المباعة مباشرة
+                        if ($item->unit && $item->unit->cost_price > 0) {
+                            $unitCost = $item->unit->cost_price;
+                        } 
+                        // ب) إذا لم يكن للوحدة تكلفة خاصة، أو كانت الوحدة الأساسية
+                        elseif ($item->product) {
+                            $factor = ($item->unit) ? $item->unit->conversion_factor : 1;
+                            $unitCost = $item->product->last_cost_price * $factor;
+                        }
+
+                        $totalCost += ($unitCost * $item->quantity);
                     }
-
-                    $totalCost += ($unitCost * $item->quantity);
                 }
             }
             

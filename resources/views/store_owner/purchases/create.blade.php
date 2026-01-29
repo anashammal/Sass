@@ -447,15 +447,26 @@
             selectedUnitId = base.id;
         }
 
-        // حسابات التكلفة
-        let maxUnit = product.units.reduce((prev, curr) => (parseFloat(prev.conversion_factor) > parseFloat(curr.conversion_factor)) ? prev : curr);
-        let maxUnitCost = parseFloat(maxUnit.cost_price) || parseFloat(maxUnit.purchase_price) || 0;
-        let maxFactor = parseFloat(maxUnit.conversion_factor) || 1;
-        let trueBaseCost = maxUnitCost / maxFactor; 
-
+        // حسابات التكلفة (تعديل: الاعتماد على سعر الوحدة المختارة أولاً)
         let selectedUnit = product.units.find(u => u.id == selectedUnitId);
         let selectedFactor = (selectedUnit.is_base_unit) ? 1 : (parseFloat(selectedUnit.conversion_factor) || 1);
-        let calculatedCost = trueBaseCost * selectedFactor;
+        
+        // 1. محاولة قراءة التكلفة المخزنة للوحدة المختارة
+        let calculatedCost = parseFloat(selectedUnit.cost_price) || parseFloat(selectedUnit.purchase_price) || 0;
+
+        // 2. إذا كانت صفر، نحاول استنتاجها من أكبر وحدة (المنطق القديم)
+        if (calculatedCost === 0) {
+            let maxUnit = product.units.reduce((prev, curr) => (parseFloat(prev.conversion_factor) > parseFloat(curr.conversion_factor)) ? prev : curr);
+            let maxUnitCost = parseFloat(maxUnit.cost_price) || parseFloat(maxUnit.purchase_price) || 0;
+            let maxFactor = parseFloat(maxUnit.conversion_factor) || 1;
+            
+            // تكلفة الوحدة الأساسية
+            let trueBaseCost = maxUnitCost / maxFactor; 
+            calculatedCost = trueBaseCost * selectedFactor;
+        }
+
+        // 3. حساب تكلفة الوحدة الأساسية (للاستخدام في باقي الوحدات)
+        let trueBaseCost = (selectedFactor > 0) ? (calculatedCost / selectedFactor) : 0;
         
         let initialBarcode = selectedUnit.barcode || '-';
         let sellPrice = parseFloat(selectedUnit.selling_price) || 0;
@@ -524,17 +535,85 @@
         
         document.getElementById('tableBody').appendChild(tr);
 
-        // صف التفاصيل المخفية
+        // صف التفاصيل المخفية (مقسم لعمودين: وحدات + سجل)
         const detailsTr = document.createElement('tr');
         detailsTr.id = `details_${rowIdx}`;
         detailsTr.style.display = 'none';
         detailsTr.className = "bg-light";
-        detailsTr.innerHTML = `<td colspan="14"><div class="p-3 border rounded bg-white"><h6 class="fw-bold text-primary mb-2"><i class="fas fa-sitemap"></i> تحديث الوحدات المرتبطة</h6><div id="related_units_container_${rowIdx}"></div></div></td>`;
+        detailsTr.innerHTML = `
+            <td colspan="14">
+                <div class="p-3 border rounded bg-white">
+                    <div class="row">
+                        <div class="col-md-6 border-end">
+                            <h6 class="fw-bold text-primary mb-2"><i class="fas fa-sitemap"></i> تحديث الوحدات المرتبطة</h6>
+                            <div id="related_units_container_${rowIdx}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-history"></i> سجل آخر 5 مشتريات</h6>
+                            <div id="history_container_${rowIdx}" class="small">
+                                <div class="text-center text-muted p-2"><i class="fas fa-spinner fa-spin"></i> جاري الجلب...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </td>`;
         document.getElementById('tableBody').appendChild(detailsTr);
 
         renderRelatedUnits(rowIdx, selectedUnitId);
+        renderHistory(rowIdx, product.id); // ✅ جلب السجل
         calcTotals(rowIdx); 
         rowIdx++;
+    }
+
+    // 🟢 دالة جلب ورسم السجل
+    function renderHistory(idx, productId) {
+        // استخدام route helper مع placeholder ثم استبداله في JS لضمان صحة الرابط
+        let url = "{{ route('store.purchases.history', ':id') }}";
+        url = url.replace(':id', productId);
+
+        fetch(url)
+            .then(async res => {
+                if (!res.ok) {
+                    throw new Error("HTTP Status: " + res.status);
+                }
+                return res.json();
+            })
+            .then(data => {
+                let container = document.getElementById(`history_container_${idx}`);
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="alert alert-secondary p-1 m-0 text-center">لا يوجد سجل مشتريات سابق</div>';
+                    return;
+                }
+
+                let html = `
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>المورد</th>
+                                <th>الوحدة</th>
+                                <th>السعر</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.date}</td>
+                            <td class="text-truncate" style="max-width: 100px;" title="${item.supplier}">${item.supplier}</td>
+                            <td>${item.unit} (${item.qty})</td>
+                            <td class="fw-bold">${formatNum(item.price)}</td>
+                        </tr>`;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById(`history_container_${idx}`).innerHTML = '<span class="text-danger">خطأ في جلب السجل</span>';
+            });
     }
 
     function updateRowData(idx) {

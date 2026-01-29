@@ -91,6 +91,7 @@ Route::middleware(['auth'])->group(function () {
         
         // البحث والحفظ السريع
         Route::get('products/search', [PurchaseController::class, 'searchProducts'])->name('products.search');
+        Route::get('purchases/product-history/{id}', [PurchaseController::class, 'getProductHistory'])->name('purchases.history'); // ✅ New Route
         Route::get('contacts/search', [PurchaseController::class, 'searchSuppliers'])->name('contacts.search');
         Route::post('products/quick-store', [PurchaseController::class, 'quickStoreProduct'])->name('products.quick_store');
         Route::post('contacts/quick-store', [PurchaseController::class, 'quickStoreSupplier'])->name('contacts.quick_store');
@@ -134,9 +135,7 @@ Route::middleware(['auth'])->group(function () {
         
         
 
-// 2. رابط الموارد (مع استثناء دالة show غير الموجودة)
-Route::resource('products', ProductController::class)->except(['show']);
-        
+
         Route::resource('purchases', PurchaseController::class);
 
         // إدارة الصندوق (Shift Management)
