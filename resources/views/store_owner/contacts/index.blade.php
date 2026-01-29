@@ -107,11 +107,17 @@
 {{-- هذا الكود يوضع مكان القائمة المنسدلة الحالية للنوع --}}
 <div class="col-auto">
     <select name="type" class="form-select fw-bold" id="typeFilter" onchange="performSearch()">
-        <option value="">الكل (عملاء وموردين)</option>
-        
-        {{-- 🔥 الإصلاح هنا: التأكد من القيم (customer / supplier) --}}
+        <option value="">(الكل)</option>
         <option value="customer" {{ request('type') == 'customer' ? 'selected' : '' }}>زبائن فقط</option>
         <option value="supplier" {{ request('type') == 'supplier' ? 'selected' : '' }}>موردين فقط</option>
+    </select>
+</div>
+
+<div class="col-auto">
+    <select name="balance_status" class="form-select fw-bold" onchange="performSearch()">
+        <option value="">الأرصدة (الكل)</option>
+        <option value="receivables">نطلبهم (ديون زبائن)</option>
+        <option value="payables">يطلبونا (مستحقات موردين)</option>
     </select>
 </div>
 
@@ -174,10 +180,91 @@
     @media print { .no-print { display: none !important; } }
 </style>
 
-<script>
-    let timeout = null;
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ route('store.payments.store') }}" method="POST" enctype="multipart/form-data" class="modal-content">
+            @csrf
+            <input type="hidden" name="contact_id" id="pay_contact_id">
+            <div class="modal-header border-0 bg-light">
+                <h5 class="modal-title fw-bold">تسجيل دفعة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2 small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    الجهة: <span id="pay_contact_name" class="fw-bold"></span> | 
+                    الرصيد الحالي: <span id="pay_contact_balance" class="fw-bold" dir="ltr"></span>
+                </div>
 
-    // دالة البحث (AJAX)
+                <div class="mb-3">
+                    <label class="form-label fw-bold">نوع العملية</label>
+                    <select name="type" id="pay_type" class="form-select" required>
+                        <option value="receive">قبض من عميل (Money In)</option>
+                        <option value="pay">صرف لمورد (Money Out)</option>
+                    </select>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">المبلغ</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" name="amount" class="form-control" required>
+                            <span class="input-group-text bg-white">د.أ</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">التاريخ</label>
+                        <input type="date" name="payment_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">طريقة الدفع</label>
+                    <select name="method" class="form-select" required>
+                        <option value="cash">نقداً (Cash)</option>
+                        <option value="card">شبكة (Card)</option>
+                        <option value="bank">تحويل بنكي (Bank)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">ملاحظات</label>
+                    <textarea name="notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-success px-4">حفظ الدفعة</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openPaymentModal(id, name, balance) {
+        document.getElementById('pay_contact_id').value = id;
+        document.getElementById('pay_contact_name').innerText = name;
+        
+        const bal = parseFloat(balance);
+        document.getElementById('pay_contact_balance').innerText = bal.toLocaleString(undefined, { minimumFractionDigits: 2 });
+        
+        // اقتراح النوع حسب الرصيد
+        if (bal < 0) {
+            document.getElementById('pay_type').value = 'receive'; // غالباً عميل عليه دين
+        } else if (bal > 0) {
+            document.getElementById('pay_type').value = 'pay'; // غالباً مورد له فلوس
+        }
+
+        new bootstrap.Modal(document.getElementById('paymentModal')).show();
+    }
+
+    let timeout = null;
+    // (بقية كود البحث القديم...)
+    // ...
+</script>
+<script>
+    // دالة البحث (AJAX) - تم تكرارها لضمان العمل
     function performSearch(url = null) {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
@@ -202,6 +289,7 @@
     function initColumnVisibility() {
         const headers = document.querySelectorAll('#contactsTable > thead > tr > th');
         const menu = document.getElementById('columnToggleMenu');
+        if(!menu) return;
         menu.innerHTML = '';
 
         headers.forEach((th, index) => {

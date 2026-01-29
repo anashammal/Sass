@@ -93,8 +93,18 @@
 
     <td class="no-print">
         <div class="btn-group btn-group-sm">
+            {{-- كشف حساب --}}
+            <a href="{{ route('store.payments.ledger', $contact->id) }}" class="btn btn-outline-info" title="كشف حساب">
+                <i class="fas fa-file-invoice"></i>
+            </a>
+            {{-- إضافة دفعة --}}
+            <button type="button" class="btn btn-outline-success" title="إضافة دفعة" 
+                    onclick="openPaymentModal({{ $contact->id }}, '{{ $contact->contact_name }}', '{{ $contact->balance }}')">
+                <i class="fas fa-money-bill-wave"></i>
+            </button>
+            
             <a href="{{ route('store.contacts.edit', $contact->id) }}" class="btn btn-outline-primary"><i class="fas fa-edit"></i></a>
-            <form action="{{ route('store.contacts.destroy', $contact->id) }}" method="POST" class="d-inline" onsubmit="return confirm('????');">
+            <form action="{{ route('store.contacts.destroy', $contact->id) }}" method="POST" class="d-inline" onsubmit="return confirm('حذف؟');">
                 @csrf @method('DELETE')
                 <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
             </form>

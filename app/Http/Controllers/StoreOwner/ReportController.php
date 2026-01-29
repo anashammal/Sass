@@ -120,6 +120,39 @@ class ReportController extends Controller
         // قائمة الموظفين للفلتر
         $users = \App\Models\User::where('store_id', $storeId)->get();
 
-        return view('store_owner.reports.shifts', compact('shifts', 'users'));
+        // 🟢 حساب الإجماليات للفترة المحددة (Summary)
+        $summary = [
+            'revenue' => 0,
+            'cost' => 0,
+            'expenses' => 0,
+            'net_profit' => 0
+        ];
+
+        // 1. إجمالي المبيعات والتكلفة (بناءً على الفلاتر)
+        $salesQ = Sale::where('store_id', $storeId);
+        if ($request->date_from) $salesQ->whereDate('created_at', '>=', $request->date_from);
+        if ($request->date_to) $salesQ->whereDate('created_at', '<=', $request->date_to);
+        if ($request->user_id) $salesQ->where('user_id', $request->user_id);
+
+        // نحتاج تجميع القيم من التراجم (SaleItems)
+        // لتقليل الحمل، يمكننا استخدام Join
+        $salesIds = $salesQ->pluck('id');
+        
+        $summary['revenue'] = \App\Models\SaleItem::whereIn('sale_id', $salesIds)->selectRaw('sum(price * quantity) as total')->value('total') ?? 0;
+        $summary['cost']    = \App\Models\SaleItem::whereIn('sale_id', $salesIds)->sum('cost') ?? 0;
+
+        // 2. إجمالي المصاريف (حسب التاريخ فقط، لأن المصاريف عادة عامة للمتجر)
+        $expensesQ = \App\Models\Expense::where('store_id', $storeId);
+        if ($request->date_from) $expensesQ->whereDate('expense_date', '>=', $request->date_from);
+        if ($request->date_to) $expensesQ->whereDate('expense_date', '<=', $request->date_to);
+        
+        $summary['expenses'] = $expensesQ->sum('amount');
+
+        // 3. صافي الربح
+        $summary['gross_profit'] = $summary['revenue'] - $summary['cost'];
+        $summary['net_profit'] = $summary['gross_profit'] - $summary['expenses'];
+
+
+        return view('store_owner.reports.shifts', compact('shifts', 'users', 'summary'));
     }
 }

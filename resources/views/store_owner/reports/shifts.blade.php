@@ -8,6 +8,37 @@
         </div>
         <div class="card-body">
             
+            {{-- بطاقة نظرة عامة (الأرباح والمصاريف) --}}
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm p-3 h-100 border-start border-4 border-primary">
+                        <small class="text-muted fw-bold">إجمالي المبيعات</small>
+                        <h4 class="fw-bold text-primary mb-0 mt-1">{{ number_format($summary['revenue'], 2) }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm p-3 h-100 border-start border-4 border-success">
+                        <small class="text-muted fw-bold">إجمالي الربح (Gross)</small>
+                        <h4 class="fw-bold text-success mb-0 mt-1">{{ number_format($summary['gross_profit'], 2) }}</h4>
+                        <small class="text-success opacity-75"><i class="fas fa-chart-line"></i> العائد من المبيعات</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm p-3 h-100 border-start border-4 border-danger">
+                        <small class="text-muted fw-bold">المصاريف</small>
+                        <h4 class="fw-bold text-danger mb-0 mt-1">{{ number_format($summary['expenses'], 2) }}</h4>
+                        <small class="text-danger opacity-75"><i class="fas fa-file-invoice-dollar"></i> تخصم من الربح</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm p-3 h-100 bg-primary text-white">
+                        <small class="opacity-75 fw-bold">صافي الربح النهائي (Net)</small>
+                        <h3 class="fw-bold mb-0 mt-1">{{ number_format($summary['net_profit'], 2) }}</h3>
+                        <small class="opacity-75"><i class="fas fa-check-circle"></i> بعد خصم المصاريف</small>
+                    </div>
+                </div>
+            </div>
+
             {{-- فلاتر البحث --}}
             <form method="GET" action="{{ route('reports.shifts') }}" class="row g-3 mb-4">
                 <div class="col-md-3">

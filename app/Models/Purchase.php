@@ -73,4 +73,9 @@ class Purchase extends Model
         return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $value, 'UTC')
                     ->setTimezone(config('app.timezone'));
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

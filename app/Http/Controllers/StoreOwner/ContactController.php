@@ -42,27 +42,27 @@ public function index(Request $request)
 
         // 4. تطبيق فلتر الرصيد
         if ($request->filled('balance_status')) {
-            if ($request->balance_status == 'creditor') {
-                $query->where('balance', '<', 0); // دائن (له)
-            } elseif ($request->balance_status == 'debtor') {
-                $query->where('balance', '>', 0); // مدين (عليه)
+            if ($request->balance_status == 'receivables') { // عملاء عليهم ديون لنا
+                $query->where('balance', '<', -0.01);
+            } elseif ($request->balance_status == 'payables') { // موردين لهم مستحقات علينا
+                $query->where('balance', '>', 0.01);
             }
         }
 
-// 5. جلب البيانات
+        // 5. جلب البيانات
         $perPage = $request->input('per_page', 10);
         $contacts = $query->latest()->paginate($perPage)->withQueryString();
 
-        // 🔥 4. الإحصائيات (تمت إضافة الزبائن والموردين) 🔥
+        // 🔥 4. الإحصائيات (تمت تصحيح منطق الذمم) 🔥
         $stats = [
-            'total' => \App\Models\Contact::where('store_id', $storeId)->count(),
+            'total' => Contact::where('store_id', $storeId)->count(),
+            'customers_count' => Contact::where('store_id', $storeId)->whereIn('type', ['customer', 'both'])->count(),
+            'suppliers_count' => Contact::where('store_id', $storeId)->whereIn('type', ['supplier', 'both'])->count(),
             
-            // 👇 هنا الإضافات الجديدة
-            'customers_count' => \App\Models\Contact::where('store_id', $storeId)->whereIn('type', ['customer', 'both'])->count(),
-            'suppliers_count' => \App\Models\Contact::where('store_id', $storeId)->whereIn('type', ['supplier', 'both'])->count(),
-            
-            'receivables' => \App\Models\Contact::where('store_id', $storeId)->where('balance', '>', 0)->sum('balance'),
-            'payables' => \App\Models\Contact::where('store_id', $storeId)->where('balance', '<', 0)->sum('balance'),
+            // رصيد الزبائن (عليه دين لنا = سالب)
+            'receivables' => abs(Contact::where('store_id', $storeId)->where('balance', '<', 0)->sum('balance')),
+            // رصيد الموردين (له مستحقات طرفنا = موجب)
+            'payables' => Contact::where('store_id', $storeId)->where('balance', '>', 0)->sum('balance'),
         ];
 
         if ($request->ajax()) {

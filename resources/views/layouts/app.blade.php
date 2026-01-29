@@ -752,6 +752,12 @@
                                         <p>المشتريات</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('store.expenses.index') }}" class="nav-link {{ request()->routeIs('store.expenses.*') ? 'active' : '' }}">
+                                        <i class="nav-icon fas fa-wallet"></i>
+                                        <p>المصاريف</p>
+                                    </a>
+                                </li>
 {{-- قائمة المبيعات --}}
 <li class="nav-item">
     <a href="#" class="nav-link {{ request()->routeIs('store.pos.*') ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#salesCollapse" role="button" aria-expanded="{{ request()->routeIs('store.pos.*') ? 'true' : 'false' }}">

@@ -138,6 +138,14 @@ Route::middleware(['auth'])->group(function () {
 
         Route::resource('purchases', PurchaseController::class);
 
+        // Expense Management
+        Route::resource('expenses', \App\Http\Controllers\StoreOwner\ExpenseController::class);
+        Route::resource('expense-categories', \App\Http\Controllers\StoreOwner\ExpenseCategoryController::class);
+
+        // Debt/Payment Management
+        Route::post('payments', [\App\Http\Controllers\StoreOwner\PaymentController::class, 'store'])->name('payments.store');
+        Route::get('payments/ledger/{contact_id}', [\App\Http\Controllers\StoreOwner\PaymentController::class, 'ledger'])->name('payments.ledger');
+
         // إدارة الصندوق (Shift Management)
         Route::get('/pos/shift/status', [ShiftController::class, 'checkStatus'])->name('pos.shift.status');
         Route::post('/pos/shift/open', [ShiftController::class, 'openShift'])->name('pos.shift.open');
