@@ -103,6 +103,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/store/setup', [OnboardingController::class, 'index'])->name('onboarding.setup');
         Route::post('/store/setup', [OnboardingController::class, 'update'])->name('onboarding.update');
 
+        // روابط الحذف الآمن للتصنيفات
+        Route::get('categories/check-status/{category}', [CategoryController::class, 'checkStatus'])->name('categories.check_status');
+        Route::post('categories/move-delete/{category}', [CategoryController::class, 'moveProductsAndDelete'])->name('categories.move_delete');
+        Route::delete('categories/force-delete/{category}', [CategoryController::class, 'forceDelete'])->name('categories.force_delete');
+
         Route::resource('categories', CategoryController::class);
         Route::resource('contacts', ContactController::class);
         // ==========================================

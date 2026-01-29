@@ -19,7 +19,10 @@ class CategoryController extends Controller
                                 ->with('children')
                                 ->orderBy('name')
                                 ->get();
-        return view('store_owner.categories.index', compact('categories'));
+        // نحتاج قائمة مسطحة للمودال (نقل المنتجات)
+        $allCategories = Category::where('store_id', $store->id)->orderBy('name')->get(['id', 'name']);
+        
+        return view('store_owner.categories.index', compact('categories', 'allCategories'));
     }
 
     // (دالة create كما هي - لا تغيير)
@@ -122,5 +125,66 @@ class CategoryController extends Controller
 
         return redirect()->route('store.categories.index')
                          ->with('success', 'تم حذف التصنيف بنجاح!');
+    }
+    /**
+     * التحقق من حالة التصنيف قبل الحذف
+     */
+    public function checkStatus(Category $category)
+    {
+        if ($category->store_id != Auth::user()->store->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $productsCount = \App\Models\Product::where('category_id', $category->id)->count();
+        $hasChildren = $category->children()->exists();
+
+        return response()->json([
+            'products_count' => $productsCount,
+            'has_children' => $hasChildren,
+        ]);
+    }
+
+    /**
+     * نقل المنتجات لتصنيف آخر ثم حذف التصنيف الحالي
+     */
+    public function moveProductsAndDelete(Request $request, Category $category)
+    {
+        if ($category->store_id != Auth::user()->store->id) abort(403);
+
+        $request->validate([
+            'target_category_id' => 'required|exists:categories,id|not_in:'.$category->id,
+        ]);
+
+        $targetCat = Category::find($request->target_category_id);
+        if($targetCat->store_id != Auth::user()->store->id) abort(403);
+
+        // نقل المنتجات
+        \App\Models\Product::where('category_id', $category->id)
+                           ->update(['category_id' => $targetCat->id]);
+
+        // حذف التصنيف
+        $category->delete();
+
+        return response()->json(['success' => true, 'message' => 'تم نقل المنتجات وحذف التصنيف بنجاح']);
+    }
+
+    /**
+     * حذف التصنيف مع جميع منتجاته (الحذف الإجباري)
+     */
+    public function forceDelete(Category $category)
+    {
+        if ($category->store_id != Auth::user()->store->id) abort(403);
+
+        // حذف جميع المنتجات التابعة لهذا التصنيف
+        $products = \App\Models\Product::where('category_id', $category->id)->get();
+        foreach($products as $product) {
+            // يمكن هنا إضافة منطق لحذف الصور أو الملفات المرتبطة بالمنتج إذا لزم الأمر
+            $product->delete();
+        }
+
+        // حذف التصنيف
+        $category->delete();
+
+        return response()->json(['success' => true, 'message' => 'تم حذف التصنيف وجميع منتجاته بنجاح']);
     }
 }
