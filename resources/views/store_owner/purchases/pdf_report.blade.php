@@ -97,20 +97,43 @@
             text-align: right;
         }
         
+        /* تصميم بطاقة الفاتورة مع تمييز الهدف */
         .purchase-detail-card {
             margin-bottom: 40px;
-            border: 1px solid #ddd;
+            border: 2px solid #ddd;
             page-break-inside: avoid;
+            border-radius: 8px;
+            overflow: hidden;
         }
+        
+        /* تمييز الفاتورة المستهدفة بلون خفيف */
+        .purchase-detail-card:target {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+            box-shadow: 0 0 15px rgba(13, 110, 253, 0.3);
+        }
+        
         .card-header {
-            background-color: #333;
+            background: linear-gradient(135deg, #333 0%, #555 100%);
             color: white;
-            padding: 10px 15px;
+            padding: 12px 15px;
             font-weight: bold;
             text-align: right;
         }
+        
+        /* زر العودة للأعلى */
+        .back-to-top {
+            float: left;
+            background-color: #0d6efd;
+            color: white !important;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 10px;
+            text-decoration: none;
+        }
+        
         .detail-info {
-            padding: 10px;
+            padding: 12px;
             background-color: #fcfcfc;
             border-bottom: 1px solid #eee;
         }
@@ -139,7 +162,23 @@
         .fw-bold { font-weight: bold; }
         .page-break { page-break-after: always; }
         
-        a { text-decoration: none; color: #0d6efd; }
+        /* روابط الفهرس */
+        .invoice-link {
+            text-decoration: none;
+            color: #0d6efd;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background-color: #e7f1ff;
+            display: inline-block;
+        }
+        .invoice-link:hover {
+            background-color: #cfe2ff;
+        }
+        
+        /* أيقونة السهم */
+        .arrow-down { color: #0d6efd; font-size: 14px; }
+        .arrow-up { color: white; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -171,9 +210,9 @@
         </tr>
     </table>
 
-    <div class="section-title">{{ $arabicService->shape('فهرس الفواتير (نظرة سريعة)') }}</div>
+    <div class="section-title">{{ $arabicService->shape('فهرس الفواتير - اضغط على الرقم للانتقال') }}</div>
     
-    <!-- Index Table with Reversed Columns for LTR Engine looking like RTL -->
+    <!-- Index Table -->
     <table class="main-table">
         <thead>
             <tr>
@@ -197,8 +236,8 @@
                 <td>{{ \Carbon\Carbon::parse($p->invoice_date)->format('Y-m-d') }}</td>
                 <td>{{ $arabicService->shape($p->supplier->contact_name ?? '---') }}</td>
                 <td>
-                    <a href="#purchase-{{ $p->id }}" class="fw-bold">
-                        {{ $p->invoice_number }} ↓
+                    <a href="#invoice-{{ $p->id }}" class="invoice-link">
+                        {{ $p->invoice_number }} <span class="arrow-down">↓</span>
                     </a>
                 </td>
                 <td>{{ $loop->iteration }}</td>
@@ -212,10 +251,12 @@
     <div class="section-title">{{ $arabicService->shape('تفاصيل الفواتير والبنود') }}</div>
     
     @foreach($purchases as $p)
-    <div id="purchase-{{ $p->id }}" class="purchase-detail-card">
+    <div id="invoice-{{ $p->id }}" class="purchase-detail-card">
         <div class="card-header">
-            <span style="float: left;"><a href="#top" style="color: #fff; font-size: 8px;">{{ $arabicService->shape('العودة') }} ↑</a></span>
-            {{ $arabicService->shape('تفاصيل فاتورة رقم:') }} {{ $p->invoice_number }}
+            <a href="#top" class="back-to-top">
+                <span class="arrow-up">↑</span> {{ $arabicService->shape('العودة للفهرس') }}
+            </a>
+            {{ $arabicService->shape('فاتورة رقم:') }} {{ $p->invoice_number }}
         </div>
         
         <div class="detail-info">
@@ -223,6 +264,14 @@
                 <tr>
                     <td align="right" width="50%"><strong>{{ $arabicService->shape('تاريخ الفاتورة:') }}</strong> {{ $p->invoice_date }}</td>
                     <td align="right" width="50%"><strong>{{ $arabicService->shape('المورد:') }}</strong> {{ $arabicService->shape($p->supplier->contact_name ?? '---') }}</td>
+                </tr>
+                <tr>
+                    <td align="right"><strong>{{ $arabicService->shape('الإجمالي:') }}</strong> <span class="text-primary fw-bold">{{ number_format($p->grand_total, 2) }}</span></td>
+                    <td align="right"><strong>{{ $arabicService->shape('الحالة:') }}</strong> 
+                        <span class="badge {{ $p->payment_status == 'paid' ? 'badge-paid' : ($p->payment_status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
+                            @if($p->payment_status == 'paid') {{ $arabicService->shape('مدفوع') }} @elseif($p->payment_status == 'partial') {{ $arabicService->shape('جزئي') }} @else {{ $arabicService->shape('غير مدفوع') }} @endif
+                        </span>
+                    </td>
                 </tr>
             </table>
         </div>
