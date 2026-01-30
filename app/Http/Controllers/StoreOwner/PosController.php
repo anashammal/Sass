@@ -1093,4 +1093,57 @@ class PosController extends Controller
 
         return $pdf->download('sales_report.pdf');
     }
+
+    /**
+     * توليد ملف PDF للمرتجعات وإرجاع الرابط للمشاركة
+     */
+    public function generateReturnsPdf($saleId)
+    {
+        try {
+            $storeId = Auth::user()->store->id;
+            $sale = Sale::where('id', $saleId)
+                ->where('store_id', $storeId)
+                ->with(['contact', 'items.product', 'items.unit', 'returns.product', 'returns.unit', 'returns.user'])
+                ->firstOrFail();
+
+            $store = Auth::user()->store;
+            
+            // استخدام خدمة معالجة النص العربي
+            $arabicService = new \App\Services\ArabicTextService();
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('store_owner.pos.returns_pdf', compact('sale', 'store', 'arabicService'))
+                  ->setPaper('a4', 'portrait')
+                  ->setOptions([
+                      'isHtml5ParserEnabled' => true,
+                      'isRemoteEnabled' => true,
+                      'defaultFont' => 'DejaVu Sans'
+                  ]);
+
+            $filename = 'returns_report_' . $sale->id . '_' . date('Ymd_His') . '.pdf';
+            $path = public_path('temp_reports');
+            
+            if (!file_exists($path)) {
+                mkdir($path, 0777, true);
+            }
+            
+            // تنظيف الملفات القديمة
+            foreach (glob($path . '/*.pdf') as $file) {
+                if (filemtime($file) < time() - 3600) { // حذف ما هو أقدم من ساعة
+                    @unlink($file); 
+                }
+            }
+
+            $pdf->save($path . '/' . $filename);
+            
+            return response()->json([
+                'success' => true,
+                'url' => asset('temp_reports/' . $filename),
+                'filename' => $filename
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error("Returns PDF Error: " . $e->getMessage());
+            return response()->json(['error' => 'فشل توليد ملف PDF: ' . $e->getMessage()], 500);
+        }
+    }
 }

@@ -805,6 +805,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-success" onclick="shareReturnsWhatsapp()"><i class="fab fa-whatsapp me-1"></i> واتساب</button>
                 <button type="button" class="btn btn-primary" onclick="printReturnsReport()"><i class="fas fa-print me-1"></i> طباعة</button>
             </div>
         </div>
@@ -2388,6 +2389,50 @@
         `);
         win.document.close();
         setTimeout(() => { win.print(); win.close(); }, 500);
+    };
+
+    // مشاركة تقرير المرتجعات عبر واتساب
+    window.shareReturnsWhatsapp = function() {
+        const saleId = $('#returnsSaleId').text().replace('INV-', '');
+        
+        Swal.fire({
+            title: 'جاري تجهيز ملف PDF...',
+            text: 'يرجى الانتظار قليلاً...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        // طلب إنشاء PDF من الخادم
+        $.get("{{ url('store-owner/pos/return-pdf') }}/" + saleId)
+        .done(function(data) {
+            Swal.close();
+            
+            if(data.success && data.url) {
+                const customer = $('#returnsCustomerName').text();
+                const date = $('#returnsDate').text();
+                
+                let message = `*تقرير مرتجعات - ${saleId}*\n`;
+                message += `العميل: ${customer}\n`;
+                message += `التاريخ: ${date}\n`;
+                message += `يرجى الاطلاع على الملف المرفق.\n`;
+
+                if (typeof triggerWhatsappPrompt === 'function') {
+                    // إرسال الرابط كملف
+                    triggerWhatsappPrompt('', message, "تقرير المرتجعات PDF", data.url, data.filename);
+                } else {
+                    // Fallback
+                    const url = `https://wa.me/?text=${encodeURIComponent(message + "\n" + data.url)}`;
+                    window.open(url, '_blank');
+                }
+            } else {
+                Swal.fire('خطأ', 'فشل إنشاء ملف PDF', 'error');
+            }
+        })
+        .fail(function(xhr) {
+            Swal.close();
+            console.error(xhr);
+            Swal.fire('خطأ', 'حدث خطأ أثناء التواصل مع السيرفر', 'error');
+        });
     };
 
 </script>
