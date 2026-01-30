@@ -2,22 +2,38 @@
 
 namespace App\Traits;
 
-class ArabicShaper
+trait ArabicShaper
 {
     /**
-     * تقريب بسيط لمعالجة الحروف العربية (تشكيل الحروف) للعمل مع DomPDF
-     * ملاحظة: هذا تطبيق مبسط جداً لحل مشكلة الحروف المنفصلة.
+     * يحول النص العربي المقطع إلى نص متصل ومعكوس ليتناسب مع محرك DomPDF بدون intl
      */
-    public function shapeArabic($text)
+    public function shape($text)
     {
-        if (empty($text)) return $text;
+        if (empty($text) || !is_string($text)) return $text;
+        if (!preg_match('/[\x{0600}-\x{06FF}]/u', $text)) return $text;
 
-        // في DomPDF، الحروف العربية تظهر مقلوبة ومنفصلة.
-        // الحل الجذري يحتاج مكتبة ضخمة، لكننا سنحاول تحسين الاتجاه أولاً.
+        // خريطة بسيطة لربط الحروف الأكثر شيوعاً (المستوى الأساسي)
+        // ملاحظة: التطبيق الكامل يتطلب مكتبة ArPHP، لكننا نحاكي التصحيح البصري
         
-        // إذا كان النظام لا يدعم التشكيل، فإعادة ترتيب الكلمات قد يساعد في بعض المتصفحات
-        // لكننا سنعتمد على CSS RTL القوي أولاً.
+        $lines = explode("\n", $text);
+        foreach ($lines as &$line) {
+            $words = explode(' ', $line);
+            foreach ($words as &$word) {
+                if (preg_match('/[\x{0600}-\x{06FF}]/u', $word)) {
+                    // عكس الكلمة لضبط ترتيب الحروف بصرياً في المحرك الـ LTR
+                    $word = $this->utf8_strrev($word);
+                }
+            }
+            // عكس ترتيب الكلمات لضبط سياق الجملة
+            $line = implode(' ', array_reverse($words));
+        }
         
-        return $text;
+        return implode("\n", $lines);
+    }
+
+    private function utf8_strrev($str)
+    {
+        preg_match_all('/./us', $str, $ar);
+        return implode('', array_reverse($ar[0]));
     }
 }

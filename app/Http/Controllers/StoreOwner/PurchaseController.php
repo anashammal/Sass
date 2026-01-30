@@ -17,8 +17,11 @@ use Illuminate\Support\Facades\Http; // ضروري للواتساب
 use Illuminate\Support\Facades\Log;  // لتسجيل الأخطاء
 use Barryvdh\DomPDF\Facade\Pdf;
 
+
+
 class PurchaseController extends Controller
 {
+
     // ... (index, create, edit, show, searchSuppliers, searchProducts) ...
     // سأضع لك الدوال التي تحتاج تعديل جذري فقط (store, destroy) لتختصر الوقت
     // لكن الأفضل نسخ الملف كاملاً لضمان عدم نسيان شيء.
@@ -132,11 +135,15 @@ class PurchaseController extends Controller
             'sum_due' => $purchases->sum(function($p){ return $p->grand_total - $p->paid_amount; }),
         ];
 
-        $pdf = Pdf::loadView('store_owner.purchases.pdf_report', compact('purchases', 'store', 'totals'))
+        // استخدام خدمة معالجة النص العربي
+        $arabicService = new \App\Services\ArabicTextService();
+        
+        $pdf = Pdf::loadView('store_owner.purchases.pdf_report', compact('purchases', 'store', 'totals', 'arabicService'))
                   ->setPaper('a4', 'portrait')
                   ->setOptions([
                       'isHtml5ParserEnabled' => true,
                       'isRemoteEnabled' => true,
+                      'isFontSubsettingEnabled' => true,
                       'defaultFont' => 'DejaVu Sans'
                   ]);
         
