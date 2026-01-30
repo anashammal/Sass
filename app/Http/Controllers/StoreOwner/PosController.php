@@ -417,7 +417,38 @@ class PosController extends Controller
                 return response()->json(['success' => true, 'message' => 'تم تسجيل المسحوبات', 'invoice_id' => $sale->id]);
             }
 
-            return response()->json(['success' => true, 'message' => 'تم الحفظ بنجاح', 'invoice_id' => $sale->id]);
+            // تجهيز بيانات الواتساب للعرض في النافذة (إذا كانت الخدمة مفعلة)
+            $whatsappData = null;
+            if ($store->whatsapp_auto_prompt && $sale->contact && $sale->contact->phone) {
+                $itemsLines = [];
+                foreach($sale->items as $item) {
+                    $uName = $item->unit->unit_name ?? ($item->product->baseUnit->unit_name ?? 'قطعة');
+                    $itemsLines[] = "• " . ($item->product->name_ar ?? 'منتج') . " ({$item->quantity} {$uName})";
+                }
+                
+                $msgBody = "*فاتورة مبيعات #{$sale->id}*\n";
+                $msgBody .= "التاريخ: " . $sale->created_at->format('Y-m-d h:i A') . "\n";
+                $msgBody .= "العميل: " . $sale->contact->contact_name . "\n";
+                $msgBody .= "--------------------------\n";
+                $msgBody .= implode("\n", $itemsLines) . "\n";
+                $msgBody .= "--------------------------\n";
+                $msgBody .= "*الإجمالي:* " . number_format($sale->total, 2) . " د.أ\n";
+                if($sale->due > 0) $msgBody .= "*المتبقي:* " . number_format($sale->due, 2) . " د.أ\n";
+                $msgBody .= "شكرًا لتعاملكم معنا 🙏\n";
+                $msgBody .= "*" . $store->name . "*";
+
+                $whatsappData = [
+                    'phone' => $sale->contact->phone,
+                    'message' => $msgBody
+                ];
+            }
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'تم الحفظ بنجاح', 
+                'invoice_id' => $sale->id,
+                'whatsapp_data' => $whatsappData
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();

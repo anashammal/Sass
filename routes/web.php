@@ -138,13 +138,16 @@ Route::middleware(['auth'])->group(function () {
 
         Route::resource('purchases', PurchaseController::class);
 
-        // Expense Management
+        // Purchase Management
+        Route::get('purchases/report/pdf', [\App\Http\Controllers\StoreOwner\PurchaseController::class, 'pdfReport'])->name('purchases.report.pdf');
+        Route::get('purchases/report/interactive', [\App\Http\Controllers\StoreOwner\PurchaseController::class, 'interactiveReport'])->name('purchases.report.interactive');
         Route::resource('expenses', \App\Http\Controllers\StoreOwner\ExpenseController::class);
         Route::resource('expense-categories', \App\Http\Controllers\StoreOwner\ExpenseCategoryController::class);
 
         // Debt/Payment Management
         Route::post('payments', [\App\Http\Controllers\StoreOwner\PaymentController::class, 'store'])->name('payments.store');
         Route::get('payments/ledger/{contact_id}', [\App\Http\Controllers\StoreOwner\PaymentController::class, 'ledger'])->name('payments.ledger');
+        Route::get('payments/ledger/{contact_id}/pdf', [\App\Http\Controllers\StoreOwner\PaymentController::class, 'ledgerPdf'])->name('payments.ledger.pdf');
 
         // إدارة الصندوق (Shift Management)
         Route::get('/pos/shift/status', [ShiftController::class, 'checkStatus'])->name('pos.shift.status');
@@ -181,6 +184,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/whatsapp', [StoreWhatsAppController::class, 'index'])->name('whatsapp.index');
         Route::get('/whatsapp/status', [StoreWhatsAppController::class, 'getStatus'])->name('whatsapp.status');
         Route::post('/whatsapp/logout', [StoreWhatsAppController::class, 'logout'])->name('whatsapp.logout');
+        Route::post('/whatsapp/send', [StoreWhatsAppController::class, 'sendMessage'])->name('whatsapp.send');
     // صفحة إدارة المنتجات المنتهية وقريبة الانتهاء
 Route::get('products/expired-manager', [ProductController::class, 'expiredManager'])->name('products.expired_manager');
 

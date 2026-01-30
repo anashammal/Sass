@@ -1216,9 +1216,15 @@
             Swal.fire({title: 'جاري الحفظ...', didOpen: () => Swal.showLoading()});
 
             $.post("{{ route('store.pos.save') }}", data)
-             .done(() => { 
-                 Swal.fire({icon:'success', title: isOwner ? 'تم تسجيل المسحوبات' : 'تمت العملية بنجاح', timer:1000, showConfirmButton:false}); 
-                 setTimeout(() => location.reload(), 1000);
+             .done((res) => { 
+                 if (res.whatsapp_data) {
+                     Swal.close();
+                     triggerWhatsappPrompt(res.whatsapp_data.phone, res.whatsapp_data.message);
+                     resetPosScreen();
+                 } else {
+                     Swal.fire({icon:'success', title: isOwner ? 'تم تسجيل المسحوبات' : 'تمت العملية بنجاح', timer:1000, showConfirmButton:false}); 
+                     setTimeout(() => location.reload(), 1000);
+                 }
              })
              .fail((xhr) => { 
                  let res = xhr.responseJSON || {};
@@ -1660,6 +1666,13 @@
         $('.col-toggle').on('change', function() {
             applyColumnVisibility();
         });
+
+        // ✅ فتح فاتورة معينة إذا كان المعرف موجوداً في الرابط
+        const urlParams = new URLSearchParams(window.location.search);
+        const invId = urlParams.get('invoice_id');
+        if (invId) {
+            setTimeout(() => viewInvoice(invId), 500);
+        }
     });
 
     function applyColumnVisibility() {

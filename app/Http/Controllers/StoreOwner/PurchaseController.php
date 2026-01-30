@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Mail; // هذا هو سبب الخطأ الحالي
 use Illuminate\Support\Facades\Http; // ضروري للواتساب
 use Illuminate\Support\Facades\Log;  // لتسجيل الأخطاء
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PurchaseController extends Controller
 {
@@ -78,6 +79,131 @@ class PurchaseController extends Controller
         return view('store_owner.purchases.index', compact('purchases', 'suppliers', 'totals'));
     }
 
+    public function pdfReport(Request $request)
+    {
+        $user = Auth::user();
+        $store = $user->store;
+        $storeId = $store->id;
+
+        $query = Purchase::where('store_id', $storeId)->with(['supplier', 'items.product', 'items.unit']);
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function($q) use ($term) {
+                $q->where('invoice_number', 'like', "%$term%")
+                  ->orWhere('notes', 'like', "%$term%")
+                  ->orWhereHas('supplier', function($qSup) use ($term) {
+                      $qSup->where('contact_name', 'like', "%$term%")
+                           ->orWhere('company_name', 'like', "%$term%");
+                  });
+            });
+        }
+
+        if ($request->filled('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('invoice_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('invoice_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        $sortField = $request->get('sort_by', 'invoice_date');
+        $sortOrder = $request->get('order_by', 'desc');
+        
+        if (in_array($sortField, ['grand_total', 'invoice_date', 'created_at'])) {
+            $query->orderBy($sortField, $sortOrder);
+        } else {
+            $query->latest();
+        }
+
+        $purchases = $query->get();
+        
+        $totals = [
+            'count' => $purchases->count(),
+            'sum_total' => $purchases->sum('grand_total'),
+            'sum_paid' => $purchases->sum('paid_amount'),
+            'sum_due' => $purchases->sum(function($p){ return $p->grand_total - $p->paid_amount; }),
+        ];
+
+        $pdf = Pdf::loadView('store_owner.purchases.pdf_report', compact('purchases', 'store', 'totals'));
+        
+        if ($request->get('output') == 'url') {
+            $filename = 'purchase_report_' . date('Ymd_His') . '_' . uniqid() . '.pdf';
+            $path = public_path('temp_reports');
+            if (!file_exists($path)) mkdir($path, 0777, true);
+            $pdf->save($path . '/' . $filename);
+            return response()->json([
+                'url' => asset('temp_reports/' . $filename),
+                'filename' => $filename
+            ]);
+        }
+
+        return $pdf->download('purchase_report.pdf');
+    }
+
+    public function interactiveReport(Request $request)
+    {
+        $user = Auth::user();
+        $store = $user->store;
+        $storeId = $store->id;
+
+        $query = Purchase::where('store_id', $storeId)->with(['supplier', 'items.product', 'items.unit']);
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function($q) use ($term) {
+                $q->where('invoice_number', 'like', "%$term%")
+                  ->orWhere('notes', 'like', "%$term%")
+                  ->orWhereHas('supplier', function($qSup) use ($term) {
+                      $qSup->where('contact_name', 'like', "%$term%")
+                           ->orWhere('company_name', 'like', "%$term%");
+                  });
+            });
+        }
+
+        if ($request->filled('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('invoice_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('invoice_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        $sortField = $request->get('sort_by', 'invoice_date');
+        $sortOrder = $request->get('order_by', 'desc');
+        
+        if (in_array($sortField, ['grand_total', 'invoice_date', 'created_at'])) {
+            $query->orderBy($sortField, $sortOrder);
+        } else {
+            $query->latest();
+        }
+
+        $purchases = $query->get();
+        
+        $totals = [
+            'count' => $purchases->count(),
+            'sum_total' => $purchases->sum('grand_total'),
+            'sum_paid' => $purchases->sum('paid_amount'),
+            'sum_due' => $purchases->sum(function($p){ return $p->grand_total - $p->paid_amount; }),
+        ];
+
+        return view('store_owner.purchases.interactive_report', compact('purchases', 'store', 'totals'));
+    }
+
    public function create() 
     { 
         $store = Auth::user()->store; 
@@ -113,7 +239,9 @@ class PurchaseController extends Controller
 
         try {
             DB::beginTransaction();
-            $storeId = Auth::user()->store->id;
+            $user = Auth::user();
+            $store = $user->store;
+            $storeId = $store->id;
 
             $purchase = null;
             // التحقق من وجود الفاتورة للتعديل
@@ -301,6 +429,9 @@ class PurchaseController extends Controller
                     $sup = $purchase->supplier;
                     $supplierName = $sup ? ($sup->contact_name ?? $sup->company_name ?? 'مورد عام') : 'مورد عام';
 
+                    // ✅ التحقق من تشفير اللغة العربية قبل الإرسال (Clean UTF-8)
+                    $supplierName = mb_convert_encoding($supplierName, 'UTF-8', 'UTF-8');
+
                     // 1. منطق الواتساب (مستقل)
                     if ($store->notify_whatsapp && $store->phone_number && $store->wa_notify_purchases) {
                         $waSend = false;
@@ -321,7 +452,8 @@ class PurchaseController extends Controller
                             if($isCredit) $msg .= "❗️ آجل (دين): " . number_format($due, 2) . "\n";
                             $msg .= "✍️ بواسطة: {$user->name}";
 
-                            Http::timeout(2)->post('https://wa.tech-sys.online/send-message', [
+                            // استخدام timeout قصير جداً لتقليل التعليق
+                            Http::timeout(1)->withoutVerifying()->post('https://wa.tech-sys.online/send-message', [
                                 'phone' => $store->phone_number,
                                 'message' => $msg,
                                 'session_id' => 'store_' . $store->id
@@ -364,10 +496,39 @@ class PurchaseController extends Controller
             // ============================================================
 
             if ($request->ajax()) {
+                // تجهيز بيانات الواتساب للمورد (إذا كانت الخدمة مفعلة)
+                $whatsappData = null;
+                
+                // التأكد من أن قيمة $store موجودة ومحملة
+                if (!$isDraft && isset($store) && $store->whatsapp_auto_prompt && $purchase->supplier && $purchase->supplier->phone) {
+                    $itemsLines = [];
+                    foreach($purchase->items as $item) {
+                        $uName = $item->unit->unit_name ?? ($item->product->baseUnit->unit_name ?? 'قطعة');
+                        $itemsLines[] = "• " . ($item->product->name_ar ?? 'منتج') . " ({$item->quantity} {$uName})";
+                    }
+                    
+                    $msgBody = "*أمر شراء / فاتورة مشتريات #{$purchase->invoice_number}*\n";
+                    $msgBody .= "التاريخ: " . ($purchase->invoice_date ? $purchase->invoice_date->format('Y-m-d') : now()->format('Y-m-d')) . "\n";
+                    $msgBody .= "المورد: " . ($purchase->supplier->contact_name ?? $purchase->supplier->company_name) . "\n";
+                    $msgBody .= "--------------------------\n";
+                    $msgBody .= implode("\n", $itemsLines) . "\n";
+                    $msgBody .= "--------------------------\n";
+                    $msgBody .= "*الإجمالي:* " . number_format($purchase->grand_total, 2) . " د.أ\n";
+                    $due = $purchase->grand_total - $purchase->paid_amount;
+                    if($due > 0) $msgBody .= "*المتبقي:* " . number_format($due, 2) . " د.أ\n";
+                    $msgBody .= "عن متجر: *" . $store->name . "*";
+
+                    $whatsappData = [
+                        'phone' => $purchase->supplier->phone,
+                        'message' => $msgBody
+                    ];
+                }
+
                 return response()->json([
                     'success' => true,
                     'id' => $purchase->id,
-                    'message' => $isDraft ? 'تم حفظ المسودة' : 'تم حفظ الفاتورة'
+                    'message' => $isDraft ? 'تم حفظ المسودة' : 'تم حفظ الفاتورة',
+                    'whatsapp_data' => $whatsappData
                 ]);
             }
 

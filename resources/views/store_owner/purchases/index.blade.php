@@ -6,8 +6,9 @@
     {{-- عنوان الصفحة وزر الإضافة --}}
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
         <h4 class="fw-bold text-primary"><i class="fas fa-shopping-cart me-2"></i> سجل المشتريات</h4>
-        <div>
-            <button onclick="window.print()" class="btn btn-outline-secondary me-2"><i class="fas fa-print me-1"></i> طباعة التقرير</button>
+        <div class="d-flex gap-2">
+            <button onclick="sharePurchasesViaWhatsapp()" class="btn btn-outline-success"><i class="fab fa-whatsapp me-1"></i> إرسال واتساب</button>
+            <a href="{{ route('store.purchases.report.interactive', request()->all()) }}" target="_blank" class="btn btn-outline-primary"><i class="fas fa-file-invoice me-1"></i> التقرير التفاعلي للطباعة</a>
             <a href="{{ route('store.purchases.create') }}" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i> فاتورة جديدة</a>
         </div>
     </div>
@@ -317,6 +318,61 @@
             mywindow.close(); 
         }, 500);
     }
+    function sharePurchasesViaWhatsapp() {
+        // نستخدم الفلترة الحالية من الرابط
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('output', 'url');
+        
+        const fetchUrl = "{{ route('store.purchases.report.pdf') }}?" + urlParams.toString();
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'جاري تجهيز ملف التقرير...',
+                html: 'يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        } else {
+            console.log('Preparing report...');
+        }
+
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                
+                if (data.url) {
+                    const message = `*تقرير سجل المشتريات*\n` +
+                                    `المتجر: {{ auth()->user()->store->name }}\n` +
+                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
+                                    `مرفق لكم التقرير التفصيلي كملف PDF.`;
+                    
+                    const filename = data.filename || "purchase_report.pdf";
+                    // إرسال المرفق عبر المودال العالمي
+                    if (typeof triggerWhatsappPrompt === 'function') {
+                        triggerWhatsappPrompt('', message, "إرسال سجل المشتريات كمرفق PDF", data.url, filename);
+                    } else {
+                        alert('حدث خطأ: وظيفة إرسال الواتساب غير متوفرة');
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('خطأ', 'فشل تجهيز ملف التقرير', 'error');
+                    } else {
+                        alert('فشل تجهيز ملف التقرير');
+                    }
+                }
+            })
+            .catch(err => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                console.error(err);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('خطأ', 'حدث خطأ أثناء التواصل مع السيرفر', 'error');
+                } else {
+                    alert('حدث خطأ أثناء التواصل مع السيرفر');
+                }
+            });
+    }
+
     $(document).ready(function() {
         // عند الضغط على زر المعاينة
         $(document).on('click', '.view-invoice-btn', function() {

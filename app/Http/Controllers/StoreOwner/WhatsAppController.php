@@ -41,4 +41,40 @@ class WhatsAppController extends Controller
         
         return response()->json(['success' => $reset]);
     }
+
+    public function sendMessage(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required',
+            'message' => 'required',
+        ]);
+
+        $storeId = $this->getStoreId();
+        $mediaUrl = $request->input('media_url');
+        $filename = $request->input('filename', 'document.pdf');
+        
+        if ($mediaUrl) {
+            // محاولة إرسال ملف مرفق مباشر (بدون رابط)
+            $success = $this->whatsapp->sendFile($request->phone, $mediaUrl, $request->message, $storeId, $filename);
+            
+            if ($success) {
+                return response()->json(['success' => true, 'message' => 'تم إرسال الملف كمرفق بنجاح']);
+            }
+            
+            // إذا فشل المرفق المباشر، نعطي رسالة خطأ واضحة
+            return response()->json([
+                'success' => false, 
+                'message' => 'فشل إرسال الملف كمرفق. يرجى التأكد من اتصال خدمة الواتساب أو جرب الإرسال لاحقاً.'
+            ], 500);
+        }
+
+        // إرسال رسالة نصية عادية
+        $success = $this->whatsapp->send($request->phone, $request->message, $storeId);
+
+        if ($success) {
+            return response()->json(['success' => true, 'message' => 'تم إرسال الرسالة بنجاح']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'فشل إرسال الرسالة، تأكد من اتصال واتساب وحاول مجدداً.'], 500);
+    }
 }

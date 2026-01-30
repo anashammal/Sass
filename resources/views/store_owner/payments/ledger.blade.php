@@ -7,11 +7,14 @@
             <i class="fas fa-file-invoice me-2 text-info"></i>كشف حساب: {{ $contact->contact_name }}
         </h3>
         <div>
-            <button onclick="window.print()" class="btn btn-outline-secondary no-print">
-                <i class="fas fa-print me-1"></i> طباعة كشف الحساب
+            <a href="{{ route('store.payments.ledger.pdf', $contact->id) }}" class="btn btn-outline-danger no-print">
+                <i class="fas fa-file-pdf me-1"></i> تحميل PDF
+            </a>
+            <button onclick="window.print()" class="btn btn-outline-secondary no-print ms-2">
+                <i class="fas fa-print me-1"></i> طباعة
             </button>
             <a href="{{ route('store.contacts.index') }}" class="btn btn-primary no-print ms-2">
-                <i class="fas fa-arrow-right me-1"></i> العودة لجهات الاتصال
+                <i class="fas fa-arrow-right me-1"></i> العودة
             </a>
         </div>
     </div>
@@ -75,7 +78,7 @@
                                 <td><span class="{{ $typeClass }}">{{ $typeLabel }}</span></td>
                                 <td class="text-muted small text-start">
                                     @if(in_array($row->type, ['sale', 'purchase']))
-                                        <a href="javascript:void(0)" onclick="viewMovementDetails('{{ $row->type }}', {{ $row->id }})" class="text-info fw-bold text-decoration-none">
+                                        <a href="javascript:void(0)" onclick="viewMovementDetails('{{ $row->type }}', {{ $row->reference_id }})" class="text-info fw-bold text-decoration-none">
                                             <i class="fas fa-search-plus me-1"></i> {{ $row->reference }}
                                         </a>
                                     @else

@@ -195,7 +195,7 @@
                 <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> تأكيد العملية المالية</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center">
+            <div class="modal-body text-center" dir="rtl">
                 <h5 class="mb-3">ملخص تأثير الفاتورة على الرصيد</h5>
                 
                 <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
@@ -227,7 +227,7 @@
             </div>
             <div class="modal-footer justify-content-center">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-primary px-5" onclick="document.getElementById('purchaseForm').submit()">موافق وحفظ</button>
+                <button type="button" id="confirmSaveBtn" class="btn btn-primary px-5" onclick="ajaxSubmitPurchase()">موافق وحفظ</button>
             </div>
         </div>
     </div>
@@ -1146,7 +1146,7 @@
         
         // إذا كان المبلغ المدفوع يساوي الإجمالي تماماً (الفارق شبه معدوم)، احفظ مباشرة
         if (Math.abs(diff) < 0.01) {
-            document.getElementById('purchaseForm').submit();
+            ajaxSubmitPurchase();
             return;
         }
 
@@ -1190,6 +1190,62 @@
 
         var myModal = new bootstrap.Modal(document.getElementById('balanceConfirmModal'));
         myModal.show();
+    }
+
+    function ajaxSubmitPurchase() {
+        const form = document.getElementById('purchaseForm');
+        const formData = new FormData(form);
+        
+        const btn = document.getElementById('confirmSaveBtn');
+        const originalText = btn ? btn.innerHTML : '';
+        if(btn) {
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الحفظ...';
+            btn.disabled = true;
+        }
+
+        Swal.fire({title: 'جاري حفظ الفاتورة...', didOpen: () => Swal.showLoading()});
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                Swal.close();
+                // إذا كان هناك بيانات واتساب، أظهر التنبيه
+                if (data.whatsapp_data) {
+                    triggerWhatsappPrompt(data.whatsapp_data.phone, data.whatsapp_data.message, "إرسال فاتورة المشتريات للمورد");
+                    // بعد إغلاق أو إرسال الواتساب، يفضل إعادة تحميل الصفحة أو التوجه للفهرس
+                    // سأضع مستمعاً لإغلاق المودال في app.blade.php أو اعتمد على سلوك المستخدم
+                    // للأمان، سأقوم بتحويل المستخدم بعد ثوانٍ أو ترك الخيار له
+                    setTimeout(() => {
+                        window.location.href = "{{ route('store.purchases.index') }}";
+                    }, 5000); 
+                } else {
+                    Swal.fire({icon: 'success', title: 'تم الحفظ بنجاح', timer: 1500, showConfirmButton: false})
+                    .then(() => {
+                        window.location.href = "{{ route('store.purchases.index') }}";
+                    });
+                }
+            } else {
+                Swal.fire({icon: 'error', title: 'خطأ', text: data.message || 'حدث خطأ غير متوقع'});
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Swal.fire({icon: 'error', title: 'خطأ', text: 'فشل الاتصال بالسيرفر'});
+        })
+        .finally(() => {
+            if(btn) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
     }
 // --- دالة فتح نافذة إضافة المنتج ---
     function openCreateProductModal() {

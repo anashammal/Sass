@@ -11,6 +11,7 @@ use App\Models\Sale;
 use App\Models\Purchase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PaymentController extends Controller
 {
@@ -18,6 +19,32 @@ class PaymentController extends Controller
      * عرض كشف حساب لجهة اتصال معينة
      */
     public function ledger(Request $request, $contactId)
+    {
+        $data = $this->getLedgerData($contactId);
+        $contact = $data['contact'];
+        $ledger = $data['ledger'];
+
+        return view('store_owner.payments.ledger', compact('contact', 'ledger'));
+    }
+
+    /**
+     * تصدير كشف الحساب كملف PDF
+     */
+    public function ledgerPdf($contactId)
+    {
+        $data = $this->getLedgerData($contactId);
+        $contact = $data['contact'];
+        $ledger = $data['ledger'];
+        $store = Auth::user()->store;
+
+        $pdf = Pdf::loadView('store_owner.payments.pdf_ledger', compact('contact', 'ledger', 'store'));
+        
+        // تحسين دعم اللغة العربية: تعيين اسم ملف آمن
+        $safeName = "ledger_" . $contact->id . ".pdf";
+        return $pdf->download($safeName);
+    }
+
+    private function getLedgerData($contactId)
     {
         $storeId = Auth::user()->store->id;
         $contact = Contact::where('store_id', $storeId)->findOrFail($contactId);
@@ -32,9 +59,7 @@ class PaymentController extends Controller
             ->select('id', 'invoice_date as date', DB::raw("'purchase' as type"), 'grand_total as amount', 'invoice_number as reference')
             ->get();
 
-        // 3. جلب جميع الدفعات المرتبطة بجهة الاتصال (سواء مستقلة أو لفاتورة)
-        // ملاحظة: نحتاج جلب الدفعات المرتبطة بـ sale_id أو purchase_id التي تخص هذا العميل/المورد أيضاً
-        
+        // 3. جلب الدفعات
         $payments = Payment::where(function($q) use ($contactId) {
                 $q->where('contact_id', $contactId)
                   ->orWhereIn('sale_id', Sale::where('contact_id', $contactId)->pluck('id'))
@@ -43,7 +68,6 @@ class PaymentController extends Controller
             ->select('id', 'payment_date as date', 'created_at', DB::raw("'payment' as type"), 'amount', 'notes as reference', 'sale_id', 'purchase_id')
             ->get();
 
-        // توحيد الحركات في مصفوفة واحدة مع تحديد "تأثير" كل حركة (Effect)
         $merged = collect();
 
         foreach ($sales as $s) {
@@ -51,9 +75,10 @@ class PaymentController extends Controller
                 'id' => $s->id,
                 'date' => $s->date,
                 'type' => 'sale',
+                'reference_id' => $s->id,
                 'reference' => 'فاتورة مبيعات ' . ($s->reference ?? '#' . $s->id),
                 'amount' => $s->amount,
-                'effect' => -$s->amount, // المبيعات تنقص الرصيد (نحو السالب)
+                'effect' => -$s->amount,
             ]);
         }
 
@@ -62,9 +87,10 @@ class PaymentController extends Controller
                 'id' => $p->id,
                 'date' => $p->date,
                 'type' => 'purchase',
+                'reference_id' => $p->id,
                 'reference' => 'فاتورة مشتريات ' . ($p->reference ? '#' . $p->reference : '#' . $p->id),
                 'amount' => $p->amount,
-                'effect' => $p->amount, // المشتريات تزيد الرصيد (نحو الموجب)
+                'effect' => $p->amount,
             ]);
         }
 
@@ -83,6 +109,7 @@ class PaymentController extends Controller
                 'id' => $pay->id,
                 'date' => $pay->date ?? $pay->created_at,
                 'type' => 'payment',
+                'reference_id' => $pay->sale_id ?? ($pay->purchase_id ?? $pay->id),
                 'reference' => $payRef . ($pay->reference ? ' (' . $pay->reference . ')' : ''),
                 'amount' => $pay->amount,
                 'effect' => $payEffect,
@@ -91,7 +118,7 @@ class PaymentController extends Controller
 
         $ledger = $merged->sortBy('date');
 
-        return view('store_owner.payments.ledger', compact('contact', 'ledger'));
+        return ['contact' => $contact, 'ledger' => $ledger];
     }
 
     /**

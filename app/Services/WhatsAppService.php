@@ -33,26 +33,98 @@ class WhatsAppService
                 $phone = '966' . $phone;
             }
 
-            // الإرسال مع تجاوز SSL ومهلة قصيرة (5 ثواني)
-            // لكي لا يعلق النظام إذا السيرفر طافي
-            $response = Http::withoutVerifying()->timeout(10)->post("{$this->baseUrl}/send-message", [
-    'phone' => $phone,
-    'message' => $message,
-    'session_id' => $sessionId
-]);
+            // الإرسال مع تجاوز SSL ومهلة قصيرة
+            $response = Http::withoutVerifying()->timeout(2)->post("{$this->baseUrl}/send-message", [
+                'phone' => $phone,
+                'message' => $message,
+                'session_id' => $sessionId
+            ]);
 
-if ($response->successful() && ($response->json('success') === true)) {
-    return true;
-}
+            if ($response->successful() && ($response->json('success') === true)) {
+                return true;
+            }
 
-Log::error("WhatsApp send failed ({$sessionId}): " . $response->body());
-return false;
-
+            Log::error("WhatsApp send failed ({$sessionId}): " . $response->body());
+            return false;
 
         } catch (\Exception $e) {
-            // هنا السر: نسجل الخطأ ولكن نرجع False بصمت
-            // لكي يكمل النظام عمله ويرسل الإيميل
             Log::error("WhatsApp Service Error ({$sessionId}): " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function sendFile($phone, $fileUrl, $caption = '', $storeId = null, $filename = 'document.pdf')
+    {
+        $sessionId = $storeId ? "store_{$storeId}" : "system";
+        
+        $status = $this->getStatus($storeId);
+        if (!$status['connected']) {
+            Log::warning("WhatsApp sendFile aborted: Session {$sessionId} is not connected.");
+            return false;
+        }
+
+        try {
+            $phone = preg_replace('/[^0-9]/', '', $phone);
+            if (str_starts_with($phone, '05') && strlen($phone) == 10) { $phone = '966' . substr($phone, 1); }
+            if (str_starts_with($phone, '5') && strlen($phone) == 9) { $phone = '966' . $phone; }
+
+            // تجهيز مسار الملف المحلي
+            $fullPath = null;
+            if (str_contains($fileUrl, 'localhost') || str_contains($fileUrl, '127.0.0.1')) {
+                $baseAsset = asset('');
+                $relativePath = str_ireplace($baseAsset, '', $fileUrl);
+                $fullPath = public_path($relativePath);
+                if (!file_exists($fullPath)) {
+                    $fileNameOnly = basename($fileUrl);
+                    $fullPath = public_path('temp_reports/' . $fileNameOnly);
+                }
+            }
+
+            // تجهيز البيانات كـ JSON (أضمن للتعرف على الجلسة بالسيرفر الحالي)
+            $postData = [
+                'phone' => $phone,
+                'message' => $caption,
+                'caption' => $caption,
+                'session_id' => $sessionId,
+                'session' => $sessionId,
+                'filename' => $filename,
+                'mimetype' => 'application/pdf',
+                'is_media' => true,
+                'is_base64' => true,
+                'is_url' => false
+            ];
+
+            if ($fullPath && file_exists($fullPath)) {
+                $fileData = base64_encode(file_get_contents($fullPath));
+                $dataUri = 'data:application/pdf;base64,' . $fileData;
+                
+                // ملء جميع المفاتيح الممكنة لضمان أن السيرفر يلتقط الملف
+                $postData['media'] = $dataUri;
+                $postData['file'] = $dataUri;
+                $postData['path'] = $dataUri;
+                $postData['url'] = $dataUri;
+                $postData['media_url'] = $dataUri;
+                $postData['base64'] = $fileData; // البعض يطلب الخام والبعض يطلب الـ Uri
+                $postData['attachment'] = $dataUri;
+            } else {
+                return $this->send($phone, $caption . "\n" . $fileUrl, $storeId);
+            }
+
+            // إرسال الطلب كـ JSON مع مهلة كبيرة للتوافق مع حجم البيانات
+            $response = Http::withoutVerifying()
+                ->timeout(120)
+                ->withHeaders(['Accept' => 'application/json'])
+                ->post("{$this->baseUrl}/send-message", $postData);
+
+            if ($response->successful() && ($response->json('success') || $response->json('status') == 'sent' || $response->json('id'))) {
+                Log::info("WhatsApp sendFile success ({$sessionId}) via Bulletproof JSON");
+                return true;
+            }
+
+            Log::error("WhatsApp sendFile Failure ({$sessionId}) - Body: " . $response->body());
+            return false;
+        } catch (\Exception $e) {
+            Log::error("WhatsApp Service sendFile Error: " . $e->getMessage());
             return false;
         }
     }
@@ -66,11 +138,13 @@ return false;
         
         try {
             $response = Http::withoutVerifying()->timeout(5)->get("{$this->baseUrl}/session-status", [
-                'session_id' => $sessionId
+                'session_id' => $sessionId,
+                'session' => $sessionId
             ]);
             
             if ($response->successful()) {
-                Log::info("WhatsApp Service Response ({$sessionId}): " . $response->body());
+                // استخدام الـ Unicode الصحيح لظهور الأسماء العربية في السجل بوضوح
+                Log::info("WhatsApp Status ({$sessionId}): " . json_encode($response->json(), JSON_UNESCAPED_UNICODE));
                 return $response->json();
             }
             

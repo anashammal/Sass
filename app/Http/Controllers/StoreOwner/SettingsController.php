@@ -91,6 +91,7 @@ class SettingsController extends Controller
             'wa_notify_sales', 'wa_sales_credit_only',
             'wa_notify_purchases', 'wa_purchases_credit_only',
             'wa_notify_stock', 'wa_notify_expiry', 'wa_daily_report',
+            'whatsapp_auto_prompt',
         ];
 
         foreach ($checkboxes as $chk) {
@@ -157,6 +158,7 @@ class SettingsController extends Controller
         $store->wa_notify_stock = $request->wa_notify_stock;
         $store->wa_notify_expiry = $request->wa_notify_expiry;
         $store->wa_daily_report = $request->wa_daily_report;
+        $store->whatsapp_auto_prompt = $request->whatsapp_auto_prompt;
 
         // حفظ الصور (كما في كودك الأصلي)
         if ($request->hasFile('logo')) { /* ... */ }

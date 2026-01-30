@@ -267,6 +267,15 @@
                 </div>
             </div>
         </div>
+
+        {{-- 4. خيار جديد: طلب التأكيد قبل الإرسال --}}
+        <div class="border-top pt-3 mt-3 text-start">
+            <div class="form-check form-switch px-0 ms-2">
+                <input class="form-check-input ms-0 me-2" type="checkbox" name="whatsapp_auto_prompt" value="1" {{ $store->whatsapp_auto_prompt ? 'checked' : '' }}>
+                <label class="form-check-label small fw-bold text-success">فتح نافذة تأكيد الإرسال للعميل عند حفظ الفواتير</label>
+            </div>
+            <small class="text-muted d-block mt-1 ms-4 d-inline-block">عند تمكين هذا الخيار، سيظهر لك خيار إرسال الفاتورة عبر واتساب فور حفظها، مع إمكانية تعديل رقم العميل.</small>
+        </div>
     </div>
 </div>
 

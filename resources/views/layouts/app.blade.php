@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css?family=Nunito:400,600,700,800,900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
 /* تصغير واجهة الموقع بالكامل لتظهر بشكل أرتب */
@@ -1001,6 +1002,108 @@
             location.reload(); // تحديث الصفحة
         });
     }
+
+    // --- نظام الواتساب الموحد (Universal WhatsApp Logic) ---
+    function triggerWhatsappPrompt(phone, message, title = "إرسال الفاتورة عبر واتساب", mediaUrl = "", filename = "") {
+        const modalEl = document.getElementById('globalWhatsappModal');
+        if(!modalEl) return;
+
+        document.getElementById('gw_modal_title').innerText = title;
+        document.getElementById('gw_phone').value = phone || '';
+        document.getElementById('gw_message_preview').value = message || '';
+        document.getElementById('gw_media_url').value = mediaUrl || '';
+        document.getElementById('gw_filename').value = filename || '';
+        
+        // إذا كان هناك ملف، أظهر تنبيهاً بسيطاً للمستخدم
+        const mediaSection = document.getElementById('gw_media_status');
+        if (mediaUrl) {
+            mediaSection.innerHTML = `<div class="alert alert-info py-2 mb-2 small"><i class="fas fa-paperclip me-1"></i> سيتم إرفاق ملف: ${filename || 'تقرير PDF'}</div>`;
+        } else {
+            mediaSection.innerHTML = '';
+        }
+
+        const myModal = new bootstrap.Modal(modalEl);
+        myModal.show();
+    }
+
+    function sendGlobalWhatsapp() {
+        const phone = document.getElementById('gw_phone').value;
+        const message = document.getElementById('gw_message_preview').value;
+
+        if(!phone) return alert('الرجاء إدخال رقم الهاتف');
+
+        // تنظيف الرقم
+        let cleanPhone = phone.replace(/\D/g, '');
+        
+        // التحقق من وجود رمز دولي (مثال بسيط)
+        if(cleanPhone.length < 9) return alert('رقم الهاتف غير صحيح');
+        
+        // إظهار لودينغ
+        const btn = document.getElementById('gw_send_btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الإرسال...';
+        btn.disabled = true;
+
+        const mediaUrl = document.getElementById('gw_media_url').value;
+        const filename = document.getElementById('gw_filename').value;
+
+        fetch("{{ route('store.whatsapp.send') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+            body: JSON.stringify({ phone: cleanPhone, message: message, media_url: mediaUrl, filename: filename })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                alert(data.message || 'تم إرسال الرسالة بنجاح!');
+                bootstrap.Modal.getInstance(document.getElementById('globalWhatsappModal')).hide();
+            } else {
+                // إظهار الرسالة القادمة من السيرفر بالتفصيل
+                alert('فشل الإرسال: ' + (data.message || data.error || 'تأكد من ربط الواتساب بالسيرفر'));
+            }
+        })
+        .catch(err => alert('حدث خطأ أثناء الاتصال بالسيرفر'))
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+</script>
+
+<!-- Global WhatsApp Confirmation Modal -->
+<div class="modal fade" id="globalWhatsappModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title fw-bold" id="gw_modal_title"><i class="fab fa-whatsapp me-2"></i> إرسال عبر واتساب</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">رقم المستلم (مع الرمز الدولي)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-success"><i class="fas fa-phone"></i></span>
+                        <input type="text" id="gw_phone" class="form-control fw-bold border-success text-center" placeholder="مثال: 9665xxxxxxxx">
+                    </div>
+                    <small class="text-muted">الرقم المخزن للعميل تم وضعه تلقائياً، يمكنك تعديله.</small>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label fw-bold">نص الرسالة</label>
+                    <textarea id="gw_message_preview" class="form-control text-start border-light bg-light" rows="10" dir="rtl"></textarea>
+                </div>
+                <div id="gw_media_status" class="mt-2"></div>
+                <input type="hidden" id="gw_media_url">
+                <input type="hidden" id="gw_filename">
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" id="gw_send_btn" class="btn btn-success px-5 shadow fw-bold" onclick="sendGlobalWhatsapp()">
+                    <i class="fas fa-paper-plane me-2"></i> تأكيد وإرسال الآن
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 </script>
 </body>
 </html>
