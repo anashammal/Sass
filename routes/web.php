@@ -186,6 +186,7 @@ Route::middleware(['auth'])->group(function () {
         // ==========================================
         Route::get('/whatsapp', [StoreWhatsAppController::class, 'index'])->name('whatsapp.index');
         Route::get('/whatsapp/status', [StoreWhatsAppController::class, 'getStatus'])->name('whatsapp.status');
+        Route::get('/whatsapp/contacts/search', [StoreWhatsAppController::class, 'searchContacts'])->name('whatsapp.contacts.search');
         Route::post('/whatsapp/logout', [StoreWhatsAppController::class, 'logout'])->name('whatsapp.logout');
         Route::post('/whatsapp/send', [StoreWhatsAppController::class, 'sendMessage'])->name('whatsapp.send');
     // صفحة إدارة المنتجات المنتهية وقريبة الانتهاء

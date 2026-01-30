@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Models\Store;
 
 class WhatsAppController extends Controller
@@ -91,5 +92,33 @@ class WhatsAppController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'فشل إرسال الرسالة، تأكد من اتصال واتساب وحاول مجدداً.'], 500);
+    }
+    public function searchContacts(Request $request)
+    {
+        $term = $request->input('q');
+        $storeId = $this->getStoreId();
+        
+        Log::info("WhatsApp Search: Term=[{$term}], StoreID=[{$storeId}]");
+
+        $contacts = \App\Models\Contact::where('store_id', $storeId)
+            ->where(function($query) use ($term) {
+                $query->where('contact_name', 'LIKE', "%{$term}%")
+                      ->orWhere('phone', 'LIKE', "%{$term}%");
+            })
+            ->take(20)
+            ->get();
+            
+        Log::info("WhatsApp Search: Found " . $contacts->count() . " results.");
+            
+        $results = $contacts->map(function($c) {
+            return [
+                'id' => $c->id,
+                'name' => $c->contact_name,
+                'phone' => $c->phone,
+                'text' => $c->contact_name . ' (' . ($c->phone ?? '---') . ')'
+            ];
+        });
+
+        return response()->json($results);
     }
 }

@@ -1003,13 +1003,23 @@
         });
     }
 
+
     // --- نظام الواتساب الموحد (Universal WhatsApp Logic) ---
+    let searchTimeout = null;
+
     function triggerWhatsappPrompt(phone, message, title = "إرسال الفاتورة عبر واتساب", mediaUrl = "", filename = "") {
         const modalEl = document.getElementById('globalWhatsappModal');
         if(!modalEl) return;
-
+        
         document.getElementById('gw_modal_title').innerText = title;
-        document.getElementById('gw_phone').value = phone || '';
+        
+        // تعيين الرقم
+        const phoneInput = document.getElementById('gw_phone');
+        phoneInput.value = phone || '';
+        
+        // إخفاء قائمة البحث عند الفتح
+        document.getElementById('gw_search_results').style.display = 'none';
+
         document.getElementById('gw_message_preview').value = message || '';
         document.getElementById('gw_media_url').value = mediaUrl || '';
         document.getElementById('gw_filename').value = filename || '';
@@ -1025,6 +1035,88 @@
         const myModal = new bootstrap.Modal(modalEl);
         myModal.show();
     }
+    
+    // دالة البحث الذكي
+    document.addEventListener("DOMContentLoaded", function() {
+        const phoneInputEl = document.getElementById('gw_phone');
+        if(phoneInputEl) {
+            console.log('WhatsApp Search Listener Attached');
+            phoneInputEl.addEventListener('keyup', handleSearch);
+            phoneInputEl.addEventListener('paste', function() {
+                setTimeout(handleSearch, 100);
+            });
+        } else {
+            console.error('WhatsApp Phone Input Not Found!');
+        }
+    });
+
+    function handleSearch() {
+        const query = document.getElementById('gw_phone').value;
+        const resultsInfo = document.getElementById('gw_search_info');
+        const resultsList = document.getElementById('gw_search_results');
+        
+        if(query.length < 1) {
+            resultsList.style.display = 'none';
+            resultsInfo.innerText = '';
+            return;
+        }
+        
+        resultsInfo.innerText = 'جاري البحث...';
+        
+        if(searchTimeout) clearTimeout(searchTimeout);
+        
+        searchTimeout = setTimeout(() => {
+            fetch("{{ route('store.whatsapp.contacts.search') }}?q=" + query)
+            .then(res => res.json())
+            .then(data => {
+                resultsList.innerHTML = '';
+                
+                if(data.length > 0) {
+                    data.forEach(contact => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center';
+                        li.style.cursor = 'pointer'; // Ensure pointer cursor
+                        li.innerHTML = `
+                            <div>
+                                <div class="fw-bold">${contact.name}</div>
+                                <small class="text-muted"><i class="fas fa-phone-alt me-1"></i> ${contact.phone || 'بدون رقم'}</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary select-contact-btn">اختيار</button>
+                        `;
+                        
+                        // عند الضغط على العنصر
+                        li.onclick = function() {
+                            if(contact.phone) {
+                                document.getElementById('gw_phone').value = contact.phone;
+                                resultsList.style.display = 'none';
+                                resultsInfo.innerText = `تم اختيار: ${contact.name}`;
+                            } else {
+                                alert('هذا العميل لا يملك رقم هاتف مسجل');
+                            }
+                        };
+                        
+                        resultsList.appendChild(li);
+                    });
+                    resultsList.style.display = 'block';
+                    resultsInfo.innerText = '';
+                } else {
+                    resultsList.style.display = 'none';
+                    resultsInfo.innerText = 'لا توجد نتائج';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                resultsInfo.innerText = ''; // Hide error text to not confuse user if it's just a network blip
+            });
+        }, 300);
+    }
+    
+    // إخفاء القائمة عند النقر خارجها
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#gw_search_results') && !e.target.closest('#gw_phone')) {
+            document.getElementById('gw_search_results').style.display = 'none';
+        }
+    });
 
     function sendGlobalWhatsapp() {
         const phone = document.getElementById('gw_phone').value;
@@ -1079,14 +1171,20 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">رقم المستلم (مع الرمز الدولي)</label>
+                <div class="mb-3 position-relative">
+                    <label class="form-label fw-bold">رقم المستلم (اكتب للبحث في جهات الاتصال)</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light text-success"><i class="fas fa-phone"></i></span>
-                        <input type="text" id="gw_phone" class="form-control fw-bold border-success text-center" placeholder="مثال: 9665xxxxxxxx">
+                        <span class="input-group-text bg-light text-success"><i class="fas fa-search"></i></span>
+                        <input type="text" id="gw_phone" class="form-control fw-bold border-success text-center" placeholder="اكتب الاسم أو الرقم..." autocomplete="off">
                     </div>
-                    <small class="text-muted">الرقم المخزن للعميل تم وضعه تلقائياً، يمكنك تعديله.</small>
+                    
+                    {{-- قائمة نتائج البحث --}}
+                    <ul id="gw_search_results" class="list-group position-absolute w-100 shadow mt-1" style="display:none; z-index: 9999; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ddd;">
+                        <!-- Results will be injected here -->
+                    </ul>
+                    <small id="gw_search_info" class="text-primary fw-bold mt-1 d-block"></small>
                 </div>
+                
                 <div class="mb-0">
                     <label class="form-label fw-bold">نص الرسالة</label>
                     <textarea id="gw_message_preview" class="form-control text-start border-light bg-light" rows="10" dir="rtl"></textarea>
