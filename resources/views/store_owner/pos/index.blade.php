@@ -344,6 +344,7 @@
                                 <option value="unpaid">❌غير مدفوعة</option>
                                 <option value="partial">⚠️دفع جزئي</option>
                                 <option value="overpaid">⏫دفعة زائدة</option>
+                                <option value="has_returns">↩️بها مرتجعات</option>
                             </select>
                         </div>
                         <div class="col-lg-3 col-6">
@@ -368,6 +369,7 @@
                                     <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="5" checked> الحالة</label>
                                     <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="6" checked> التاريخ</label>
                                     <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="7" checked> المستخدم</label>
+                                    <label class="dropdown-item text-warning"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="9" checked> المرتجعات</label>
                                     <div class="dropdown-divider"></div>
                                     <label class="dropdown-item text-danger"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="8" checked> الإجراءات</label>
                                 </div>
@@ -399,12 +401,13 @@
                                     <th class="c-5">الحالة</th>
                                     <th class="c-6">التاريخ</th>
                                     <th class="c-7">بواسطة</th>
+                                    <th class="c-9">المرتجعات</th>
                                     <th class="c-8 no-print">خيارات</th>
                                 </tr>
                             </thead>
                             <tbody id="historyList"></tbody>
                             <tfoot class="table-secondary fw-bold">
-                                <tr><td colspan="2">المجموع</td><td id="sumTotal">0.00</td><td id="sumPaid">0.00</td><td id="sumDue">0.00</td><td colspan="4"></td></tr>
+                                <tr><td colspan="2">المجموع</td><td id="sumTotal">0.00</td><td id="sumPaid">0.00</td><td id="sumDue">0.00</td><td colspan="5"></td></tr>
                             </tfoot>
                         </table>
                     </div>
@@ -611,6 +614,198 @@
                     </thead>
                     <tbody id="returnResultsBody"></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- 6. نافذة عرض تفاصيل المرتجعات (Returns Details Modal) --}}
+<div class="modal fade" id="returnsDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-undo me-2"></i>تفاصيل المرتجعات - فاتورة <span id="returnsSaleId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" id="returnsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="original-tab" data-bs-toggle="tab" data-bs-target="#original-content" type="button">
+                            <i class="fas fa-file-invoice me-1"></i> الفاتورة الأصلية
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-content" type="button">
+                            <i class="fas fa-undo me-1 text-danger"></i> المرتجعات
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="final-tab" data-bs-toggle="tab" data-bs-target="#final-content" type="button">
+                            <i class="fas fa-check-circle me-1 text-success"></i> بعد الإرجاع
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="returnsTabContent">
+                    <!-- الفاتورة الأصلية -->
+                    <div class="tab-pane fade show active" id="original-content" role="tabpanel">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <h6 class="text-muted mb-1">العميل</h6>
+                                        <h5 id="returnsCustomerName" class="fw-bold">-</h5>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-muted mb-1">الإجمالي الأصلي</h6>
+                                        <h5 id="returnsOriginalTotal" class="fw-bold text-primary">0.00</h5>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-muted mb-1">تاريخ الفاتورة</h6>
+                                        <h6 id="returnsDate" class="small">-</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <h6 class="fw-bold mb-2"><i class="fas fa-list me-1"></i> أصناف الفاتورة (الحالية)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered text-center">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>الوحدة</th>
+                                        <th>الكمية</th>
+                                        <th>السعر</th>
+                                        <th>الإجمالي</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="returnsItemsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- المرتجعات -->
+                    <div class="tab-pane fade" id="returns-content" role="tabpanel">
+                        <div class="alert alert-warning d-flex align-items-center mb-3">
+                            <i class="fas fa-info-circle me-2 fs-4"></i>
+                            <div>
+                                <strong>إجمالي المرتجعات:</strong>
+                                <span id="returnsTotalReturns" class="fw-bold fs-5 ms-2">0.00</span>
+                            </div>
+                        </div>
+                        <h6 class="fw-bold mb-2"><i class="fas fa-undo me-1 text-danger"></i> الأصناف المرتجعة</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped text-center">
+                                <thead class="table-danger">
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>الوحدة</th>
+                                        <th>الكمية المرتجعة</th>
+                                        <th>السعر</th>
+                                        <th>المبلغ المسترد</th>
+                                        <th>السبب</th>
+                                        <th>بواسطة</th>
+                                        <th>التاريخ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="returnsReturnedItemsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- الفاتورة بعد الإرجاع -->
+                    <div class="tab-pane fade" id="final-content" role="tabpanel">
+                        <div class="card border-success mb-3 shadow-sm">
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center py-2">
+                                <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>الفاتورة النهائية (الوضع الحالي)</h6>
+                                <span class="badge bg-white text-success fw-bold" id="finalStatusBadge">معدلة</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-4 border-bottom pb-3">
+                                    <div class="col-md-6 border-start">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-hashtag text-muted me-2"></i>
+                                            <span class="text-muted small me-2">رقم الفاتورة:</span>
+                                            <span class="fw-bold" id="finalInvNumber">-</span>
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-user text-muted me-2"></i>
+                                            <span class="text-muted small me-2">العميل:</span>
+                                            <span class="fw-bold" id="finalCustomer">-</span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-calendar-alt text-muted me-2"></i>
+                                            <span class="text-muted small me-2">التاريخ:</span>
+                                            <span id="finalDate">-</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="row g-2 text-center">
+                                            <div class="col-4">
+                                                <div class="p-2 bg-light rounded shadow-xs border">
+                                                    <div class="text-muted x-small mb-1">الإجمالي الأصلي</div>
+                                                    <div id="finalOriginalTotal" class="fw-bold text-dark fs-6">0.00</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="p-2 bg-danger bg-opacity-10 rounded shadow-xs border border-danger border-opacity-25">
+                                                    <div class="text-danger x-small mb-1">إجمالي المرتجع</div>
+                                                    <div id="finalReturnsAmount" class="fw-bold text-danger fs-6">-0.00</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="p-2 bg-success bg-opacity-10 rounded shadow-xs border border-success border-opacity-25">
+                                                    <div class="text-success x-small mb-1">الصافي الحالي</div>
+                                                    <div id="returnsFinalTotal" class="fw-bold text-success fs-6">0.00</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="fw-bold text-success mb-3"><i class="fas fa-box me-1"></i> الأصناف المتبقية بالفاتورة</h6>
+                                <div class="table-responsive rounded shadow-sm border">
+                                    <table class="table table-sm table-hover text-center mb-0">
+                                        <thead class="table-success text-dark">
+                                            <tr>
+                                                <th class="py-2">#</th>
+                                                <th class="py-2 text-start px-3">المنتج</th>
+                                                <th class="py-2">الوحدة</th>
+                                                <th class="py-2">الكمية</th>
+                                                <th class="py-2">السعر</th>
+                                                <th class="py-2 text-end px-3">الإجمالي</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="finalItemsBody"></tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-4 d-flex justify-content-end">
+                                    <div style="min-width: 250px;">
+                                        <div class="d-flex justify-content-between py-1 border-bottom border-dashed">
+                                            <span class="text-muted small">الصافي:</span>
+                                            <span class="fw-bold" id="finalItemsTotal">0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1 border-bottom border-dashed">
+                                            <span class="text-muted small text-info">المدفوع:</span>
+                                            <span class="fw-bold text-info" id="returnsFinalPaid">0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-2 border-bottom bg-danger bg-opacity-10 px-2 rounded mt-1">
+                                            <span class="text-danger small fw-bold">المتبقي:</span>
+                                            <span class="fw-bold text-danger fs-5" id="returnsFinalDue">0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary" onclick="printReturnsReport()"><i class="fas fa-print me-1"></i> طباعة</button>
             </div>
         </div>
     </div>
@@ -1416,7 +1611,7 @@
             payment_status: $('#filterPaymentStatus').val()
         };
 
-        $('#historyList').html('<tr><td colspan="9" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>');
+        $('#historyList').html('<tr><td colspan="10" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>');
 
         $.get("{{ route('store.pos.recent-sales') }}", params, function(res) {
             let rows = ''; 
@@ -1440,6 +1635,16 @@
                     else if(s.status === 'partial') badge = '<span class="badge bg-warning text-dark">جزئي</span>';
                     else badge = '<span class="badge bg-danger">غير مدفوعة</span>';
 
+                    // عمود المرتجعات
+                    let returnsCell = '';
+                    if(s.has_returns) {
+                        returnsCell = `<button class="btn btn-sm btn-outline-warning" onclick="viewReturns(${s.id})" title="عرض المرتجعات">
+                            <i class="fas fa-eye"></i> ${parseFloat(s.total_returns).toFixed(2)}
+                        </button>`;
+                    } else {
+                        returnsCell = '<span class="text-muted small">-</span>';
+                    }
+
                     rows += `<tr>
                         <td class="c-0 fw-bold text-primary">${s.invoice_number}</td>
                         <td class="c-1">${s.customer_name}</td>
@@ -1449,6 +1654,7 @@
                         <td class="c-5">${badge}</td>
                         <td class="c-6 small">${s.date}</td>
                         <td class="c-7 small text-muted">${s.user_name}</td>
+                        <td class="c-9">${returnsCell}</td>
                         <td class="c-8 no-print">
                             <button class="btn btn-sm btn-outline-info" onclick="viewInvoice(${s.id})"><i class="fas fa-eye"></i></button>
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteInvoice(${s.id})"><i class="fas fa-trash"></i></button>
@@ -1456,7 +1662,7 @@
                     </tr>`;
                 });
             } else { 
-                rows = '<tr><td colspan="9" class="text-center text-muted py-3">لا توجد بيانات</td></tr>'; 
+                rows = '<tr><td colspan="10" class="text-center text-muted py-3">لا توجد بيانات</td></tr>'; 
             }
 
             $('#historyList').html(rows);
@@ -1466,27 +1672,78 @@
             renderPagination(meta);
             applyColumnVisibility(); // ✅ تطبيق إخفاء الأعمدة على البيانات الجديدة
         }).fail(() => {
-            $('#historyList').html('<tr><td colspan="9" class="text-danger text-center">خطأ في الاتصال (Recent Sales)</td></tr>');
+            $('#historyList').html('<tr><td colspan="10" class="text-danger text-center">خطأ في الاتصال (Recent Sales)</td></tr>');
         });
     }
 
     // ...
 
     window.processReturnItem = function(itemId, maxQty) {
+        // حفظ قيمة tabindex الأصلية وإزالتها لمنع منع التركيز من بوتستراب
+        let $modal = $('#returnModal');
+        let originalTabIndex = $modal.attr('tabindex');
+        $modal.removeAttr('tabindex');
+
         Swal.fire({
-            title: 'الكمية المسترجعة',
-            input: 'number',
-            inputAttributes: {min: 0.1, max: maxQty, step: 0.1},
-            inputValue: maxQty,
-            showCancelButton: true, confirmButtonText: 'تأكيد'
+            title: 'إرجاع صنف',
+            target: '#returnModal', // جعل التنبيه جزءاً من المودال لتجاوز قيود التركيز
+            html: `
+                <div class="mb-3 text-start">
+                    <label class="form-label fw-bold">الكمية المسترجعة (الحد الأقصى: ${maxQty})</label>
+                    <input type="number" id="return_qty_input" class="form-control form-control-lg text-center" 
+                           value="${maxQty}" min="0.1" max="${maxQty}" step="0.1" autocomplete="off">
+                </div>
+                <div class="mb-3 text-start">
+                    <label class="form-label fw-bold small">السبب (اختياري)</label>
+                    <input type="text" id="return_reason_input" class="form-control" placeholder="مثلاً: صنف تالف...">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'تأكيد الإرجاع',
+            confirmButtonColor: '#dc3545',
+            cancelButtonText: 'إلغاء',
+            allowOutsideClick: false,
+            didOpen: () => {
+                const input = document.getElementById('return_qty_input');
+                // تركيز مباشر وقوي
+                input.focus();
+                input.select();
+                
+                // منع أحداث التشتيت
+                $(input).on('keydown', function(e) {
+                    e.stopPropagation();
+                });
+            },
+            willClose: () => {
+                // إعادة قيمة tabindex الأصلية للمودال عند الإغلاق
+                if (originalTabIndex !== undefined) {
+                    $modal.attr('tabindex', originalTabIndex);
+                }
+            },
+            preConfirm: () => {
+                const qty = parseFloat(document.getElementById('return_qty_input').value);
+                const reason = document.getElementById('return_reason_input').value;
+                if (!qty || qty <= 0) {
+                    Swal.showValidationMessage('الرجاء إدخال كمية صحيحة');
+                    return false;
+                }
+                if (qty > maxQty) {
+                    Swal.showValidationMessage(`الكمية لا يمكن أن تتجاوز ${maxQty}`);
+                    return false;
+                }
+                return { qty: qty, reason: reason };
+            }
         }).then((r) => {
-            if(r.isConfirmed) {
+            if(r.isConfirmed && r.value) {
                 $.post("{{ route('store.pos.return.process') }}", {
-                    item_id: itemId, return_qty: r.value, _token: '{{ csrf_token() }}'
+                    item_id: itemId, 
+                    return_qty: r.value.qty, 
+                    reason: r.value.reason,
+                    _token: '{{ csrf_token() }}'
                 }).done(() => {
-                    toastr.success('تم الإرجاع');
+                    toastr.success('تم الإرجاع بنجاح');
                     searchForReturnInvoices(); 
-                }).fail((xhr) => toastr.error(xhr.responseJSON.error || 'خطأ'));
+                }).fail((xhr) => toastr.error(xhr.responseJSON.error || 'حدث خطأ'));
             }
         });
     };
@@ -1864,24 +2121,8 @@
         });
     };
 
-    window.processReturnItem = function(itemId, maxQty) {
-        Swal.fire({
-            title: 'الكمية المسترجعة',
-            input: 'number',
-            inputAttributes: {min: 0.1, max: maxQty, step: 0.1},
-            inputValue: maxQty,
-            showCancelButton: true, confirmButtonText: 'تأكيد'
-        }).then((r) => {
-            if(r.isConfirmed) {
-                $.post("{{ route('store.pos.return.process') }}", {
-                    item_id: itemId, return_qty: r.value, _token: '{{ csrf_token() }}'
-                }).done(() => {
-                    toastr.success('تم الإرجاع');
-                    searchForReturnInvoices(); 
-                }).fail((xhr) => toastr.error(xhr.responseJSON.error || 'خطأ'));
-            }
-        });
-    };
+    // Duplicate processReturnItem removed
+
                    // 🔥 دالة حارس الصلاحية (تمنع المنتهي وتنبه القريب) 🔥
     function checkExpiryAndAdd(product) {
         // 1. إذا كان المنتج منتهي (أحمر) -> منع بات
@@ -2027,6 +2268,126 @@
                     alert('حدث خطأ أثناء التواصل مع السيرفر');
                 }
             });
+    };
+
+    // ========== عرض تفاصيل المرتجعات ==========
+    window.viewReturns = function(saleId) {
+        // تحميل البيانات
+        Swal.fire({
+            title: 'جاري التحميل...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        $.get("{{ url('store-owner/pos/sale-returns') }}/" + saleId)
+        .done(function(data) {
+            Swal.close();
+            
+            // ملء البيانات الرئيسية
+            $('#returnsSaleId').text('INV-' + data.sale.id);
+            $('#returnsCustomerName').text(data.sale.customer);
+            $('#returnsOriginalTotal').text(parseFloat(data.sale.original_total).toFixed(2));
+            $('#returnsDate').text(data.sale.created_at);
+            $('#returnsTotalReturns').text(parseFloat(data.sale.total_returns).toFixed(2));
+            
+            // الفاتورة بعد الإرجاع - الإجماليات
+            let finalTotal = parseFloat(data.sale.total);
+            let finalDue = parseFloat(data.sale.due);
+            let finalPaid = finalTotal - finalDue;
+            let originalTotal = parseFloat(data.sale.original_total);
+            let returnsAmount = parseFloat(data.sale.total_returns);
+            
+            $('#returnsFinalTotal').text(finalTotal.toFixed(2));
+            $('#returnsFinalDue').text(finalDue.toFixed(2));
+            $('#returnsFinalPaid').text(finalPaid.toFixed(2));
+            
+            // ملء بيانات تبويب "بعد الإرجاع"
+            $('#finalInvNumber').text('INV-' + data.sale.id);
+            $('#finalCustomer').text(data.sale.customer);
+            $('#finalDate').text(data.sale.created_at);
+            $('#finalOriginalTotal').text(originalTotal.toFixed(2));
+            $('#finalReturnsAmount').text('-' + returnsAmount.toFixed(2));
+            
+            // أصناف الفاتورة الأصلية (التبويب الأول - قبل الإرجاع)
+            let itemsHtml = '';
+            if(data.original_items && data.original_items.length > 0) {
+                data.original_items.forEach(item => {
+                    itemsHtml += `<tr>
+                        <td>${item.product_name}</td>
+                        <td>${item.unit_name}</td>
+                        <td>${parseFloat(item.quantity).toFixed(2)}</td>
+                        <td>${parseFloat(item.price).toFixed(2)}</td>
+                        <td class="fw-bold">${parseFloat(item.total).toFixed(2)}</td>
+                    </tr>`;
+                });
+            } else {
+                itemsHtml = '<tr><td colspan="5" class="text-muted">لا توجد أصناف</td></tr>';
+            }
+            $('#returnsItemsBody').html(itemsHtml);
+            
+            // أصناف تبويب "بعد الإرجاع" - الأصناف الحالية (التبويب الثالث)
+            let finalItemsHtml = '';
+            let finalItemsTotal = 0;
+            if(data.current_items && data.current_items.length > 0) {
+                data.current_items.forEach((item, idx) => {
+                    let total = parseFloat(item.total);
+                    finalItemsTotal += total;
+                    finalItemsHtml += `<tr>
+                        <td>${idx + 1}</td>
+                        <td>${item.product_name}</td>
+                        <td>${item.unit_name}</td>
+                        <td>${parseFloat(item.quantity).toFixed(2)}</td>
+                        <td>${parseFloat(item.price).toFixed(2)}</td>
+                        <td class="fw-bold text-success">${total.toFixed(2)}</td>
+                    </tr>`;
+                });
+            } else {
+                finalItemsHtml = '<tr><td colspan="6" class="text-muted text-center py-3"><i class="fas fa-box-open me-2"></i>تم إرجاع جميع الأصناف - لا توجد أصناف متبقية</td></tr>';
+            }
+            $('#finalItemsBody').html(finalItemsHtml);
+            $('#finalItemsTotal').text(finalItemsTotal.toFixed(2));
+            
+            // المرتجعات
+            let returnsHtml = '';
+            if(data.returns && data.returns.length > 0) {
+                data.returns.forEach(ret => {
+                    returnsHtml += `<tr>
+                        <td>${ret.product_name}</td>
+                        <td>${ret.unit_name}</td>
+                        <td class="text-danger fw-bold">${parseFloat(ret.quantity).toFixed(2)}</td>
+                        <td>${parseFloat(ret.price).toFixed(2)}</td>
+                        <td class="text-danger fw-bold">${parseFloat(ret.total).toFixed(2)}</td>
+                        <td>${ret.reason || '<span class="text-muted">-</span>'}</td>
+                        <td>${ret.user}</td>
+                        <td class="small">${ret.created_at}</td>
+                    </tr>`;
+                });
+            } else {
+                returnsHtml = '<tr><td colspan="8" class="text-muted">لا توجد مرتجعات مسجلة</td></tr>';
+            }
+            $('#returnsReturnedItemsBody').html(returnsHtml);
+            
+            // فتح المودال
+            new bootstrap.Modal(document.getElementById('returnsDetailModal')).show();
+        })
+        .fail(function(xhr) {
+            Swal.fire('خطأ', 'فشل تحميل بيانات المرتجعات', 'error');
+            console.error(xhr);
+        });
+    };
+
+    // طباعة تقرير المرتجعات
+    window.printReturnsReport = function() {
+        let content = document.getElementById('returnsDetailModal').querySelector('.modal-body').innerHTML;
+        let win = window.open('', '_blank');
+        win.document.write(`
+            <html dir="rtl"><head><title>تقرير المرتجعات</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+            <style>body{padding:20px;font-family:Cairo,sans-serif;} @media print{.nav-tabs{display:none;} .tab-pane{display:block!important;opacity:1!important;margin-bottom:20px;}}</style>
+            </head><body>${content}</body></html>
+        `);
+        win.document.close();
+        setTimeout(() => { win.print(); win.close(); }, 500);
     };
 
 </script>

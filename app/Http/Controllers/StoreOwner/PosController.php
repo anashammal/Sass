@@ -519,7 +519,7 @@ class PosController extends Controller
         try {
             $storeId = Auth::user()->store->id;
             // ✅ استثناء المسحوبات بشكل افتراضي
-            $query = Sale::where('store_id', $storeId)->where('is_withdrawal', false)->with(['contact', 'user']);
+            $query = Sale::where('store_id', $storeId)->where('is_withdrawal', false)->with(['contact', 'user', 'returns']);
 
             if ($request->filled('invoice_no')) {
                 $query->where(function($q) use ($request) {
@@ -541,6 +541,8 @@ class PosController extends Controller
                 elseif ($status == 'unpaid') $query->where('paid', 0);
                 elseif ($status == 'partial') $query->where('paid', '>', 0)->where('due', '>', 0.01);
                 elseif ($status == 'overpaid') $query->whereRaw('paid > total + 0.01');
+                // ✅ فلتر المرتجعات
+                elseif ($status == 'has_returns') $query->where('total_returns', '>', 0);
             }
 
             $query->orderBy($request->input('sort_by', 'created_at'), $request->input('sort_order', 'desc'));
@@ -564,6 +566,9 @@ class PosController extends Controller
                     'due' => (float)$s->due,
                     'status' => $st,
                     'date' => $s->created_at->format('Y-m-d h:i A'),
+                    // ✅ بيانات المرتجعات
+                    'total_returns' => (float)($s->total_returns ?? 0),
+                    'has_returns' => $s->returns->count() > 0 || ($s->total_returns ?? 0) > 0,
                 ];
             });
 
@@ -833,6 +838,7 @@ class PosController extends Controller
     {
         $itemId = $request->item_id;
         $qtyToReturn = (float) $request->return_qty;
+        $reason = $request->reason ?? null;
         
         DB::beginTransaction();
         try {
@@ -853,12 +859,28 @@ class PosController extends Controller
 
             $refundAmount = $qtyToReturn * $saleItem->price;
 
+            // ✅ تسجيل المرتجع في جدول sale_returns
+            \App\Models\SaleReturn::create([
+                'sale_id' => $saleItem->sale_id,
+                'sale_item_id' => $saleItem->id,
+                'product_id' => $saleItem->product_id,
+                'unit_id' => $saleItem->unit_id,
+                'quantity' => $qtyToReturn,
+                'price' => $saleItem->price,
+                'total' => $refundAmount,
+                'user_id' => Auth::id(),
+                'reason' => $reason,
+            ]);
+
             $saleItem->decrement('quantity', $qtyToReturn);
             $saleItem->decrement('total', $refundAmount);
             if ($saleItem->quantity <= 0) $saleItem->delete();
 
             $sale = $saleItem->sale;
             $sale->decrement('total', $refundAmount);
+            
+            // ✅ تحديث إجمالي المرتجعات
+            $sale->increment('total_returns', $refundAmount);
             
             if ($sale->due > 0) {
                 $deduct = min($sale->due, $refundAmount);
@@ -889,6 +911,111 @@ class PosController extends Controller
     }
 
     /**
+     * الحصول على تفاصيل المرتجعات لفاتورة معينة
+     */
+    public function getSaleReturns($saleId)
+    {
+        try {
+            $storeId = Auth::user()->store->id;
+            
+            $sale = Sale::where('id', $saleId)
+                ->where('store_id', $storeId)
+                ->with(['contact', 'items.product', 'items.unit', 'returns.product', 'returns.unit', 'returns.user'])
+                ->firstOrFail();
+            
+            // الأصناف الحالية (بعد الإرجاع)
+            $currentItems = $sale->items->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'product_name' => optional($item->product)->name_ar ?? '---',
+                    'unit_name' => optional($item->unit)->unit_name ?? 'قطعة',
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'total' => $item->total,
+                ];
+            });
+            
+            // بناء الأصناف الأصلية (قبل الإرجاع) = الأصناف الحالية + المرتجعات
+            $originalItems = collect();
+            
+            // أولاً: إضافة الأصناف الحالية
+            foreach ($currentItems as $item) {
+                $originalItems->push([
+                    'product_id' => $item['product_id'],
+                    'product_name' => $item['product_name'],
+                    'unit_name' => $item['unit_name'],
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                    'total' => $item['total'],
+                ]);
+            }
+            
+            // ثانياً: إضافة الكميات المرتجعة للأصناف الأصلية
+            foreach ($sale->returns as $ret) {
+                $found = false;
+                foreach ($originalItems as $key => $item) {
+                    // استخدام abs للمقارنة الآمنة للأرقام العشرية
+                    if ($item['product_id'] == $ret->product_id && abs($item['price'] - $ret->price) < 0.01) {
+                        // إضافة الكمية المرتجعة للكمية الحالية للحصول على الكمية الأصلية
+                        $modifiedItem = $originalItems[$key];
+                        $modifiedItem['quantity'] += $ret->quantity;
+                        $modifiedItem['total'] += $ret->total;
+                        $originalItems[$key] = $modifiedItem;
+                        $found = true;
+                        break;
+                    }
+                }
+                // إذا لم يوجد الصنف في القائمة الحالية (تم إرجاعه كاملاً)
+                if (!$found) {
+                    $originalItems->push([
+                        'product_id' => $ret->product_id,
+                        'product_name' => optional($ret->product)->name_ar ?? '---',
+                        'unit_name' => optional($ret->unit)->unit_name ?? 'قطعة',
+                        'quantity' => $ret->quantity,
+                        'price' => $ret->price,
+                        'total' => $ret->total,
+                    ]);
+                }
+            }
+            
+            return response()->json([
+                'sale' => [
+                    'id' => $sale->id,
+                    'total' => $sale->total,
+                    'total_returns' => $sale->total_returns ?? 0,
+                    'original_total' => $sale->total + ($sale->total_returns ?? 0),
+                    'due' => $sale->due,
+                    'created_at' => $sale->created_at->format('Y-m-d H:i'),
+                    'customer' => optional($sale->contact)->contact_name ?? 'عميل نقدي',
+                ],
+                // الأصناف الأصلية (قبل الإرجاع) - للتبويب الأول
+                'original_items' => $originalItems->values(),
+                // الأصناف الحالية (بعد الإرجاع) - للتبويب الثالث
+                'current_items' => $currentItems,
+                // سجل المرتجعات
+                'returns' => $sale->returns->map(function($ret) {
+                    return [
+                        'id' => $ret->id,
+                        'product_name' => optional($ret->product)->name_ar ?? '---',
+                        'unit_name' => optional($ret->unit)->unit_name ?? 'قطعة',
+                        'quantity' => $ret->quantity,
+                        'price' => $ret->price,
+                        'total' => $ret->total,
+                        'reason' => $ret->reason,
+                        'user' => optional($ret->user)->name ?? '---',
+                        'created_at' => $ret->created_at->format('Y-m-d H:i'),
+                    ];
+                }),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Sale Returns Error: " . $e->getMessage());
+            return response()->json(['error' => 'حدث خطأ في النظام: ' . $e->getMessage()], 500);
+        }
+    }
+
+
+    /**
      * توليد تقرير المبيعات كـ PDF
      */
     public function salesReportPdf(Request $request)
@@ -909,6 +1036,7 @@ class PosController extends Controller
                 case 'paid': $query->where('due', 0); break;
                 case 'unpaid': $query->whereColumn('due', '>=', 'total'); break;
                 case 'partial': $query->where('due', '>', 0)->whereColumn('due', '<', 'total'); break;
+                case 'has_returns': $query->where('total_returns', '>', 0); break;
             }
         }
         

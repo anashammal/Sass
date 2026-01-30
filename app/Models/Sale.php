@@ -38,4 +38,16 @@ public function payments()
 {
     return $this->hasMany(Payment::class);
 }
+
+    // علاقة الفاتورة بالمرتجعات
+    public function returns()
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
+    // التحقق من وجود مرتجعات
+    public function hasReturns()
+    {
+        return $this->returns()->exists() || $this->total_returns > 0;
+    }
 }
