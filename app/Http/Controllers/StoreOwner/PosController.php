@@ -887,4 +887,82 @@ class PosController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    /**
+     * توليد تقرير المبيعات كـ PDF
+     */
+    public function salesReportPdf(Request $request)
+    {
+        $store = Auth::user()->store;
+        $storeId = $store->id;
+        
+        $query = Sale::where('store_id', $storeId)
+            ->with(['contact', 'items.product', 'items.unit', 'user']);
+        
+        // تطبيق الفلاتر
+        if ($request->filled('customer_id')) {
+            $query->where('contact_id', $request->customer_id);
+        }
+        
+        if ($request->filled('payment_status')) {
+            switch ($request->payment_status) {
+                case 'paid': $query->where('due', 0); break;
+                case 'unpaid': $query->whereColumn('due', '>=', 'total'); break;
+                case 'partial': $query->where('due', '>', 0)->whereColumn('due', '<', 'total'); break;
+            }
+        }
+        
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        // الترتيب
+        $sortField = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortField, $sortOrder);
+        
+        // الحد
+        $limit = $request->get('limit', 'all');
+        if ($limit !== 'all' && is_numeric($limit)) {
+            $query->take((int) $limit);
+        }
+        
+        $sales = $query->get();
+        
+        // حساب الإجماليات
+        $totals = [
+            'count' => $sales->count(),
+            'sum_total' => $sales->sum('total'),
+            'sum_paid' => $sales->sum(fn($s) => $s->total - $s->due),
+            'sum_due' => $sales->sum('due'),
+        ];
+        
+        // استخدام خدمة معالجة النص العربي
+        $arabicService = new \App\Services\ArabicTextService();
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('store_owner.sales.pdf_report', compact('sales', 'store', 'totals', 'arabicService'))
+                  ->setPaper('a4', 'portrait')
+                  ->setOptions([
+                      'isHtml5ParserEnabled' => true,
+                      'isRemoteEnabled' => true,
+                      'isFontSubsettingEnabled' => true,
+                      'defaultFont' => 'DejaVu Sans'
+                  ]);
+        
+        if ($request->get('output') == 'url') {
+            $filename = 'sales_report_' . date('Ymd_His') . '_' . uniqid() . '.pdf';
+            $path = public_path('temp_reports');
+            if (!file_exists($path)) mkdir($path, 0777, true);
+            $pdf->save($path . '/' . $filename);
+            return response()->json([
+                'url' => asset('temp_reports/' . $filename),
+                'filename' => $filename
+            ]);
+        }
+
+        return $pdf->download('sales_report.pdf');
+    }
 }

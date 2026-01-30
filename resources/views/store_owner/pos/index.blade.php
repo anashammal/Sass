@@ -372,7 +372,10 @@
                                     <label class="dropdown-item text-danger"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="8" checked> الإجراءات</label>
                                 </div>
                             </div>
-                            <button onclick="printSalesReport()" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> طباعة التقرير</button>
+                            <div class="d-flex gap-2">
+                                <button onclick="sendSalesReportWhatsapp()" class="btn btn-success btn-sm"><i class="fab fa-whatsapp me-1"></i> إرسال للواتساب</button>
+                                <button onclick="printSalesReport()" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> طباعة التقرير</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1963,5 +1966,68 @@
             }
         });
     }
+
+    // ========== إرسال تقرير المبيعات عبر الواتساب ==========
+    window.sendSalesReportWhatsapp = function() {
+        // جمع الفلاتر الحالية من واجهة المستخدم
+        const urlParams = new URLSearchParams();
+        urlParams.set('limit', $('#filterLimit').val() || 'all');
+        urlParams.set('sort_by', $('#filterSortBy').val() || 'created_at');
+        urlParams.set('sort_order', $('#filterSortOrder').val() || 'desc');
+        urlParams.set('payment_status', $('#filterPaymentStatus').val() || '');
+        urlParams.set('customer_id', $('#filterCustomer').val() || '');
+        urlParams.set('date_from', $('#filterDateFrom').val() || '');
+        urlParams.set('date_to', $('#filterDateTo').val() || '');
+        urlParams.set('output', 'url');
+        
+        const fetchUrl = "{{ route('store.pos.sales-report-pdf') }}?" + urlParams.toString();
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'جاري تجهيز ملف التقرير...',
+                html: 'يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                
+                if (data.url) {
+                    const message = `*تقرير سجل المبيعات*\n` +
+                                    `المتجر: {{ auth()->user()->store->name }}\n` +
+                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
+                                    `مرفق لكم التقرير التفصيلي كملف PDF.`;
+                    
+                    const filename = data.filename || "sales_report.pdf";
+                    
+                    // إرسال المرفق عبر المودال العالمي
+                    if (typeof triggerWhatsappPrompt === 'function') {
+                        triggerWhatsappPrompt('', message, "إرسال سجل المبيعات كمرفق PDF", data.url, filename);
+                    } else {
+                        alert('حدث خطأ: وظيفة إرسال الواتساب غير متوفرة');
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('خطأ', 'فشل تجهيز ملف التقرير', 'error');
+                    } else {
+                        alert('فشل تجهيز ملف التقرير');
+                    }
+                }
+            })
+            .catch(err => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                console.error(err);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('خطأ', 'حدث خطأ أثناء التواصل مع السيرفر', 'error');
+                } else {
+                    alert('حدث خطأ أثناء التواصل مع السيرفر');
+                }
+            });
+    };
+
 </script>
 @endsection

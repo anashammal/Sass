@@ -171,6 +171,7 @@ Route::middleware(['auth'])->group(function () {
         // روابط الإرجاع
         Route::get('pos/return/search', [PosController::class, 'searchReturnInvoices'])->name('pos.return.search');
         Route::post('pos/return/process', [PosController::class, 'processReturn'])->name('pos.return.process');
+        Route::get('pos/sales-report-pdf', [PosController::class, 'salesReportPdf'])->name('pos.sales-report-pdf');
 
         // رابط إغلاق النافذة
         Route::post('/settings/mark-popup-seen', function() {
