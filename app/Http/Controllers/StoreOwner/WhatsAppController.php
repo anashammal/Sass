@@ -58,6 +58,21 @@ class WhatsAppController extends Controller
             $success = $this->whatsapp->sendFile($request->phone, $mediaUrl, $request->message, $storeId, $filename);
             
             if ($success) {
+                // تنفيذ طلب المستخدم: حذف الملف المؤقت بعد التأكد من الإرسال
+                try {
+                    if (str_contains($mediaUrl, 'temp_reports')) {
+                        $baseAsset = asset('');
+                        $relativePath = str_ireplace($baseAsset, '', $mediaUrl);
+                        $fullPath = public_path($relativePath);
+                        if (file_exists($fullPath)) {
+                            unlink($fullPath);
+                            \Illuminate\Support\Facades\Log::info("Temporary file deleted after sending: " . $filename);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning("Could not delete temporary file: " . $e->getMessage());
+                }
+
                 return response()->json(['success' => true, 'message' => 'تم إرسال الملف كمرفق بنجاح']);
             }
             

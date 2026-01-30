@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
+<body dir="rtl">
 <head>
     <meta charset="UTF-8">
     <title>تقرير سجل المشتريات - {{ $store->name }}</title>
     <style>
-        @font-face {
-            font-family: 'DejaVu Sans';
-            font-style: normal;
-            font-weight: normal;
-            src: url(http://tweb.com/fonts/DejaVuSans.ttf) format('truetype');
-        }
         body {
             font-family: 'DejaVu Sans', sans-serif;
             direction: rtl;
             text-align: right;
-            font-size: 11px;
-            color: #333;
-            margin: 0;
-            padding: 20px;
+            line-height: 1.6;
+        }
+        table {
+            width: 100%;
+            direction: rtl;
+            border-collapse: collapse;
+            float: right;
+            clear: both;
+            margin-bottom: 20px;
         }
         .header {
             text-align: center;
@@ -49,11 +49,12 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            direction: rtl;
         }
         .table th, .table td {
             border: 1px solid #dee2e6;
             padding: 6px;
-            text-align: center;
+            text-align: right;
         }
         .table th {
             background-color: #e9ecef;
@@ -109,8 +110,10 @@
             background-color: #f0f7ff !important; 
         }
         
+        /* تلوين الخلايا يضمن ظهور اللون في الـ PDF */
         .items-table tr.even td {
             background-color: #f0f7ff !important;
+            text-align: right;
         }
         
         a { text-decoration: none; color: #0d6efd; }
@@ -123,26 +126,26 @@
         <div style="font-size: 9px; color: #666; margin-top: 5px;">تاريخ التقرير: {{ now()->format('Y-m-d H:i') }}</div>
     </div>
 
-    <table class="summary-box">
-        <tr>
-            <td width="25%"><strong>عدد الفواتير:</strong> {{ $totals['count'] }}</td>
-            <td width="25%"><strong>إجمالي المشتريات:</strong> <span class="text-primary">{{ number_format($totals['sum_total'], 2) }}</span></td>
-            <td width="25%"><strong>إجمالي المدفوع:</strong> <span class="text-success">{{ number_format($totals['sum_paid'], 2) }}</span></td>
-            <td width="25%"><strong>إجمالي المتبقي:</strong> <span class="text-danger">{{ number_format($totals['sum_due'], 2) }}</span></td>
-        </tr>
-    </table>
+            <table dir="rtl" class="table summary-box" width="100%" style="float: right; clear: both;">
+                <tr>
+                    <td width="25%" style="text-align: right;"><strong>إجمالي المشتريات:</strong> <br><span class="text-primary">{{ number_format($totals['sum_total'], 2) }}</span></td>
+                    <td width="25%" style="text-align: right;"><strong>إجمالي المدفوع:</strong> <br><span class="text-success">{{ number_format($totals['sum_paid'], 2) }}</span></td>
+                    <td width="25%" style="text-align: right;"><strong>إجمالي المتبقي:</strong> <br><span class="text-danger">{{ number_format($totals['sum_due'], 2) }}</span></td>
+                    <td width="25%" style="text-align: right;"><strong>عدد الفواتير:</strong> <br>{{ $totals['count'] }}</td>
+                </tr>
+            </table>
 
     <h3 style="border-bottom: 1px solid #eee; padding-bottom: 5px;">فهرس الفواتير (اضغط على الفاتورة للانتقال للتفاصيل)</h3>
-    <table class="table">
+    <table dir="rtl" class="table" style="float: right; clear: both;">
         <thead>
             <tr>
-                <th>م</th>
-                <th>رقم الفاتورة</th>
-                <th>المورد</th>
-                <th>التاريخ</th>
-                <th>الحالة</th>
-                <th>الإجمالي</th>
-                <th>المتبقي</th>
+                <th style="text-align: right;">م</th>
+                <th style="text-align: right;">رقم الفاتورة</th>
+                <th style="text-align: right;">المورد</th>
+                <th style="text-align: right;">التاريخ</th>
+                <th style="text-align: right;">الحالة</th>
+                <th style="text-align: right;">الإجمالي</th>
+                <th style="text-align: right;">المتبقي</th>
             </tr>
         </thead>
         <tbody>
@@ -178,23 +181,23 @@
             <a href="#top" style="color: #fff; font-size: 9px; float: left; text-decoration: underline;">العودة للفهرس ↑</a>
         </div>
         
-        <table style="width: 100%; margin-bottom: 10px; font-size: 10px;">
+        <table dir="rtl" style="width: 100%; margin-bottom: 10px; font-size: 10px;">
             <tr>
-                <td width="30%"><strong>المورد:</strong> {{ $p->supplier->contact_name ?? '---' }}</td>
-                <td width="40%"><strong>تاريخ الفاتورة:</strong> {{ \Carbon\Carbon::parse($p->invoice_date)->format('Y-m-d H:i') }}</td>
-                <td width="30%"><strong>حالة الدفع:</strong> {{ $p->payment_status }}</td>
+                <td width="30%" style="text-align: right;"><strong>المورد:</strong> {{ $p->supplier->contact_name ?? '---' }}</td>
+                <td width="40%" style="text-align: right;"><strong>تاريخ الفاتورة:</strong> {{ \Carbon\Carbon::parse($p->invoice_date)->format('Y-m-d H:i') }}</td>
+                <td width="30%" style="text-align: right;"><strong>حالة الدفع:</strong> {{ $p->payment_status }}</td>
             </tr>
         </table>
 
-        <table class="items-table">
+        <table dir="rtl" class="items-table">
             <thead>
                 <tr>
-                    <th width="5%">#</th>
-                    <th width="40%">المنتج</th>
-                    <th width="15%">الكمية</th>
-                    <th width="15%">سعر الوحدة</th>
-                    <th width="10%">ضريبة</th>
-                    <th width="15%">الإجمالي</th>
+                    <th width="5%" style="text-align: center;">#</th>
+                    <th width="40%" style="text-align: right;">المنتج</th>
+                    <th width="15%" style="text-align: center;">الكمية</th>
+                    <th width="15%" style="text-align: center;">سعر الوحدة</th>
+                    <th width="10%" style="text-align: center;">ضريبة</th>
+                    <th width="15%" style="text-align: center;">الإجمالي</th>
                 </tr>
             </thead>
             <tbody>
@@ -211,16 +214,16 @@
             </tbody>
             <tfoot>
                 <tr style="background-color: #f8f9fa;">
-                    <td colspan="5" style="text-align: left; font-weight: bold;">الصافي النهائي:</td>
-                    <td class="fw-bold text-primary">{{ number_format($p->grand_total, 2) }}</td>
+                    <td colspan="5" style="text-align: right; font-weight: bold;">الصافي النهائي:</td>
+                    <td class="fw-bold text-primary" style="text-align: left;">{{ number_format($p->grand_total, 2) }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="text-align: left;">المدفوع:</td>
-                    <td class="text-success">{{ number_format($p->paid_amount, 2) }}</td>
+                    <td colspan="5" style="text-align: right;">المدفوع:</td>
+                    <td class="text-success" style="text-align: left;">{{ number_format($p->paid_amount, 2) }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="text-align: left;">المتبقي:</td>
-                    <td class="text-danger">{{ number_format($p->grand_total - $p->paid_amount, 2) }}</td>
+                    <td colspan="5" style="text-align: right;">المتبقي:</td>
+                    <td class="text-danger" style="text-align: left;">{{ number_format($p->grand_total - $p->paid_amount, 2) }}</td>
                 </tr>
             </tfoot>
         </table>

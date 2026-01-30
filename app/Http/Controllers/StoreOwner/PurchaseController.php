@@ -132,7 +132,13 @@ class PurchaseController extends Controller
             'sum_due' => $purchases->sum(function($p){ return $p->grand_total - $p->paid_amount; }),
         ];
 
-        $pdf = Pdf::loadView('store_owner.purchases.pdf_report', compact('purchases', 'store', 'totals'));
+        $pdf = Pdf::loadView('store_owner.purchases.pdf_report', compact('purchases', 'store', 'totals'))
+                  ->setPaper('a4', 'portrait')
+                  ->setOptions([
+                      'isHtml5ParserEnabled' => true,
+                      'isRemoteEnabled' => true,
+                      'defaultFont' => 'DejaVu Sans'
+                  ]);
         
         if ($request->get('output') == 'url') {
             $filename = 'purchase_report_' . date('Ymd_His') . '_' . uniqid() . '.pdf';

@@ -78,46 +78,37 @@ class WhatsAppService
                     $fileNameOnly = basename($fileUrl);
                     $fullPath = public_path('temp_reports/' . $fileNameOnly);
                 }
+                Log::info("WhatsApp sendFile: Detected path: " . $fullPath);
             }
 
-            // تجهيز البيانات كـ JSON (أضمن للتعرف على الجلسة بالسيرفر الحالي)
-            $postData = [
-                'phone' => $phone,
-                'message' => $caption,
-                'caption' => $caption,
-                'session_id' => $sessionId,
-                'session' => $sessionId,
-                'filename' => $filename,
-                'mimetype' => 'application/pdf',
-                'is_media' => true,
-                'is_base64' => true,
-                'is_url' => false
-            ];
-
+            // تنظيف الكود والعودة للطريقة الأكثر استقراراً مع مفتاح 'document'
+            $fileData = null;
             if ($fullPath && file_exists($fullPath)) {
                 $fileData = base64_encode(file_get_contents($fullPath));
-                $dataUri = 'data:application/pdf;base64,' . $fileData;
-                
-                // ملء جميع المفاتيح الممكنة لضمان أن السيرفر يلتقط الملف
-                $postData['media'] = $dataUri;
-                $postData['file'] = $dataUri;
-                $postData['path'] = $dataUri;
-                $postData['url'] = $dataUri;
-                $postData['media_url'] = $dataUri;
-                $postData['base64'] = $fileData; // البعض يطلب الخام والبعض يطلب الـ Uri
-                $postData['attachment'] = $dataUri;
             } else {
                 return $this->send($phone, $caption . "\n" . $fileUrl, $storeId);
             }
 
-            // إرسال الطلب كـ JSON مع مهلة كبيرة للتوافق مع حجم البيانات
+            $dataUri = 'data:application/pdf;base64,' . $fileData;
+
+            // استخدام المفاتيح الأكثر شيوعاً فقط (تبسيط الطلب لتجنب كراش السيرفر)
+            $postData = [
+                'session_id' => $sessionId,
+                'phone' => $phone,
+                'message' => $caption,
+                'caption' => $caption,
+                'media' => $dataUri, // هذا هو المفتاح القياسي لمعظم سيرفرات Node.js
+                'filename' => $filename
+            ];
+
+            // إرسال الطلب بشكل صريح جداً كـ JSON
             $response = Http::withoutVerifying()
                 ->timeout(120)
-                ->withHeaders(['Accept' => 'application/json'])
+                ->asJson()
                 ->post("{$this->baseUrl}/send-message", $postData);
 
             if ($response->successful() && ($response->json('success') || $response->json('status') == 'sent' || $response->json('id'))) {
-                Log::info("WhatsApp sendFile success ({$sessionId}) via Bulletproof JSON");
+                Log::info("WhatsApp sendFile success ({$sessionId}) via Simplified-JSON");
                 return true;
             }
 
