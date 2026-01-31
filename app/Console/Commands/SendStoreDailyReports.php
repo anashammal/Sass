@@ -13,128 +13,141 @@ use Carbon\Carbon;
 
 class SendStoreDailyReports extends Command
 {
-    protected $signature = 'store:daily-report';
+    protected $signature = 'store:daily-report {--force}';
     protected $description = 'إرسال تقرير النواقص وانتهاء الصلاحية حسب توقيت كل متجر';
 
     public function handle()
     {
         // 1. جلب جميع المتاجر النشطة التي لديها إعدادات تنبيه
-        // (نحضر الجميع لأننا سنفحص توقيت كل واحد على حدة)
-        $stores = Store::where('status', 'active') // تأكد أن لديك عمود status أو احذفه
+        $stores = Store::where('status', 'active')
                        ->whereNotNull('daily_report_time')
                        ->get();
 
         foreach ($stores as $store) {
             
-            // --- 🔥 تحديد المنطقة الزمنية للمتجر 🔥 ---
-            // إذا كان لديك عمود 'timezone' في جدول المتاجر، نستخدمه.
-            // إذا لم يوجد، نستخدم التوقيت الافتراضي (مثلاً Europe/Istanbul أو Asia/Riyadh)
-            $storeTimezone = $store->timezone ?? 'Europe/Istanbul'; 
+            if (!$this->option('force')) {
+                // --- تحديد المنطقة الزمنية للمتجر ---
+                $storeTimezone = $store->timezone ?? 'Europe/Istanbul'; 
 
-            try {
-                // معرفة الوقت الحالي "عند المتجر"
-                $storeCurrentTime = Carbon::now($storeTimezone)->format('H:i');
-            } catch (\Exception $e) {
-                // في حال كان اسم المنطقة الزمنية خطأ، نعود للافتراضي
-                $storeCurrentTime = Carbon::now('Europe/Istanbul')->format('H:i');
-            }
+                try {
+                    $storeCurrentTime = Carbon::now($storeTimezone)->format('H:i');
+                } catch (\Exception $e) {
+                    $storeCurrentTime = Carbon::now('Europe/Istanbul')->format('H:i');
+                }
 
-            // مقارنة: هل وقت المتجر الآن == وقت التقرير المطلوب؟
-            // نستخدم mb_substr لضمان مطابقة التنسيق (09:00 مع 09:00)
-            if (substr($store->daily_report_time, 0, 5) !== $storeCurrentTime) {
-                continue; // الوقت لم يحن لهذا المتجر بعد
-            }
+                // مقارنة: هل وقت المتجر الآن == وقت التقرير المطلوب؟
+                if (mb_substr($store->daily_report_time, 0, 5) !== $storeCurrentTime) {
+                    continue; 
+                }
 
-            // --- 🔒 منطق منع التكرار (القفل) ---
-            $lockKey = 'daily_report_sent_' . $store->id . '_' . date('Y-m-d');
-            if (Cache::has($lockKey)) {
-                continue;
+                // --- منطق منع التكرار (القفل) ---
+                $lockKey = 'daily_report_sent_' . $store->id . '_' . date('Y-m-d');
+                if (Cache::has($lockKey)) {
+                    continue;
+                }
+                
+                // تفعيل القفل لمدة 20 ساعة
+                Cache::put($lockKey, true, now()->addHours(20));
             }
 
             // إرسال التقرير
             $this->processStore($store);
-
-            // تفعيل القفل لمدة 20 ساعة
-            Cache::put($lockKey, true, now()->addHours(20));
         }
     }
 
     public function processStore($store)
     {
-        // 1. جلب المنتجات (الأسماء وليس العدد فقط)
+        $yesterday = Carbon::yesterday();
+
+        // 1. الملخص المالي لليوم السابق
+        $financials = [
+            'sales' => \App\Models\Sale::where('store_id', $store->id)->whereDate('created_at', $yesterday)->sum('total'),
+            'expenses' => \App\Models\Expense::where('store_id', $store->id)->whereDate('expense_date', $yesterday)->sum('amount'),
+        ];
+        $financials['profit'] = $financials['sales'] - $financials['expenses']; // تبسيط (يمكن تحسينه لاحقاً بحساب التكلفة الفعلي)
+
+        // 2. المخزون والانتهاء
         $outOfStock = Product::where('store_id', $store->id)
                              ->where('current_stock', '<=', 0)
-                             ->take(10)->get(); // نأخذ أول 10 فقط لمنع رسالة طويلة جداً
+                             ->take(20)->get();
 
         $lowStock = Product::where('store_id', $store->id)
                            ->where('current_stock', '>', 0)
                            ->whereColumn('current_stock', '<=', 'alert_quantity')
-                           ->take(10)->get();
+                           ->take(20)->get();
 
         $expired = ProductBatch::whereHas('product', fn($q) => $q->where('store_id', $store->id))
             ->where('quantity', '>', 0)
             ->where('expiry_date', '<', now())
             ->with('product')
-            ->take(10)->get();
+            ->take(20)->get();
 
-        // إذا لا يوجد شيء، لا ترسل
-        if ($outOfStock->isEmpty() && $lowStock->isEmpty() && $expired->isEmpty()) {
-            return;
-        }
+        // 3. توليد ملف PDF
+        $arabicService = new \App\Services\ArabicTextService();
+        $date = $yesterday->format('Y-m-d');
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('store_owner.reports.daily_report_pdf', [
+            'store' => $store,
+            'financials' => $financials,
+            'outOfStock' => $outOfStock,
+            'lowStock' => $lowStock,
+            'expired' => $expired,
+            'date' => $date,
+            'arabicService' => $arabicService
+        ])->setPaper('a4', 'portrait')
+          ->setOptions([
+              'isHtml5ParserEnabled' => true,
+              'isRemoteEnabled' => true,
+              'defaultFont' => 'DejaVu Sans'
+          ]);
 
-        // 2. بناء الرسالة
+        $filename = 'daily_report_' . $store->id . '_' . $date . '.pdf';
+        $directory = public_path('temp_reports');
+        if (!file_exists($directory)) mkdir($directory, 0777, true);
+        $filePath = $directory . DIRECTORY_SEPARATOR . $filename;
+        $pdf->save($filePath);
+
+        $reportUrl = asset('temp_reports/' . $filename);
+
+        // 4. بناء نص الرسالة الأساسي للواتساب
         $msg = "📊 *التقرير اليومي - {$store->name}*\n";
-        $msg .= "📅 " . date('Y-m-d') . "\n";
-        $msg .= "⏰ " . now($store->timezone ?? 'Europe/Istanbul')->format('H:i') . "\n\n";
+        $msg .= "📅 تاريخ البيانات: " . $date . "\n\n";
+        
+        $msg .= "💰 *الملخص المالي:*\n";
+        $msg .= "- المبيعات: " . number_format($financials['sales'], 2) . "\n";
+        $msg .= "- المصاريف: " . number_format($financials['expenses'], 2) . "\n";
+        $msg .= "- صافي الربح التقديري: " . number_format($financials['profit'], 2) . "\n\n";
 
-        if ($expired->count() > 0) {
-            $msg .= "🔴 *منتهية الصلاحية:*\n";
-            foreach($expired as $b) {
-                $msg .= "- {$b->product->name_ar} (انتهى: {$b->expiry_date})\n";
-            }
-            $msg .= "\n";
-        }
+        $msg .= "📋 *المخزون:*\n";
+        $msg .= "- منتهي: " . $expired->count() . " منتجات\n";
+        $msg .= "- نفذت: " . $outOfStock->count() . " منتجات\n";
+        $msg .= "- منخفض: " . $lowStock->count() . " منتجات\n\n";
 
-        if ($outOfStock->count() > 0) {
-            $msg .= "❌ *منتجات نفذت:*\n";
-            foreach($outOfStock as $p) {
-                $msg .= "- {$p->name_ar}\n";
-            }
-            $msg .= "\n";
-        }
+        $msg .= "📎 *لتحميل التقرير التفصيلي PDF:*\n{$reportUrl}\n\n";
+        $msg .= "🔗 [فتح النظام](" . config('app.url') . "/store-owner/dashboard)";
 
-        if ($lowStock->count() > 0) {
-            $msg .= "⚠️ *مخزون منخفض:*\n";
-            foreach($lowStock as $p) {
-                $stock = (float)$p->current_stock; // إزالة الأصفار
-                $msg .= "- {$p->name_ar} (باقي: {$stock})\n";
-            }
-            $msg .= "\n";
-        }
-
-        // 🔥 الرابط التشعبي المباشر للمنتجات 🔥
-        // الرابط يوجه لصفحة المنتجات، ويمكنك إضافة فلتر إذا كان مدعوماً في الفرونت
-        $url = "http://tech-sys.online/store-owner/products";
-        $msg .= "🔗 [عرض التفاصيل في النظام]({$url})";
-
-        // 3. الإرسال (واتساب)
+        // 5. الإرسال (واتساب) - تعديل لاستخدام السيرفر المحلي
         if ($store->notify_whatsapp && $store->phone_number) {
             try {
-                Http::timeout(5)->post('https://wa.tech-sys.online/send-message', [
+                Http::timeout(10)->post('http://127.0.0.1:3000/send-message', [
                     'phone' => $store->phone_number,
                     'message' => $msg,
-                    'session_id' => 'store_' . $store->id
+                    'session_id' => 'system' // استخدام جلسة النظام الموحدة
                 ]);
             } catch (\Exception $e) { }
         }
 
-        // 4. الإرسال (إيميل)
+        // 6. الإرسال (إيميل) - استخدام ReportMail مع المرفق
         if ($store->notify_email && $store->email) {
             try {
-                Mail::raw($msg, function ($mail) use ($store) {
-                    $mail->to($store->email)
-                         ->subject("📊 تقرير الحالة اليومي - {$store->name}");
-                });
+                \Illuminate\Support\Facades\Mail::to($store->email)->send(
+                    new \App\Mail\ReportMail(
+                        "📊 تقرير الحالة اليومي - {$store->name} ({$date})",
+                        $msg,
+                        $filePath,
+                        $filename
+                    )
+                );
             } catch (\Exception $e) { }
         }
     }
