@@ -21,6 +21,8 @@ class ReportMail extends Mailable
 
     public function build() {
         $email = $this->subject($this->subjectText)
+                      ->from('noreply@tech-sys.online', 'TechSys')
+                      ->replyTo('noreply@tech-sys.online', 'No Reply')
                       ->view('emails.generic_report');
         
         if ($this->attachmentPath && file_exists($this->attachmentPath)) {
