@@ -44,7 +44,9 @@ Route::get('/force-clear', function() {
 Route::get('storage-files/{path}', [ProductController::class, 'serveMedia'])
     ->where('path', '.*')->name('serve.media.workaround');
 
-Route::get('/', function () { return view('welcome'); });
+Route::get('/', function () { 
+    return redirect()->route('login');
+});
 
 // إيقاف التسجيل العام
 Auth::routes(['register' => false]);

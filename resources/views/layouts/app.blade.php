@@ -66,8 +66,29 @@
     @media print {
         body { zoom: 1; }
     }
-        /* --- تخصيصات الثيم --- */
-        body { font-family: 'Nunito', sans-serif; background-color: #f3f4f6; overflow-x: hidden; }
+        /* --- تخصيصات الثيم الفخم --- */
+        body { 
+            font-family: 'Nunito', sans-serif; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8eaf6 50%, #f3e5f5 100%);
+            background-attachment: fixed;
+            overflow-x: hidden; 
+        }
+
+        /* تأثير خلفية متحركة خفيفة */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(235, 51, 73, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(17, 153, 142, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
 
         /* القائمة الجانبية الحديثة */
         .sidebar { 
@@ -248,78 +269,242 @@
             text-align-last: center;
         }
 
-        /* --- Modern KPI Cards Design --- */
+        /* ========================================= */
+        /* 🎨 PREMIUM LUXURY DESIGN SYSTEM 🎨 */
+        /* ========================================= */
+        
+        /* --- CSS Variables for Easy Customization --- */
+        :root {
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --gradient-danger: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-gold: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+            --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.2);
+            
+            --glow-primary: 0 0 20px rgba(102, 126, 234, 0.4);
+            --glow-success: 0 0 20px rgba(17, 153, 142, 0.4);
+            --glow-danger: 0 0 20px rgba(235, 51, 73, 0.4);
+        }
+
+        /* --- Ultra Premium KPI Cards with Glassmorphism --- */
         .kpi-card {
             border: none;
-            border-radius: 16px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 24px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-            background: #fff;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 4px 16px rgba(0, 0, 0, 0.08),
+                0 8px 32px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        /* Animated Gradient Background */
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 0;
+        }
+
+        .kpi-card:hover::before {
+            opacity: 1;
         }
 
         .kpi-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.15),
+                0 20px 60px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
         }
 
         .kpi-card .card-body {
-            padding: 1.5rem;
+            padding: 2rem 1.75rem;
             position: relative;
             z-index: 1;
         }
 
+        /* Premium Icon Container with 3D Effect */
         .kpi-icon-container {
-            width: 56px;
-            height: 56px;
+            width: 64px;
+            height: 64px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 14px;
-            font-size: 1.5rem;
+            border-radius: 18px;
+            font-size: 1.75rem;
             flex-shrink: 0;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            position: relative;
+            box-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.15),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.1),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Glow Effect on Icon */
+        .kpi-icon-container::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 18px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
         }
 
         .kpi-card:hover .kpi-icon-container {
-            transform: scale(1.1) rotate(5deg);
+            transform: scale(1.15) rotate(-5deg);
+            box-shadow: 
+                0 12px 24px rgba(0, 0, 0, 0.2),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.15),
+                inset 0 2px 4px rgba(255, 255, 255, 0.4);
         }
 
-        /* Color Variations with Gradients and Glassmorphism */
-        .kpi-primary { background: linear-gradient(135deg, rgba(78, 58, 136, 0.05) 0%, rgba(78, 58, 136, 0.12) 100%); }
-        .kpi-primary .kpi-icon-container { background: linear-gradient(135deg, #4e3a88 0%, #6b52b3 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(78, 58, 136, 0.4); }
-        .kpi-primary .kpi-value { color: #4e3a88; }
+        .kpi-card:hover .kpi-icon-container::after {
+            opacity: 0.6;
+        }
 
-        .kpi-success { background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.12) 100%); }
-        .kpi-success .kpi-icon-container { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4); }
-        .kpi-success .kpi-value { color: #059669; }
+        /* Luxury Color Variations with Rich Gradients */
+        .kpi-primary { 
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.15) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        .kpi-primary .kpi-icon-container { 
+            background: var(--gradient-primary);
+            color: #fff;
+        }
+        .kpi-primary .kpi-icon-container::after {
+            background: var(--gradient-primary);
+            filter: blur(12px);
+        }
+        .kpi-primary .kpi-value { 
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
-        .kpi-danger { background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.12) 100%); }
-        .kpi-danger .kpi-icon-container { background: linear-gradient(135deg, #ef4444 0%, #f87171 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4); }
-        .kpi-danger .kpi-value { color: #dc2626; }
+        .kpi-success { 
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.08) 0%, rgba(56, 239, 125, 0.15) 100%);
+            border: 1px solid rgba(17, 153, 142, 0.1);
+        }
+        .kpi-success .kpi-icon-container { 
+            background: var(--gradient-success);
+            color: #fff;
+        }
+        .kpi-success .kpi-icon-container::after {
+            background: var(--gradient-success);
+            filter: blur(12px);
+        }
+        .kpi-success .kpi-value { 
+            background: var(--gradient-success);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
-        .kpi-warning { background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.12) 100%); }
-        .kpi-warning .kpi-icon-container { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.4); }
-        .kpi-warning .kpi-value { color: #d97706; }
+        .kpi-danger { 
+            background: linear-gradient(135deg, rgba(235, 51, 73, 0.08) 0%, rgba(244, 92, 67, 0.15) 100%);
+            border: 1px solid rgba(235, 51, 73, 0.1);
+        }
+        .kpi-danger .kpi-icon-container { 
+            background: var(--gradient-danger);
+            color: #fff;
+        }
+        .kpi-danger .kpi-icon-container::after {
+            background: var(--gradient-danger);
+            filter: blur(12px);
+        }
+        .kpi-danger .kpi-value { 
+            background: var(--gradient-danger);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
-        .kpi-info { background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.12) 100%); }
-        .kpi-info .kpi-icon-container { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); color: #fff; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4); }
-        .kpi-info .kpi-value { color: #2563eb; }
+        .kpi-warning { 
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.08) 0%, rgba(245, 87, 108, 0.15) 100%);
+            border: 1px solid rgba(240, 147, 251, 0.1);
+        }
+        .kpi-warning .kpi-icon-container { 
+            background: var(--gradient-warning);
+            color: #fff;
+        }
+        .kpi-warning .kpi-icon-container::after {
+            background: var(--gradient-warning);
+            filter: blur(12px);
+        }
+        .kpi-warning .kpi-value { 
+            background: var(--gradient-warning);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
-        .kpi-label { font-size: 0.875rem; font-weight: 700; color: #6b7280; margin-bottom: 0.25rem; }
-        .kpi-value { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.025em; }
+        .kpi-info { 
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.08) 0%, rgba(0, 242, 254, 0.15) 100%);
+            border: 1px solid rgba(79, 172, 254, 0.1);
+        }
+        .kpi-info .kpi-icon-container { 
+            background: var(--gradient-info);
+            color: #fff;
+        }
+        .kpi-info .kpi-icon-container::after {
+            background: var(--gradient-info);
+            filter: blur(12px);
+        }
+        .kpi-info .kpi-value { 
+            background: var(--gradient-info);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .kpi-label { 
+            font-size: 0.9rem; 
+            font-weight: 800; 
+            color: #64748b; 
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .kpi-value { 
+            font-size: 2rem; 
+            font-weight: 900; 
+            letter-spacing: -0.05em;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
         
         /* RTL Fixes */
         [dir="rtl"] .kpi-icon-container { margin-left: 0; margin-right: 0; }
         [dir="rtl"] .me-3 { margin-left: 1rem !important; margin-right: 0 !important; }
 
-        /* --- Premium Buttons Design --- */
+        /* --- Ultra Premium Buttons with Advanced Effects --- */
         .btn {
-            border-radius: 12px;
-            padding: 0.6rem 1.2rem;
-            font-weight: 700;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 14px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 800;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             border: none;
             position: relative;
             overflow: hidden;
@@ -327,61 +512,436 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.875rem;
+        }
+
+        /* Ripple Effect */
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
 
         .btn:active {
-            transform: translateY(0);
+            transform: translateY(-1px);
         }
 
-        /* Primary Button */
+        /* Primary Button with Gradient */
         .btn-primary {
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+            background: var(--gradient-primary);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
             color: #fff;
         }
         .btn-primary:hover {
-            background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
-            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4), var(--glow-primary);
+            filter: brightness(1.1);
         }
 
         /* Success Button */
         .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+            background: var(--gradient-success);
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
             color: #fff;
         }
         .btn-success:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 8px 24px rgba(17, 153, 142, 0.4), var(--glow-success);
+            filter: brightness(1.1);
         }
 
         /* Danger Button */
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+            background: var(--gradient-danger);
+            box-shadow: 0 4px 12px rgba(235, 51, 73, 0.3);
             color: #fff;
         }
         .btn-danger:hover {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+            box-shadow: 0 8px 24px rgba(235, 51, 73, 0.4), var(--glow-danger);
+            filter: brightness(1.1);
         }
 
-        /* Secondary/Outline Styles */
+        /* Warning Button */
+        .btn-warning {
+            background: var(--gradient-warning);
+            box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+            color: #fff;
+        }
+        .btn-warning:hover {
+            box-shadow: 0 8px 24px rgba(240, 147, 251, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* Info Button */
+        .btn-info {
+            background: var(--gradient-info);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+            color: #fff;
+        }
+        .btn-info:hover {
+            box-shadow: 0 8px 24px rgba(79, 172, 254, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* Outline Buttons with Glassmorphism */
+        .btn-outline-primary {
+            background: rgba(102, 126, 234, 0.05);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
+            backdrop-filter: blur(10px);
+        }
+        .btn-outline-primary:hover {
+            background: var(--gradient-primary);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
         .btn-outline-secondary {
-            border: 2px solid #e5e7eb;
-            color: #4b5563;
-            background: transparent;
+            background: rgba(100, 116, 139, 0.05);
+            border: 2px solid rgba(100, 116, 139, 0.2);
+            color: #64748b;
+            backdrop-filter: blur(10px);
         }
         .btn-outline-secondary:hover {
-            background: #f3f4f6;
-            color: #1f2937;
-            border-color: #d1d5db;
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 8px 20px rgba(100, 116, 139, 0.3);
         }
+
+        .btn-outline-danger {
+            background: rgba(235, 51, 73, 0.05);
+            border: 2px solid rgba(235, 51, 73, 0.3);
+            color: #eb3349;
+            backdrop-filter: blur(10px);
+        }
+        .btn-outline-danger:hover {
+            background: var(--gradient-danger);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 8px 20px rgba(235, 51, 73, 0.3);
+        }
+
+        .btn-outline-info {
+            background: rgba(79, 172, 254, 0.05);
+            border: 2px solid rgba(79, 172, 254, 0.3);
+            color: #4facfe;
+            backdrop-filter: blur(10px);
+        }
+        .btn-outline-info:hover {
+            background: var(--gradient-info);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        /* ========================================= */
+        /* 🎨 PREMIUM CARDS & TABLES DESIGN 🎨 */
+        /* ========================================= */
+
+        /* --- Luxury Card Design --- */
+        .card {
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 4px 16px rgba(0, 0, 0, 0.08),
+                0 8px 32px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: 
+                0 8px 24px rgba(0, 0, 0, 0.12),
+                0 16px 48px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.08) 100%);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            border-radius: 20px 20px 0 0 !important;
+            padding: 1.25rem 1.5rem;
+        }
+
+        /* --- Premium Table Design --- */
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table thead th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            border: none;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .table thead th:first-child {
+            border-radius: 0 12px 0 0;
+        }
+
+        .table thead th:last-child {
+            border-radius: 12px 0 0 0;
+        }
+
+        .table tbody tr {
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .table tbody tr:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.08) 100%);
+            transform: scale(1.01);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .table tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            vertical-align: middle;
+        }
+
+        /* Animated row entrance */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .table tbody tr {
+            animation: fadeInUp 0.4s ease-out backwards;
+        }
+
+        .table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+        .table tbody tr:nth-child(2) { animation-delay: 0.1s; }
+        .table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+        .table tbody tr:nth-child(4) { animation-delay: 0.2s; }
+        .table tbody tr:nth-child(5) { animation-delay: 0.25s; }
+
+        /* --- Premium Form Inputs --- */
+        .form-control, .form-select {
+            border: 2px solid rgba(100, 116, 139, 0.15);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 
+                0 0 0 3px rgba(102, 126, 234, 0.1),
+                0 4px 12px rgba(102, 126, 234, 0.15);
+            background: #fff;
+            transform: translateY(-2px);
+        }
+
+        /* --- Premium Badges --- */
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            font-size: 0.8rem;
+        }
+
+        /* --- Premium Alerts --- */
+        .alert {
+            border: none;
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.15) 100%);
+            color: #0f766e;
+            border-left: 4px solid #11998e;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, rgba(235, 51, 73, 0.1) 0%, rgba(244, 92, 67, 0.15) 100%);
+            color: #b91c1c;
+            border-left: 4px solid #eb3349;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.15) 100%);
+            color: #92400e;
+            border-left: 4px solid #f093fb;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.15) 100%);
+            color: #075985;
+            border-left: 4px solid #4facfe;
+        }
+
+        /* --- Premium Modal Design --- */
+        .modal-content {
+            border: none;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-header {
+            border-radius: 24px 24px 0 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.5rem 2rem;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.5rem 2rem;
+            border-radius: 0 0 24px 24px;
+        }
+
+        /* --- Smooth Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        /* --- Responsive Table Improvements --- */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* تحسين عرض الأعمدة في الجداول */
+        .table th, .table td {
+            white-space: normal; /* السماح بالتفاف النص */
+            word-wrap: break-word;
+            vertical-align: middle;
+        }
+
+        /* أعمدة محددة بعرض مناسب */
+        .table th:nth-child(1), .table td:nth-child(1) { 
+            min-width: 120px;
+            max-width: 180px; 
+        } /* الاسم */
+        
+        .table th:nth-child(2), .table td:nth-child(2) { 
+            min-width: 100px;
+            max-width: 150px; 
+        } /* الشركة */
+        
+        .table th:nth-child(3), .table td:nth-child(3) { 
+            min-width: 90px;
+            max-width: 120px; 
+        } /* النوع */
+        
+        .table th:nth-child(4), .table td:nth-child(4) { 
+            min-width: 110px;
+            max-width: 130px;
+            white-space: nowrap;
+        } /* الهاتف */
+        
+        .table th:nth-child(5), .table td:nth-child(5) { 
+            min-width: 120px;
+            max-width: 180px; 
+        } /* البريد */
+        
+        .table th:nth-child(6), .table td:nth-child(6) { 
+            min-width: 90px;
+            max-width: 120px; 
+        } /* الرقم الضريبي */
+        
+        .table th:nth-child(7), .table td:nth-child(7) { 
+            min-width: 140px;
+            max-width: 200px; 
+        } /* العنوان */
+        
+        .table th:nth-child(8), .table td:nth-child(8) { 
+            min-width: 90px;
+            max-width: 120px; 
+        } /* الرصيد */
+        
+        .table th:nth-child(9), .table td:nth-child(9) { 
+            min-width: 120px;
+            max-width: 160px;
+            white-space: nowrap;
+        } /* الإجراءات */
+
+        /* للشاشات الصغيرة */
+        @media (max-width: 1400px) {
+            .table th, .table td {
+                font-size: 0.85rem;
+                padding: 0.75rem 0.4rem;
+            }
+        }
+
+        /* --- تصغير أزرار الإجراءات في الجداول --- */
+        .table .btn-group .btn,
+        .table .btn-group-sm .btn {
+            padding: 0.35rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .table .btn-group .btn i,
+        .table .btn-group-sm .btn i {
+            font-size: 0.75rem;
+        }
+
+        /* تقليل المسافة بين الأزرار */
+        .table .btn-group .btn {
+            margin-left: 2px;
+        }
+    
+    
+    
+    
     </style>
 
 </head>
