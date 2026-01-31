@@ -541,7 +541,9 @@ class PurchaseController extends Controller
                     'success' => true,
                     'id' => $purchase->id,
                     'message' => $isDraft ? 'تم حفظ المسودة' : 'تم حفظ الفاتورة',
-                    'whatsapp_data' => $whatsappData
+                    'whatsapp_data' => $whatsappData,
+                    'supplier_email' => ($purchase->supplier ? $purchase->supplier->email : null),
+                    'invoice_no' => $purchase->invoice_number
                 ]);
             }
 

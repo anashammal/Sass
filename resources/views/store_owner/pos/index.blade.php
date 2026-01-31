@@ -449,7 +449,8 @@
 
                         <div class="d-flex gap-2">
                              <button onclick="printSalesReport()" class="btn btn-dark btn-sm rounded-pill px-3"><i class="fas fa-print me-1"></i> طباعة التقرير</button>
-                             <button onclick="sendSalesReportWhatsapp()" class="btn btn-success btn-sm rounded-pill px-3"><i class="fab fa-whatsapp me-1"></i> إرسال للواتساب</button>
+                                                          <button onclick="sendSalesReportWhatsapp()" class="btn btn-success btn-sm rounded-pill px-3"><i class="fab fa-whatsapp me-1"></i> إرسال للواتساب</button>
+                             <button onclick="sendSalesReportEmail()" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-envelope me-1"></i> إرسال بالإيميل</button>
                         </div>
                     </div>
                 </div>
@@ -572,6 +573,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
                 <button type="button" class="btn btn-success" onclick="shareInvoiceWhatsapp()"><i class="fab fa-whatsapp"></i> إرسال واتساب</button>
+                <button type="button" class="btn btn-primary" onclick="shareInvoiceEmail()"><i class="fas fa-envelope"></i> إرسال إيميل</button>
                 <button type="button" class="btn btn-primary" onclick="printOfficialInvoice()"><i class="fas fa-print"></i> طباعة</button>
             </div>
         </div>
@@ -876,6 +878,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
                 <button type="button" class="btn btn-success" onclick="shareReturnsWhatsapp()"><i class="fab fa-whatsapp me-1"></i> واتساب</button>
+                <button type="button" class="btn btn-primary" onclick="shareReturnsEmail()"><i class="fas fa-envelope me-1"></i> إيميل</button>
                 <button type="button" class="btn btn-primary" onclick="printReturnsReport()"><i class="fas fa-print me-1"></i> طباعة</button>
             </div>
         </div>
@@ -1500,9 +1503,25 @@
             $.post("{{ route('store.pos.save') }}", data)
              .done((res) => { 
                  if (res.whatsapp_data) {
-                     Swal.close();
-                     triggerWhatsappPrompt(res.whatsapp_data.phone, res.whatsapp_data.message);
-                     resetPosScreen();
+                    Swal.fire({
+                        title: 'تم الحفظ بنجاح',
+                        text: 'كيف ترغب في مشاركة الفاتورة مع العميل؟',
+                        icon: 'success',
+                        showDenyButton: true,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fab fa-whatsapp"></i> واتساب',
+                        denyButtonText: '<i class="fas fa-envelope"></i> إيميل',
+                        cancelButtonText: 'إغلاق',
+                        confirmButtonColor: '#25d366',
+                        denyButtonColor: '#007bff',
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            triggerWhatsappPrompt(res.whatsapp_data.phone, res.whatsapp_data.message);
+                        } else if (result.isDenied) {
+                            triggerEmailPrompt(res.customer_email || '', res.whatsapp_data.message, "فاتورة مبيعات - " + (res.invoice_id || ''));
+                        }
+                        resetPosScreen();
+                    });
                  } else {
                      Swal.fire({icon:'success', title: isOwner ? 'تم تسجيل المسحوبات' : 'تمت العملية بنجاح', timer:1000, showConfirmButton:false}); 
                      setTimeout(() => location.reload(), 1000);
@@ -1742,7 +1761,8 @@
                         <td class="c-8 no-print">
                             <div class="d-flex justify-content-center gap-1 align-items-center">
                                 <button class="btn btn-outline-info btn-sm-custom" onclick="viewInvoice(${s.id})"><i class="fas fa-eye"></i></button>
-                                ${s.contact_phone ? `<button class="btn btn-outline-success btn-sm-custom" onclick="triggerWhatsappPrompt('${s.contact_phone}', '')"><i class="fab fa-whatsapp"></i></button>` : ''}
+                                                                ${s.contact_phone ? `<button class="btn btn-outline-success btn-sm-custom" onclick="triggerWhatsappPrompt('${s.contact_phone}', '')"><i class="fab fa-whatsapp"></i></button>` : ''}
+                                ${s.contact_email ? `<button class="btn btn-outline-primary btn-sm-custom" onclick="triggerEmailPrompt('${s.contact_email}', '')"><i class="fas fa-envelope"></i></button>` : ''}
                                 <button class="btn btn-outline-danger btn-sm-custom" onclick="deleteInvoice(${s.id})"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
@@ -1983,6 +2003,31 @@
             },
             error: function(err) { $('#invoiceModal').modal('hide'); toastr.error('فشل تحميل الفاتورة'); }
         });
+    };
+
+    window.shareInvoiceEmail = function() {
+        if(!currentViewedInvoiceId) return;
+        
+        Swal.fire({
+            title: 'جاري التجهيز...',
+            text: 'يتم الآن إنشاء ملف PDF للفاتورة...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        $.get("{{ url('store-owner/pos/invoice-pdf') }}/" + currentViewedInvoiceId)
+         .done(function(res) {
+             Swal.close();
+             if(res.success) {
+                let msg = `فاتورة رقم ${currentViewedInvoiceId}\nالمتجر: {{ auth()->user()->store->name }}\nشكراً لتعاملكم معنا.`;
+                if(typeof triggerEmailPrompt === 'function') {
+                    triggerEmailPrompt((res.customer_email || ''), msg, "إرسال الفاتورة (PDF)", res.url, res.filename);
+                } else {
+                    alert('وظيفة إرسال البريد غير متوفرة');
+                }
+             }
+         })
+         .fail(function() { Swal.fire('خطأ', 'فشل تجهيز الفاتورة', 'error'); });
     };
 
     window.shareInvoiceWhatsapp = function() {
@@ -2341,6 +2386,54 @@
     }
 
     // ========== إرسال تقرير المبيعات عبر الواتساب ==========
+    window.sendSalesReportEmail = function() {
+        const urlParams = new URLSearchParams();
+        urlParams.set('limit', $('#filterLimit').val() || 'all');
+        urlParams.set('sort_by', $('#filterSortBy').val() || 'created_at');
+        urlParams.set('sort_order', $('#filterSortOrder').val() || 'desc');
+        urlParams.set('payment_status', $('#filterPaymentStatus').val() || '');
+        urlParams.set('customer_id', $('#filterCustomer').val() || '');
+        urlParams.set('date_from', $('#filterDateFrom').val() || '');
+        urlParams.set('date_to', $('#filterDateTo').val() || '');
+        urlParams.set('output', 'url');
+        
+        const fetchUrl = "{{ route('store.pos.sales-report-pdf') }}?" + urlParams.toString();
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'جاري التجهيز...',
+                html: 'يرجى الانتظار بينما يتم تجهيز ملف التقرير...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                if (data.url) {
+                    const message = `*تقرير سجل المبيعات*\n` +
+                                    `المتجر: {{ auth()->user()->store->name }}\n` +
+                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
+                                    `مرفق لكم التقرير التفصيلي كملف PDF.`;
+                    
+                    const filename = data.filename || "sales_report.pdf";
+                    if (typeof triggerEmailPrompt === 'function') {
+                        triggerEmailPrompt('', message, "إرسال سجل المبيعات كمرفق PDF", data.url, filename);
+                    } else {
+                        alert('حدث خطأ: وظيفة إرسال البريد غير متوفرة');
+                    }
+                } else {
+                    alert('فشل تجهيز ملف التقرير');
+                }
+            })
+            .catch(err => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                alert('حدث خطأ أثناء التواصل مع السيرفر');
+            });
+    };
+
     window.sendSalesReportWhatsapp = function() {
         // جمع الفلاتر الحالية من واجهة المستخدم
         const urlParams = new URLSearchParams();
@@ -2523,6 +2616,37 @@
     };
 
     // مشاركة تقرير المرتجعات عبر واتساب
+    window.shareReturnsEmail = function() {
+        const saleId = $('#returnsSaleId').text().replace('INV-', '');
+        
+        Swal.fire({
+            title: 'جاري تجهيز ملف PDF...',
+            text: 'يرجى الانتظار قليلاً...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        $.get("{{ url('store-owner/pos/return-pdf') }}/" + saleId)
+        .done(function(data) {
+            Swal.close();
+            if(data.success && data.url) {
+                const customer = $('#returnsCustomerName').text();
+                const date = $('#returnsDate').text();
+                let message = `*تقرير مرتجعات - ${saleId}*\nالعميل: ${customer}\nالتاريخ: ${date}\nيرجى الاطلاع على الملف المرفق.\n`;
+
+                if (typeof triggerEmailPrompt === 'function') {
+                    triggerEmailPrompt('', message, "تقرير المرتجعات PDF", data.url, data.filename);
+                }
+            } else {
+                Swal.fire('خطأ', 'فشل إنشاء ملف PDF', 'error');
+            }
+        })
+        .fail(function() {
+            Swal.close();
+            Swal.fire('خطأ', 'حدث خطأ أثناء التواصل مع السيرفر', 'error');
+        });
+    };
+
     window.shareReturnsWhatsapp = function() {
         const saleId = $('#returnsSaleId').text().replace('INV-', '');
         

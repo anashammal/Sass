@@ -1217,15 +1217,33 @@
         .then(data => {
             if(data.success) {
                 Swal.close();
-                // إذا كان هناك بيانات واتساب، أظهر التنبيه
+                // إذا كان هناك بيانات واتساب أو إيميل، اعرض خيارات المشاركة
                 if (data.whatsapp_data) {
-                    triggerWhatsappPrompt(data.whatsapp_data.phone, data.whatsapp_data.message, "إرسال فاتورة المشتريات للمورد");
-                    // بعد إغلاق أو إرسال الواتساب، يفضل إعادة تحميل الصفحة أو التوجه للفهرس
-                    // سأضع مستمعاً لإغلاق المودال في app.blade.php أو اعتمد على سلوك المستخدم
-                    // للأمان، سأقوم بتحويل المستخدم بعد ثوانٍ أو ترك الخيار له
-                    setTimeout(() => {
-                        window.location.href = "{{ route('store.purchases.index') }}";
-                    }, 5000); 
+                    Swal.fire({
+                        title: 'تم الحفظ بنجاح',
+                        text: 'كيف ترغب في مشاركة الفاتورة مع المورد؟',
+                        icon: 'success',
+                        showDenyButton: true,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fab fa-whatsapp"></i> واتساب',
+                        denyButtonText: '<i class="fas fa-envelope"></i> إيميل',
+                        cancelButtonText: 'إغلاق ومتابعة',
+                        confirmButtonColor: '#25d366',
+                        denyButtonColor: '#007bff',
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            triggerWhatsappPrompt(data.whatsapp_data.phone, data.whatsapp_data.message, "إرسال فاتورة المشتريات للمورد");
+                        } else if (result.isDenied) {
+                            triggerEmailPrompt(data.supplier_email || '', data.whatsapp_data.message, "فاتورة مشتريات - " + (data.invoice_no || ''), "", "");
+                        } else {
+                            window.location.href = "{{ route('store.purchases.index') }}";
+                        }
+                        
+                        // نراقب إغلاق المودالات للعودة للفهرس
+                        $(document).one('hidden.bs.modal', '#globalWhatsappModal, #globalEmailModal', function() {
+                            window.location.href = "{{ route('store.purchases.index') }}";
+                        });
+                    });
                 } else {
                     Swal.fire({icon: 'success', title: 'تم الحفظ بنجاح', timer: 1500, showConfirmButton: false})
                     .then(() => {

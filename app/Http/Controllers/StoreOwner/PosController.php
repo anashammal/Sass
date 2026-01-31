@@ -447,7 +447,9 @@ class PosController extends Controller
                 'success' => true, 
                 'message' => 'تم الحفظ بنجاح', 
                 'invoice_id' => $sale->id,
-                'whatsapp_data' => $whatsappData
+                'whatsapp_id' => $sale->id, // Fallback for some JS
+                'whatsapp_data' => $whatsappData,
+                'customer_email' => ($sale->contact ? $sale->contact->email : null)
             ]);
 
         } catch (\Exception $e) {

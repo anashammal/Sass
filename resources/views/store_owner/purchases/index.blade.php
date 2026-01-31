@@ -8,6 +8,7 @@
         <h4 class="fw-bold text-primary"><i class="fas fa-shopping-cart me-2"></i> سجل المشتريات</h4>
         <div class="d-flex gap-2">
             <button onclick="sharePurchasesViaWhatsapp()" class="btn btn-outline-success"><i class="fab fa-whatsapp me-1"></i> إرسال واتساب</button>
+            <button onclick="sharePurchasesViaEmail()" class="btn btn-outline-primary"><i class="fas fa-envelope me-1"></i> إرسال إيميل</button>
             <a href="{{ route('store.purchases.report.interactive', request()->all()) }}" target="_blank" class="btn btn-outline-primary"><i class="fas fa-file-invoice me-1"></i> التقرير التفاعلي للطباعة</a>
             <a href="{{ route('store.purchases.create') }}" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i> فاتورة جديدة</a>
         </div>
@@ -376,6 +377,49 @@
                 } else {
                     alert('حدث خطأ أثناء التواصل مع السيرفر');
                 }
+            });
+    }
+
+    function sharePurchasesViaEmail() {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('output', 'url');
+        
+        const fetchUrl = "{{ route('store.purchases.report.pdf') }}?" + urlParams.toString();
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'جاري تجهيز طلب الإرسال...',
+                html: 'يرجى الانتظار بينما يتم تجهيز ملف PDF والاتصال بخدمة البريد الإلكتروني...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                
+                if (data.url) {
+                    const message = `*تقرير سجل المشتريات*\n` +
+                                    `المتجر: {{ auth()->user()->store->name }}\n` +
+                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
+                                    `مرفق لكم التقرير التفصيلي كملف PDF.`;
+                    
+                    const filename = data.filename || "purchase_report.pdf";
+                    if (typeof triggerEmailPrompt === 'function') {
+                        triggerEmailPrompt('', message, "إرسال سجل المشتريات كمرفق PDF", data.url, filename);
+                    } else {
+                        alert('حدث خطأ: وظيفة إرسال البريد غير متوفرة');
+                    }
+                } else {
+                    alert('فشل تجهيز ملف التقرير');
+                }
+            })
+            .catch(err => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                console.error(err);
+                alert('حدث خطأ أثناء التواصل مع السيرفر');
             });
     }
 

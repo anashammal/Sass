@@ -1590,6 +1590,66 @@
     }
 
 
+    // --- نظام البريد الإلكتروني الموحد (Universal Email Logic) ---
+    function triggerEmailPrompt(email, message, title = "إرسال التقرير عبر البريد", mediaUrl = "", filename = "") {
+        const modalEl = document.getElementById('globalEmailModal');
+        if(!modalEl) return;
+        
+        document.getElementById('ge_modal_title').innerText = title;
+        document.getElementById('ge_email').value = email || '';
+        document.getElementById('ge_subject').value = title; // الافتراضي هو العنوان
+        document.getElementById('ge_message_preview').value = message || '';
+        document.getElementById('ge_media_url').value = mediaUrl || '';
+        document.getElementById('ge_filename').value = filename || '';
+        
+        const mediaSection = document.getElementById('ge_media_status');
+        if (mediaUrl) {
+            mediaSection.innerHTML = `<div class="alert alert-primary py-2 mb-2 small"><i class="fas fa-paperclip me-1"></i> سيتم إرفاق ملف: ${filename || 'تقرير PDF'}</div>`;
+        } else {
+            mediaSection.innerHTML = '';
+        }
+
+        const myModal = new bootstrap.Modal(modalEl);
+        myModal.show();
+    }
+
+    function sendGlobalEmail() {
+        const email = document.getElementById('ge_email').value;
+        const subject = document.getElementById('ge_subject').value;
+        const message = document.getElementById('ge_message_preview').value;
+
+        if(!email) return alert('الرجاء إدخال البريد الإلكتروني');
+        if(!subject) return alert('الرجاء إدخال عنوان الرسالة');
+
+        const btn = document.getElementById('ge_send_btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الإرسال...';
+        btn.disabled = true;
+
+        const mediaUrl = document.getElementById('ge_media_url').value;
+        const filename = document.getElementById('ge_filename').value;
+
+        fetch("{{ route('store.email.send') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+            body: JSON.stringify({ email: email, subject: subject, message: message, media_url: mediaUrl, filename: filename })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                alert(data.message || 'تم إرسال البريد بنجاح!');
+                bootstrap.Modal.getInstance(document.getElementById('globalEmailModal')).hide();
+            } else {
+                alert('فشل الإرسال: ' + (data.message || 'حدث خطأ غير متوقع'));
+            }
+        })
+        .catch(err => alert('حدث خطأ أثناء الاتصال بالسيرفر'))
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+
     // --- نظام الواتساب الموحد (Universal WhatsApp Logic) ---
     let searchTimeout = null;
 
@@ -1747,6 +1807,46 @@
         });
     }
 </script>
+
+<!-- Global Email Confirmation Modal -->
+<div class="modal fade" id="globalEmailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold" id="ge_modal_title"><i class="fas fa-envelope me-2"></i> إرسال عبر البريد الإلكتروني</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">البريد الإلكتروني للمستلم</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-primary"><i class="fas fa-at"></i></span>
+                        <input type="email" id="ge_email" class="form-control fw-bold border-primary text-center" placeholder="example@mail.com" autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">عنوان الرسالة (Subject)</label>
+                    <input type="text" id="ge_subject" class="form-control fw-bold border-light bg-light" dir="rtl">
+                </div>
+                
+                <div class="mb-0">
+                    <label class="form-label fw-bold">نص الرسالة</label>
+                    <textarea id="ge_message_preview" class="form-control text-start border-light bg-light" rows="10" dir="rtl"></textarea>
+                </div>
+                <div id="ge_media_status" class="mt-2"></div>
+                <input type="hidden" id="ge_media_url">
+                <input type="hidden" id="ge_filename">
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" id="ge_send_btn" class="btn btn-primary px-5 shadow fw-bold" onclick="sendGlobalEmail()">
+                    <i class="fas fa-paper-plane me-2"></i> إرسال الآن
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Global WhatsApp Confirmation Modal -->
 <div class="modal fade" id="globalWhatsappModal" tabindex="-1" aria-hidden="true">

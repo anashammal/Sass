@@ -27,6 +27,7 @@ use App\Http\Controllers\StoreOwner\PosController;
 use App\Http\Controllers\StoreOwner\ReportController;
 use App\Http\Controllers\StoreOwner\ShiftController;
 use App\Http\Controllers\StoreOwner\WhatsAppController as StoreWhatsAppController;
+use App\Http\Controllers\StoreOwner\EmailController;
 
 /*
 |--------------------------------------------------------------------------
@@ -192,6 +193,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/whatsapp/contacts/search', [StoreWhatsAppController::class, 'searchContacts'])->name('whatsapp.contacts.search');
         Route::post('/whatsapp/logout', [StoreWhatsAppController::class, 'logout'])->name('whatsapp.logout');
         Route::post('/whatsapp/send', [StoreWhatsAppController::class, 'sendMessage'])->name('whatsapp.send');
+
+        // إدارة البريد الإلكتروني للتقارير
+        Route::post('/email/send', [EmailController::class, 'sendEmail'])->name('email.send');
     // صفحة إدارة المنتجات المنتهية وقريبة الانتهاء
 Route::get('products/expired-manager', [ProductController::class, 'expiredManager'])->name('products.expired_manager');
 
