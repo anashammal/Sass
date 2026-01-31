@@ -14,6 +14,22 @@ use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
+    // دالة بديلة لعرض الصور في حال فشل الروابط الرمزية (storage:link) أونلاين
+    public function serveMedia($path)
+    {
+        $fullPath = storage_path('app/public/' . $path);
+        
+        if (!file_exists($fullPath)) {
+            \Illuminate\Support\Facades\Log::warning("serveMedia: File not found at: " . $fullPath);
+            abort(404);
+        }
+
+        $file = file_get_contents($fullPath);
+        $type = mime_content_type($fullPath);
+
+        return response($file, 200)->header('Content-Type', $type);
+    }
+
     public function index(Request $request)
     {
         $storeId = Auth::user()->store->id;

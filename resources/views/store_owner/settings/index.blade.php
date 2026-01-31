@@ -340,7 +340,7 @@
                                     <label class="form-label fw-bold d-block">شعار المتجر</label>
                                     <div class="mb-2 p-3 border rounded bg-light d-inline-block position-relative">
                                         @if($store->logo_path)
-                                            <img id="preview_logo" src="{{ asset('storage/'.$store->logo_path) }}?t={{ time() }}" height="80" alt="Logo" style="mix-blend-mode: multiply;">
+                                            <img id="preview_logo" src="{{ route('serve.media.workaround', ['path' => $store->logo_path]) }}?t={{ time() }}" height="80" alt="Logo" style="mix-blend-mode: multiply;">
                                         @else
                                             <div class="text-muted p-4" id="placeholder_logo">لا يوجد شعار</div>
                                             <img id="preview_logo" src="" height="80" style="display:none; mix-blend-mode: multiply;">
@@ -353,7 +353,7 @@
                                     <label class="form-label fw-bold d-block">الختم الإلكتروني</label>
                                     <div class="mb-2 p-3 border rounded bg-light d-inline-block">
                                         @if($store->stamp_path)
-                                            <img id="preview_stamp" src="{{ asset('storage/'.$store->stamp_path) }}?t={{ time() }}" height="100" alt="Stamp" style="mix-blend-mode: multiply;">
+                                            <img id="preview_stamp" src="{{ route('serve.media.workaround', ['path' => $store->stamp_path]) }}?t={{ time() }}" height="100" alt="Stamp" style="mix-blend-mode: multiply;">
                                         @else
                                             <div class="text-muted p-4" id="placeholder_stamp">لا يوجد ختم</div>
                                             <img id="preview_stamp" src="" height="100" style="display:none; mix-blend-mode: multiply;">
@@ -366,7 +366,7 @@
                                     <label class="form-label fw-bold d-block">التوقيع المعتمد</label>
                                     <div class="mb-2 p-3 border rounded bg-light d-inline-block">
                                         @if($store->signature_path)
-                                            <img id="preview_signature" src="{{ asset('storage/'.$store->signature_path) }}?t={{ time() }}" height="60" alt="Sign" style="mix-blend-mode: multiply;">
+                                            <img id="preview_signature" src="{{ route('serve.media.workaround', ['path' => $store->signature_path]) }}?t={{ time() }}" height="60" alt="Sign" style="mix-blend-mode: multiply;">
                                         @else
                                             <div class="text-muted p-4" id="placeholder_sign">لا يوجد توقيع</div>
                                             <img id="preview_signature" src="" height="60" style="display:none; mix-blend-mode: multiply;">
