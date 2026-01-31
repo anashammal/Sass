@@ -352,17 +352,20 @@
             
             <div class="modal-body p-0 bg-white">
                 <div class="p-3 bg-white border-bottom shadow-sm d-print-none">
-                    <div class="row g-3">
-                        {{-- الصف الأول: الفلاتر الرئيسية --}}
-                        <div class="col-md-3">
-                            <label class="small fw-bold text-muted mb-1">بحث بالعميل</label>
-                            <select id="filterCustomer" class="form-select w-100"></select>
-                        </div>
+                    {{-- شريط فلاتر موحد --}}
+                    <div class="filter-bar-container border rounded-pill d-flex align-items-center w-100 overflow-hidden bg-white" style="border-color: #ced4da !important;">
                         
-                        <div class="col-md-2">
-                             <label class="small fw-bold text-muted mb-1">حالة الدفع</label>
-                             <select id="filterPaymentStatus" class="form-select auto-filter border-secondary">
-                                <option value="">الكل</option>
+                        {{-- 1. العميل --}}
+                        <div class="filter-segment flex-fill d-flex align-items-center px-3 border-end position-relative" style="min-width: 300px;">
+                            <i class="fas fa-user text-muted small me-2"></i>
+                            <select id="filterCustomer" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 w-100 auto-filter" aria-label="العميل"></select>
+                        </div>
+
+                        {{-- 2. حالة الدفع --}}
+                        <div class="filter-segment flex-fill d-flex align-items-center px-3 border-end position-relative" style="min-width: 150px;">
+                            <i class="fas fa-filter text-muted small me-2"></i>
+                            <select id="filterPaymentStatus" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 auto-filter" style="width: auto; flex-grow: 1;">
+                                <option value="">حالة الدفع (الكل)</option>
                                 <option value="paid">✅ مدفوعة</option>
                                 <option value="unpaid">❌ غير مدفوعة</option>
                                 <option value="partial">⚠️ دفع جزئي</option>
@@ -371,26 +374,56 @@
                             </select>
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="small fw-bold text-muted mb-1">تاريخ الفاتورة</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light text-muted small">من</span>
-                                <input type="date" id="filterDateFrom" class="form-control auto-filter">
-                                <span class="input-group-text bg-light text-muted small">إلى</span>
-                                <input type="date" id="filterDateTo" class="form-control auto-filter">
-                            </div>
+                        {{-- 3. التاريخ --}}
+                        <div class="filter-segment flex-fill d-flex align-items-center px-3 border-end position-relative" style="min-width: 280px;">
+                            <i class="far fa-calendar-alt text-muted small me-2"></i>
+                            <input type="date" id="filterDateFrom" class="form-control form-control-sm border-0 shadow-none bg-transparent p-0 auto-filter" style="max-width: 110px;" placeholder="من">
+                            <i class="fas fa-arrow-left text-muted mx-2 small" style="font-size: 0.7rem;"></i>
+                            <input type="date" id="filterDateTo" class="form-control form-control-sm border-0 shadow-none bg-transparent p-0 auto-filter" style="max-width: 110px;" placeholder="إلى">
                         </div>
 
-                        <div class="col-md-3">
-                             <label class="small fw-bold text-muted mb-1">ترتيب وعرض</label>
-                             <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="fas fa-sort"></i></span>
-                                <select id="filterSortBy" class="form-select auto-filter border-primary" style="max-width: 90px;"><option value="created_at">التاريخ</option><option value="total">القيمة</option><option value="due">الدين</option></select>
-                                <select id="filterSortOrder" class="form-select auto-filter border-primary" style="max-width: 80px;"><option value="desc">تنازلي</option><option value="asc">تصاعدي</option></select>
-                                <select id="filterLimit" class="form-select auto-filter border-primary ms-1"><option value="10">10</option><option value="50">50</option><option value="100">100</option><option value="all">الكل</option></select>
-                            </div>
+                        {{-- 4. الترتيب والعرض --}}
+                        <div class="filter-segment d-flex align-items-center px-3 gap-2 bg-light">
+                            <i class="fas fa-sort text-muted small"></i>
+                            <select id="filterSortBy" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 fw-bold text-primary auto-filter" style="width: auto;"><option value="created_at">التاريخ</option><option value="total">القيمة</option><option value="due">الدين</option></select>
+                            <span class="text-muted small">|</span>
+                            <select id="filterSortOrder" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 text-muted auto-filter" style="width: auto;"><option value="desc">تنازلي</option><option value="asc">تصاعدي</option></select>
+                            <span class="text-muted small">|</span>
+                            <select id="filterLimit" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 fw-bold auto-filter" style="width: auto;"><option value="10">10</option><option value="50">50</option><option value="100">100</option><option value="all">الكل</option></select>
                         </div>
                     </div>
+
+                    <style>
+                        /* تحسين مظهر شريط الفلاتر */
+                        .filter-bar-container:focus-within {
+                            border-color: #86b7fe !important;
+                            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+                        }
+                        .filter-segment:hover {
+                            background-color: #f8f9fa;
+                        }
+                        
+                        /* إصلاح عرض Select2 داخل الفلتر */
+                        .filter-bar-container .select2-container {
+                            width: 100% !important;
+                        }
+                        .filter-bar-container .select2-selection {
+                            border: none !important;
+                            background: transparent !important;
+                            box-shadow: none !important;
+                        }
+                        /* توسيع قائمة البحث والنتائج */
+                        .select2-container--bootstrap-5 .select2-dropdown .select2-search{
+                            padding: 0.5rem;
+                        }
+                        .select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field {
+                            width: 100% !important;
+                            padding: 0.5rem;
+                        }
+                        .select2-container--bootstrap-5 .select2-dropdown {
+                            min-width: 300px !important; /* ضمان عرض كافي للقائمة المنسدلة */
+                        }
+                    </style>
 
                     {{-- الصف الثاني: الأزرار --}}
                     <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
@@ -1991,6 +2024,7 @@
         window.print(); document.body.innerHTML = o; window.location.reload(); 
     };
 
+
     $(document).ready(function() {
         $('#btn_open_cols').click(function(e) { e.stopPropagation(); $('#menu_cols').toggle(); });
         $(document).click(function(e) { if (!$(e.target).closest('#menu_cols, #btn_open_cols').length) { $('#menu_cols').hide(); } });
@@ -1999,6 +2033,25 @@
         // ✅ إضافة مستمع لتغيير الفلاتر وتحديث الجدول تلقائياً
         $('.auto-filter').on('change', function() {
             getRecentSales(1); 
+        });
+
+        // ✅ منطق التحقق من التاريخ (From/To)
+        $('#filterDateFrom').on('change', function() {
+            let fromDate = $(this).val();
+            $('#filterDateTo').attr('min', fromDate);
+            // إذا كان "إلى" أصغر من "من"، قم بتصحيحه
+            if(fromDate && $('#filterDateTo').val() && $('#filterDateTo').val() < fromDate) {
+                $('#filterDateTo').val(fromDate);
+            }
+        });
+
+        $('#filterDateTo').on('change', function() {
+            let toDate = $(this).val();
+            $('#filterDateFrom').attr('max', toDate);
+            // إذا كان "من" أكبر من "إلى"، قم بتصحيحه
+            if(toDate && $('#filterDateFrom').val() && $('#filterDateFrom').val() > toDate) {
+                $('#filterDateFrom').val(toDate);
+            }
         });
 
         // ✅ تفعيل فلتر الأعمدة

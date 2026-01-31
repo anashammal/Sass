@@ -537,12 +537,26 @@ class PosController extends Controller
 
             if ($request->filled('payment_status')) {
                 $status = $request->payment_status;
-                if ($status == 'paid') $query->where('due', '<=', 0.01)->whereRaw('paid <= total');
-                elseif ($status == 'unpaid') $query->where('paid', 0);
-                elseif ($status == 'partial') $query->where('paid', '>', 0)->where('due', '>', 0.01);
-                elseif ($status == 'overpaid') $query->whereRaw('paid > total + 0.01');
+                if ($status == 'paid') {
+                    // المدفوع: المتبقي صفر (أو سالب بسيط) + المدفوع لا يتجاوز الإجمالي بفرق واضح (0.01)
+                    $query->where('due', '<=', 0.01)->whereRaw('paid <= total + 0.01');
+                }
+                elseif ($status == 'unpaid') {
+                    // غير مدفوع: المدفوع صفر تقريباً
+                    $query->where('paid', '<', 0.01);
+                }
+                elseif ($status == 'partial') {
+                    // جزئي: دفع جزء (أكثر من 0.01) وبقي جزء (أكثر من 0.01)
+                    $query->where('paid', '>=', 0.01)->where('due', '>', 0.01);
+                }
+                elseif ($status == 'overpaid') {
+                    // دفعة زائدة: المدفوع أكبر من الإجمالي بفرق وضع (0.01)
+                    $query->whereRaw('paid > total + 0.01');
+                }
                 // ✅ فلتر المرتجعات
-                elseif ($status == 'has_returns') $query->where('total_returns', '>', 0);
+                elseif ($status == 'has_returns') {
+                    $query->where('total_returns', '>', 0);
+                }
             }
 
             $query->orderBy($request->input('sort_by', 'created_at'), $request->input('sort_order', 'desc'));
