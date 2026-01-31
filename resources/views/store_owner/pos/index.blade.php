@@ -153,18 +153,32 @@
     }
 
     /* تحسينات جدول السجل (Recent Sales) */
-    .c-0 { width: 5%; text-align: center; } /* # */
-    .c-1 { width: 14%; } /* Customer */
-    .c-2 { width: 9%; } /* Total */
-    .c-3 { width: 9%; } /* Paid */
-    .c-4 { width: 9%; } /* Due */
-    .c-5 { width: 9%; text-align: center; } /* Status */
-    .c-6 { width: 12%; text-align: center; } /* Date */
-    .c-7 { width: 8%; text-align: center; } /* User */
-    .c-9 { width: 9%; text-align: center; } /* Returns */
-    .c-8 { width: 16%; text-align: center; white-space: nowrap; } /* Actions */
-    
-    .c-8 .btn { margin: 0 2px; }
+    /* تحسينات جدول السجل (Recent Sales) */
+    /* تحسينات جدول السجل (Recent Sales) */
+    .c-0 { width: 10%; text-align: center; font-size: 0.85rem; } /* # */
+    .c-1 { width: 10%; font-size: 0.9rem; } /* Customer */
+    .c-2 { width: 9%; font-size: 0.9rem; font-weight: bold; } /* Total */
+    .c-3 { width: 9%; font-size: 0.9rem; } /* Paid */
+    .c-4 { width: 9%; font-size: 0.9rem; } /* Due */
+    .c-5 { width: 10%; text-align: center; font-size: 0.85rem; } /* Status */
+    .c-6 { width: 12%; text-align: center; font-size: 0.8rem; white-space: normal !important; line-height: 1.2; } /* Date - التفاف النص */
+    .c-7 { width: 10%; text-align: center; font-size: 0.8rem; } /* User */
+    .c-9 { width: 10%; text-align: center; } /* Returns */
+    .c-8 { width: 11%; text-align: center; white-space: nowrap; } /* Actions */
+
+    /* أزرار إجراءات صغيرة جداً */
+    .c-8 .btn-sm-custom {
+        padding: 2px 5px;
+        font-size: 10px;
+        line-height: 1.2;
+    }
+
+    /* فرض قص النص الزائد حتى لا يخرب الجدول */
+    #historyTable td, #historyTable th {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 </style>
 
 <div class="container-fluid py-3">
@@ -338,63 +352,75 @@
             
             <div class="modal-body p-0 bg-white">
                 <div class="p-3 bg-white border-bottom shadow-sm d-print-none">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-lg-1 col-3">
-                            <label class="small fw-bold text-muted">عرض</label>
-                            <select id="filterLimit" class="form-select form-select-sm auto-filter border-primary"><option value="10">10</option><option value="50">50</option><option value="100">100</option><option value="all">الكل</option></select>
+                    <div class="row g-3">
+                        {{-- الصف الأول: الفلاتر الرئيسية --}}
+                        <div class="col-md-3">
+                            <label class="small fw-bold text-muted mb-1">بحث بالعميل</label>
+                            <select id="filterCustomer" class="form-select w-100"></select>
                         </div>
-                        <div class="col-lg-2 col-6">
-                            <label class="small fw-bold text-muted">ترتيب</label>
-                            <div class="input-group input-group-sm">
-                                <select id="filterSortBy" class="form-select auto-filter border-primary"><option value="created_at">التاريخ</option><option value="total">القيمة</option><option value="due">الدين</option></select>
-                                <select id="filterSortOrder" class="form-select auto-filter border-primary" style="max-width: 90px"><option value="desc">تنازلي</option><option value="asc">تصاعدي</option></select>
-                            </div>
-                        </div>
-                        <div class="col-lg-2 col-6">
-                            <label class="small fw-bold text-muted">حالة الدفع</label>
-                            <select id="filterPaymentStatus" class="form-select form-select-sm auto-filter border-secondary">
+                        
+                        <div class="col-md-2">
+                             <label class="small fw-bold text-muted mb-1">حالة الدفع</label>
+                             <select id="filterPaymentStatus" class="form-select auto-filter border-secondary">
                                 <option value="">الكل</option>
-                                <option value="paid">✅مدفوعة</option>
-                                <option value="unpaid">❌غير مدفوعة</option>
-                                <option value="partial">⚠️دفع جزئي</option>
-                                <option value="overpaid">⏫دفعة زائدة</option>
-                                <option value="has_returns">↩️بها مرتجعات</option>
+                                <option value="paid">✅ مدفوعة</option>
+                                <option value="unpaid">❌ غير مدفوعة</option>
+                                <option value="partial">⚠️ دفع جزئي</option>
+                                <option value="overpaid">⏫ دفعة زائدة</option>
+                                <option value="has_returns">↩️ بها مرتجعات</option>
                             </select>
                         </div>
-                        <div class="col-lg-3 col-6">
-                            <label class="small fw-bold text-muted">بحث بالعميل</label>
-                            <select id="filterCustomer" class="form-select form-select-sm w-100"></select>
+
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-muted mb-1">تاريخ الفاتورة</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted small">من</span>
+                                <input type="date" id="filterDateFrom" class="form-control auto-filter">
+                                <span class="input-group-text bg-light text-muted small">إلى</span>
+                                <input type="date" id="filterDateTo" class="form-control auto-filter">
+                            </div>
                         </div>
 
-                        <div class="col-lg-2 col-6"><label class="small fw-bold text-muted">من</label><input type="date" id="filterDateFrom" class="form-control form-control-sm auto-filter"></div>
-                        <div class="col-lg-2 col-6"><label class="small fw-bold text-muted">إلى</label><input type="date" id="filterDateTo" class="form-control form-control-sm auto-filter"></div>
-                        
-                        <div class="col-12 mt-2 d-flex justify-content-between">
-                            <div class="position-relative d-inline-block">
-                                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn_open_cols">
-                                    <i class="fas fa-columns"></i> الأعمدة
-                                </button>
-                                <div id="menu_cols" class="dropdown-menu dropdown-menu-end shadow p-2" style="display: none; position: absolute; top: 100%; left: 0; z-index: 9999; min-width: 200px; max-height: 300px; overflow-y: auto;">
-                                    <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="0" checked> # الفاتورة</label>
-                                    <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="1" checked> العميل</label>
-                                    <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="2" checked> الإجمالي</label>
-                                    <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="3" checked> المدفوع</label>
-                                    <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="4" checked> المتبقي</label>
-                                    <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="5" checked> الحالة</label>
-                                    <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="6" checked> التاريخ</label>
-                                    <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="7" checked> المستخدم</label>
-                                    <label class="dropdown-item text-warning"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="9" checked> المرتجعات</label>
-                                    <div class="dropdown-divider"></div>
-                                    <label class="dropdown-item text-danger"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="8" checked> الإجراءات</label>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button onclick="sendSalesReportWhatsapp()" class="btn btn-success btn-sm"><i class="fab fa-whatsapp me-1"></i> إرسال للواتساب</button>
-                                <button onclick="printSalesReport()" class="btn btn-dark btn-sm"><i class="fas fa-print me-1"></i> طباعة التقرير</button>
+                        <div class="col-md-3">
+                             <label class="small fw-bold text-muted mb-1">ترتيب وعرض</label>
+                             <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-sort"></i></span>
+                                <select id="filterSortBy" class="form-select auto-filter border-primary" style="max-width: 90px;"><option value="created_at">التاريخ</option><option value="total">القيمة</option><option value="due">الدين</option></select>
+                                <select id="filterSortOrder" class="form-select auto-filter border-primary" style="max-width: 80px;"><option value="desc">تنازلي</option><option value="asc">تصاعدي</option></select>
+                                <select id="filterLimit" class="form-select auto-filter border-primary ms-1"><option value="10">10</option><option value="50">50</option><option value="100">100</option><option value="all">الكل</option></select>
                             </div>
                         </div>
                     </div>
+
+                    {{-- الصف الثاني: الأزرار --}}
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                        <div class="position-relative">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="btn_open_cols">
+                                <i class="fas fa-columns me-1"></i> تخصيص الأعمدة
+                            </button>
+                            {{-- قائمة الأعمدة (Dropup) --}}
+                            <div id="menu_cols" class="dropdown-menu shadow p-2" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1050; min-width: 200px;">
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="0" checked> # الفاتورة</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="1" checked> العميل</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="2" checked> الإجمالي</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="3" checked> المدفوع</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="4" checked> المتبقي</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="5" checked> الحالة</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="6" checked> التاريخ</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="7" checked> المستخدم</label>
+                                <label class="dropdown-item text-warning"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="9" checked> المرتجعات</label>
+                                <div class="dropdown-divider"></div>
+                                <label class="dropdown-item text-danger"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="8" checked> الإجراءات</label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                             <button onclick="printSalesReport()" class="btn btn-dark btn-sm rounded-pill px-3"><i class="fas fa-print me-1"></i> طباعة التقرير</button>
+                             <button onclick="sendSalesReportWhatsapp()" class="btn btn-success btn-sm rounded-pill px-3"><i class="fab fa-whatsapp me-1"></i> إرسال للواتساب</button>
+                        </div>
+                    </div>
                 </div>
+
 
                 <div id="printSection" class="p-3">
                     <div class="report-header d-none d-print-flex">
@@ -404,7 +430,7 @@
                     </div>
                     
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle text-center w-100" id="historyTable">
+                        <table class="table table-bordered table-hover align-middle text-center w-100" id="historyTable" style="table-layout: fixed;">
                             <thead class="table-light">
                                 <tr>
                                     <th class="c-0">#</th>
@@ -1681,9 +1707,11 @@
                         <td class="c-7 small text-muted">${s.user_name}</td>
                         <td class="c-9">${returnsCell}</td>
                         <td class="c-8 no-print">
-                            <button class="btn btn-sm btn-outline-info" onclick="viewInvoice(${s.id})"><i class="fas fa-eye"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteInvoice(${s.id})"><i class="fas fa-trash"></i></button>
-                            ${s.contact_phone ? `<button class="btn btn-sm btn-outline-success" onclick="triggerWhatsappPrompt('${s.contact_phone}', '')"><i class="fab fa-whatsapp"></i></button>` : ''}
+                            <div class="d-flex justify-content-center gap-1 align-items-center">
+                                <button class="btn btn-outline-info btn-sm-custom" onclick="viewInvoice(${s.id})"><i class="fas fa-eye"></i></button>
+                                ${s.contact_phone ? `<button class="btn btn-outline-success btn-sm-custom" onclick="triggerWhatsappPrompt('${s.contact_phone}', '')"><i class="fab fa-whatsapp"></i></button>` : ''}
+                                <button class="btn btn-outline-danger btn-sm-custom" onclick="deleteInvoice(${s.id})"><i class="fas fa-trash"></i></button>
+                            </div>
                         </td>
                     </tr>`;
                 });
