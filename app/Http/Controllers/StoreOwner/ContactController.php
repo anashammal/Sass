@@ -17,8 +17,9 @@ public function index(Request $request)
     {
         $storeId = Auth::user()->store->id;
         
-        // 1. تجهيز الاستعلام الأساسي
-        $query = Contact::where('store_id', $storeId);
+        // 1. تجهيز الاستعلام الأساسي (إخفاء صاحب المتجر)
+        $query = Contact::where('store_id', $storeId)
+                        ->where('contact_name', '!=', 'صاحب المتجر');
 
         // 2. تطبيق البحث (كما كان عندك)
         if ($request->filled('search')) {
@@ -53,16 +54,16 @@ public function index(Request $request)
         $perPage = $request->input('per_page', 10);
         $contacts = $query->latest()->paginate($perPage)->withQueryString();
 
-        // 🔥 4. الإحصائيات (تمت تصحيح منطق الذمم) 🔥
+        // 🔥 4. الإحصائيات (تمت تصحيح منطق الذمم + إخفاء صاحب المتجر) 🔥
         $stats = [
-            'total' => Contact::where('store_id', $storeId)->count(),
-            'customers_count' => Contact::where('store_id', $storeId)->whereIn('type', ['customer', 'both'])->count(),
-            'suppliers_count' => Contact::where('store_id', $storeId)->whereIn('type', ['supplier', 'both'])->count(),
+            'total' => Contact::where('store_id', $storeId)->where('contact_name', '!=', 'صاحب المتجر')->count(),
+            'customers_count' => Contact::where('store_id', $storeId)->where('contact_name', '!=', 'صاحب المتجر')->whereIn('type', ['customer', 'both'])->count(),
+            'suppliers_count' => Contact::where('store_id', $storeId)->where('contact_name', '!=', 'صاحب المتجر')->whereIn('type', ['supplier', 'both'])->count(),
             
             // رصيد الزبائن (عليه دين لنا = سالب)
-            'receivables' => abs(Contact::where('store_id', $storeId)->where('balance', '<', 0)->sum('balance')),
+            'receivables' => abs(Contact::where('store_id', $storeId)->where('contact_name', '!=', 'صاحب المتجر')->where('balance', '<', 0)->sum('balance')),
             // رصيد الموردين (له مستحقات طرفنا = موجب)
-            'payables' => Contact::where('store_id', $storeId)->where('balance', '>', 0)->sum('balance'),
+            'payables' => Contact::where('store_id', $storeId)->where('contact_name', '!=', 'صاحب المتجر')->where('balance', '>', 0)->sum('balance'),
         ];
 
         if ($request->ajax()) {
