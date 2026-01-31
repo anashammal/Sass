@@ -176,6 +176,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('pos/sales-report-pdf', [PosController::class, 'salesReportPdf'])->name('pos.sales-report-pdf');
         Route::get('pos/sale-returns/{saleId}', [PosController::class, 'getSaleReturns'])->name('pos.sale-returns');
         Route::get('pos/return-pdf/{saleId}', [PosController::class, 'generateReturnsPdf'])->name('store.pos.return.pdf');
+        Route::get('pos/invoice-pdf/{id}', [PosController::class, 'invoicePdf'])->name('pos.invoice.pdf');
 
         // رابط إغلاق النافذة
         Route::post('/settings/mark-popup-seen', function() {

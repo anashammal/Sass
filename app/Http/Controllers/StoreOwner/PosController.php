@@ -1146,4 +1146,58 @@ class PosController extends Controller
             return response()->json(['error' => 'فشل توليد ملف PDF: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * توليد ملف PDF للفاتورة للمشاركة
+     */
+    public function invoicePdf($id)
+    {
+        try {
+            $storeId = Auth::user()->store->id;
+            $sale = Sale::where('id', $id)
+                ->where('store_id', $storeId)
+                ->with(['contact', 'items.product', 'items.unit', 'user'])
+                ->firstOrFail();
+
+            $store = Auth::user()->store;
+            
+            // استخدام خدمة معالجة النص العربي
+            $arabicService = new \App\Services\ArabicTextService();
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('store_owner.pos.invoice_pdf', compact('sale', 'store', 'arabicService'))
+                  ->setPaper('a4', 'portrait')
+                  ->setOptions([
+                      'isHtml5ParserEnabled' => true,
+                      'isRemoteEnabled' => true,
+                      'defaultFont' => 'DejaVu Sans'
+                  ]);
+
+            $filename = 'invoice_' . $sale->id . '_' . date('Ymd_His') . '.pdf';
+            $path = public_path('temp_reports');
+            
+            if (!file_exists($path)) {
+                mkdir($path, 0777, true);
+            }
+            
+            // تنظيف الملفات القديمة
+            foreach (glob($path . '/*.pdf') as $file) {
+                if (filemtime($file) < time() - 3600) { 
+                    @unlink($file); 
+                }
+            }
+
+            $pdf->save($path . '/' . $filename);
+            
+            return response()->json([
+                'success' => true,
+                'url' => asset('temp_reports/' . $filename),
+                'filename' => $filename,
+                'customer_phone' => $sale->contact ? $sale->contact->phone : null
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error("Invoice PDF Error: " . $e->getMessage());
+            return response()->json(['error' => 'فشل توليد ملف PDF: ' . $e->getMessage()], 500);
+        }
+    }
 }

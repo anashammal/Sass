@@ -151,6 +151,20 @@
         box-shadow: 0 6px 20px rgba(192, 57, 43, 0.4); 
         background: linear-gradient(135deg, #e74c3c, #c0392b);
     }
+
+    /* تحسينات جدول السجل (Recent Sales) */
+    .c-0 { width: 5%; text-align: center; } /* # */
+    .c-1 { width: 14%; } /* Customer */
+    .c-2 { width: 9%; } /* Total */
+    .c-3 { width: 9%; } /* Paid */
+    .c-4 { width: 9%; } /* Due */
+    .c-5 { width: 9%; text-align: center; } /* Status */
+    .c-6 { width: 12%; text-align: center; } /* Date */
+    .c-7 { width: 8%; text-align: center; } /* User */
+    .c-9 { width: 9%; text-align: center; } /* Returns */
+    .c-8 { width: 16%; text-align: center; white-space: nowrap; } /* Actions */
+    
+    .c-8 .btn { margin: 0 2px; }
 </style>
 
 <div class="container-fluid py-3">
@@ -462,25 +476,21 @@
                             <p class="mb-1" id="invCustomerName"></p>
                         </div>
                     </div>
-                   <table class="table table-bordered border-dark text-center">
-                        <thead class="table-secondary">
+                   <table class="table table-striped table-sm text-center align-middle">
+                        <thead class="table-dark">
                             <tr>
                                 <th>#</th>
                                 <th>المنتج</th>
                                 <th>الباركود</th>
                                 <th>الكمية</th>
-                                <th class="text-danger">ت. الوحدة</th>
-                                <th class="text-danger">إجمالي التكلفة</th>
-                                <th>سعر البيع</th>
+                                <th>السعر</th>
                                 <th>الإجمالي</th>
                             </tr>
                         </thead>
                         <tbody id="invItemsBody"></tbody>
-                        <tfoot class="fw-bold">
+                        <tfoot class="fw-bold bg-light">
                             <tr>
-                                <td colspan="5" class="text-end">الإجمالي النهائية</td>
-                                <td id="invTotalCost" class="text-danger fs-5"></td>
-                                <td></td>
+                                <td colspan="5" class="text-end pe-3">الإجمالي النهائي:</td>
                                 <td id="invTotal" class="text-dark fs-5"></td>
                             </tr>
                         </tfoot>
@@ -502,6 +512,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-success" onclick="shareInvoiceWhatsapp()"><i class="fab fa-whatsapp"></i> إرسال واتساب</button>
                 <button type="button" class="btn btn-primary" onclick="printOfficialInvoice()"><i class="fas fa-print"></i> طباعة</button>
             </div>
         </div>
@@ -831,6 +842,12 @@
     // متغيرات أرقام الفواتير القادمة
     const nextInvoiceNumber = "#{{ $nextInvoice }}";
     const nextWithdrawalNumber = "#{{ $nextWithdrawal ?? 'SOV-Unknown' }}"; 
+
+    // ✅ دالة تنسيق الأرقام (إزالة الأصفار العشرية إذا كان رقماً صحيحاً)
+    function formatMoney(amount) {
+        let val = parseFloat(amount) || 0;
+        return Number.isInteger(val) ? val : val.toFixed(2);
+    } 
 
     // تعريف النوافذ
     let historyModal;
@@ -1647,7 +1664,7 @@
                     let returnsCell = '';
                     if(s.has_returns) {
                         returnsCell = `<button class="btn btn-sm btn-outline-warning" onclick="viewReturns(${s.id})" title="عرض المرتجعات">
-                            <i class="fas fa-eye"></i> ${parseFloat(s.total_returns).toFixed(2)}
+                            <i class="fas fa-eye"></i> ${formatMoney(s.total_returns)}
                         </button>`;
                     } else {
                         returnsCell = '<span class="text-muted small">-</span>';
@@ -1656,9 +1673,9 @@
                     rows += `<tr>
                         <td class="c-0 fw-bold text-primary">${s.invoice_number}</td>
                         <td class="c-1">${s.customer_name}</td>
-                        <td class="c-2">${parseFloat(s.total).toFixed(2)}</td>
-                        <td class="c-3 text-success">${parseFloat(s.paid).toFixed(2)}</td>
-                        <td class="c-4 text-danger">${parseFloat(s.due).toFixed(2)}</td>
+                        <td class="c-2">${formatMoney(s.total)}</td>
+                        <td class="c-3 text-success">${formatMoney(s.paid)}</td>
+                        <td class="c-4 text-danger">${formatMoney(s.due)}</td>
                         <td class="c-5">${badge}</td>
                         <td class="c-6 small">${s.date}</td>
                         <td class="c-7 small text-muted">${s.user_name}</td>
@@ -1666,6 +1683,7 @@
                         <td class="c-8 no-print">
                             <button class="btn btn-sm btn-outline-info" onclick="viewInvoice(${s.id})"><i class="fas fa-eye"></i></button>
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteInvoice(${s.id})"><i class="fas fa-trash"></i></button>
+                            ${s.contact_phone ? `<button class="btn btn-sm btn-outline-success" onclick="triggerWhatsappPrompt('${s.contact_phone}', '')"><i class="fab fa-whatsapp"></i></button>` : ''}
                         </td>
                     </tr>`;
                 });
@@ -1857,7 +1875,10 @@
         });
     };
 
-   window.viewInvoice = function(id) {
+    let currentViewedInvoiceId = null;
+
+    window.viewInvoice = function(id) {
+        currentViewedInvoiceId = id;
         $('#invItemsBody').html('<tr><td colspan="6" class="text-center py-3">جاري التحميل...</td></tr>');
         $('#showStamp').prop('checked', false);
         $('#showSignature').prop('checked', false);
@@ -1885,27 +1906,49 @@
                 if (st.signature_url) { $('#signatureOptionDiv').show(); $('#invSignature').attr('src', st.signature_url); } else { $('#signatureOptionDiv').hide(); }
 
                 let h = ''; 
-                let totalCostSum = 0;
                 items.forEach((i, x) => {
-                    totalCostSum += parseFloat(i.cost);
                     h += `<tr>
                         <td>${x + 1}</td>
-                        <td>${i.name}</td>
-                        <td><span class="badge bg-secondary">${i.barcode || '---'}</span></td>
+                        <td class="text-start">${i.name}</td>
+                        <td><span class="badge bg-light text-dark border">${i.barcode || '---'}</span></td>
                         <td>${i.qty} ${i.unit}</td>
-                        <td class="text-danger">${(i.cost / i.qty).toFixed(2)}</td> 
-                        <td class="text-danger fw-bold">${i.cost.toFixed(2)}</td>
                         <td>${parseFloat(i.price).toFixed(2)}</td>
-                        <td>${parseFloat(i.total).toFixed(2)}</td>
+                        <td class="fw-bold">${parseFloat(i.total).toFixed(2)}</td>
                     </tr>`;
                 });
                 
                 $('#invItemsBody').html(h); 
                 $('#invTotal').text(parseFloat(s.total).toFixed(2));
-                $('#invTotalCost').text(totalCostSum.toFixed(2));
             },
             error: function(err) { $('#invoiceModal').modal('hide'); toastr.error('فشل تحميل الفاتورة'); }
         });
+    };
+
+    window.shareInvoiceWhatsapp = function() {
+        if(!currentViewedInvoiceId) return;
+        
+        Swal.fire({
+            title: 'جاري التجهيز...',
+            text: 'يتم الآن إنشاء ملف PDF للفاتورة...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        $.get("{{ url('store-owner/pos/invoice-pdf') }}/" + currentViewedInvoiceId)
+         .done(function(res) {
+             Swal.close();
+             if(res.success) {
+                let msg = `فاتورة رقم ${currentViewedInvoiceId}\nالمتجر: {{ auth()->user()->store->name }}\nشكراً لتعاملكم معنا.`;
+                if(typeof triggerWhatsappPrompt === 'function') {
+                    // نمرر رقم العميل إن وجد
+                    triggerWhatsappPrompt((res.customer_phone || ''), msg, "إرسال الفاتورة (PDF)", res.url, res.filename);
+                } else {
+                    // Fallback link if global function missing
+                    window.open(res.url, '_blank');
+                }
+             }
+         })
+         .fail(function() { Swal.fire('خطأ', 'فشل تجهيز الفاتورة', 'error'); });
     };
 
     window.toggleOfficialMarks = function() {
