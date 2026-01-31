@@ -205,7 +205,17 @@ Route::post('products/expired/renew', [ProductController::class, 'renewExpiry'])
     // تقارير الصناديق (خارج مجموعة store-owner ليتطابق مع الاسم في القائمة الجانبية إذا لزم الأمر)
     Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
 
+    // تقارير الصناديق (خارج مجموعة store-owner ليتطابق مع الاسم في القائمة الجانبية إذا لزم الأمر)
+    Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
+
 }); // <-- نهاية مجموعة auth
+
+// ------------------------------------------------------------------------
+// (1.5) مسارات استعادة كلمة المرور الجديدة (OTP)
+// ------------------------------------------------------------------------
+Route::get('password/verify', [App\Http\Controllers\Auth\VerificationController::class, 'showVerifyForm'])->name('password.verify');
+Route::post('password/verify', [App\Http\Controllers\Auth\VerificationController::class, 'verifyCode'])->name('password.verify.submit');
+Route::post('password/reset-custom', [App\Http\Controllers\Auth\VerificationController::class, 'resetPassword'])->name('password.update.custom');
 
 // ------------------------------------------------------------------------
 // (3) أدوات مساعدة وإصلاح النظام (للمطور)
