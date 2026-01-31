@@ -13,15 +13,21 @@
             <div class="row g-3 mb-4 bg-light p-3 rounded">
                 <div class="col-md-4">
                     <label class="form-label fw-bold">من تاريخ</label>
-                    <input type="date" id="filterDateFrom" class="form-control" onchange="fetchData()">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
+                        <input type="date" id="filterDateFrom" class="form-control enhanced-date-input auto-filter">
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-bold">إلى تاريخ</label>
-                    <input type="date" id="filterDateTo" class="form-control" onchange="fetchData()">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
+                        <input type="date" id="filterDateTo" class="form-control enhanced-date-input auto-filter">
+                    </div>
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" onclick="fetchData()">
-                        <i class="fas fa-filter me-1"></i> تطبيق الفلتر
+                    <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                        <i class="fas fa-undo me-1"></i> إعادة تعيين
                     </button>
                 </div>
             </div>
@@ -71,7 +77,7 @@
 
 {{-- نافذة التفاصيل --}}
 <div class="modal fade" id="detailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">تفاصيل المسحوبات</h5>
@@ -88,6 +94,42 @@
 
 @section('scripts')
 <script>
+    $(document).ready(function() {
+        // 1. التحديث التلقائي
+        $('.auto-filter').on('change', function() {
+            fetchData(1);
+        });
+
+        // 2. التحقق الذكي من التواريخ
+        // تطبيق القيود فوراً عند التحميل
+        if($('#filterDateFrom').val()) $('#filterDateTo').attr('min', $('#filterDateFrom').val());
+        if($('#filterDateTo').val()) $('#filterDateFrom').attr('max', $('#filterDateTo').val());
+
+        $('#filterDateFrom').on('change', function() {
+            let fromDate = $(this).val();
+            $('#filterDateTo').attr('min', fromDate);
+            let currentTo = $('#filterDateTo').val();
+            if(fromDate && currentTo && currentTo < fromDate) {
+                $('#filterDateTo').val(fromDate).trigger('change');
+            }
+        });
+
+        $('#filterDateTo').on('change', function() {
+            let toDate = $(this).val();
+            $('#filterDateFrom').attr('max', toDate);
+            let currentFrom = $('#filterDateFrom').val();
+            if(toDate && currentFrom && currentFrom > toDate) {
+                $('#filterDateFrom').val(toDate).trigger('change');
+            }
+        });
+    });
+
+    function resetFilters() {
+        $('#filterDateFrom').val('').trigger('change');
+        $('#filterDateTo').val('').trigger('change');
+        fetchData(1);
+    }
+
     function fetchData(page = 1) {
         let fromDate = document.getElementById('filterDateFrom').value;
         let toDate = document.getElementById('filterDateTo').value;
@@ -126,19 +168,20 @@
                     <h5>${res.sale.is_withdrawal ? 'مسحوبات رقم ' + res.sale.withdrawal_number : 'فاتورة ' + res.sale.id}</h5>
                     <span>${new Date(res.sale.created_at).toLocaleDateString()}</span>
                 </div>
-                <table class="table table-bordered text-center align-middle">
-                    <thead class="bg-light">
-                        <tr>
-                            <th>المنتج</th>
-                            <th>الباركود</th>
-                            <th>الكمية</th>
-                            <th class="text-danger">ت. الوحدة (رأس المال)</th>
-                            <th class="text-danger">إجمالي التكلفة</th>
-                            <th class="text-success">سعر البيع</th>
-                            <th>الإجمالي (مالي)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-sm text-center align-middle" style="min-width: 600px;">
+                        <thead class="bg-primary text-white">
+                            <tr>
+                                <th>المنتج</th>
+                                <th>الباركود</th>
+                                <th>الكمية</th>
+                                <th>التكلفة<br><small>(للوحدة)</small></th>
+                                <th>إجمالي<br>التكلفة</th>
+                                <th>سعر<br>البيع</th>
+                                <th>الإجمالي<br><small>(سعر البيع)</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
             let totalCostSum = 0;
             res.items.forEach(item => {
@@ -148,22 +191,23 @@
                         <td>${item.name}</td>
                         <td><span class="badge bg-secondary">${item.barcode}</span></td>
                         <td>${item.qty} ${item.unit}</td>
-                        <td class="text-danger">${(item.cost / item.qty).toFixed(2)}</td>
-                        <td class="text-danger fw-bold">${item.cost.toFixed(2)}</td>
-                        <td class="text-success fw-bold">${item.price.toFixed(2)}</td>
+                        <td>${(item.cost / item.qty).toFixed(2)}</td>
+                        <td class="fw-bold">${item.cost.toFixed(2)}</td>
+                        <td class="fw-bold">${item.price.toFixed(2)}</td>
                         <td>${item.total.toFixed(2)}</td>
                     </tr>`;
             });
             html += `</tbody>
-                <tfoot>
-                    <tr class="fw-bold bg-light">
-                        <td colspan="4" class="text-end">الإجمالي النهائي</td>
-                        <td class="text-danger fs-5">${totalCostSum.toFixed(2)}</td>
-                        <td></td>
-                        <td class="text-dark fs-5">${res.sale.total}</td>
-                    </tr>
-                </tfoot>
-            </table>`;
+                    <tfoot>
+                        <tr class="fw-bold bg-light">
+                            <td colspan="4" class="text-end">الإجمالي النهائي</td>
+                            <td class="text-danger fs-5">${totalCostSum.toFixed(2)}</td>
+                            <td></td>
+                            <td class="text-dark fs-5">${res.sale.total}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                </div>`;
             
             $('#detailsModalBody').html(html);
         });

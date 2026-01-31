@@ -218,7 +218,7 @@
                                                                         </div>
                                                                         <div class="col-md-6">
                                                                             <label class="form-label">تاريخ الصلاحية الجديد:</label>
-                                                                            <input type="date" name="new_date" class="form-control" required min="{{ date('Y-m-d') }}">
+                                                                            <input type="date" name="new_date" class="form-control enhanced-date-input" required min="{{ date('Y-m-d') }}">
                                                                         </div>
                                                                     </div>
 

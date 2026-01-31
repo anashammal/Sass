@@ -72,18 +72,24 @@
     <!-- Filters & Data Table -->
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white border-0 py-3">
-            <form action="{{ route('store.expenses.index') }}" method="GET" class="row g-2 align-items-center">
+            <form id="filterForm" action="{{ route('store.expenses.index') }}" method="GET" class="row g-2 align-items-center">
                 <div class="col-md-3">
-                    <label class="small text-muted">من تاريخ</label>
-                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm">
+                    <label class="small text-muted fw-bold mb-1">من تاريخ</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="far fa-calendar-alt text-muted"></i></span>
+                        <input type="date" id="filterDateFrom" name="date_from" value="{{ request('date_from') }}" class="form-control enhanced-date-input auto-filter border-start-0 ps-0">
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="small text-muted">إلى تاريخ</label>
-                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm">
+                    <label class="small text-muted fw-bold mb-1">إلى تاريخ</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="far fa-calendar-alt text-muted"></i></span>
+                        <input type="date" id="filterDateTo" name="date_to" value="{{ request('date_to') }}" class="form-control enhanced-date-input auto-filter border-start-0 ps-0">
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="small text-muted">التصنيف</label>
-                    <select name="category_id" class="form-select form-select-sm">
+                    <label class="small text-muted fw-bold mb-1">التصنيف</label>
+                    <select name="category_id" class="form-select form-select-sm auto-filter">
                         <option value="">(الكل)</option>
                         @foreach($categories as $cat)
                             <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
@@ -91,9 +97,9 @@
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="fas fa-search me-1"></i> تصفية
-                    </button>
+                    <a href="{{ route('store.expenses.index') }}" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="fas fa-undo me-1"></i> إعادة تعيين
+                    </a>
                 </div>
             </form>
         </div>
@@ -269,6 +275,43 @@
 </div>
 
 <script>
+    $(document).ready(function() {
+        // 1. التحديث التلقائي عند تغيير الفلاتر
+        $('.auto-filter').on('change', function() {
+            $('#filterForm').submit();
+        });
+
+        // 2. التحقق الذكي من التواريخ (From <-> To)
+        
+        // عند تغيير "من تاريخ"
+        $('#filterDateFrom').on('change', function() {
+            let fromDate = $(this).val();
+            $('#filterDateTo').attr('min', fromDate); // منع اختيار تاريخ "إلى" قبل "من"
+            
+            // تصحيح تلقائي إذا كان التاريخ الحالي خطأ
+            let currentTo = $('#filterDateTo').val();
+            if(fromDate && currentTo && currentTo < fromDate) {
+                $('#filterDateTo').val(fromDate); // تعديل "إلى" ليساوي "من"
+            }
+        });
+
+        // عند تغيير "إلى تاريخ"
+        $('#filterDateTo').on('change', function() {
+            let toDate = $(this).val();
+            $('#filterDateFrom').attr('max', toDate); // منع اختيار تاريخ "من" بعد "إلى"
+            
+            // تصحيح تلقائي
+            let currentFrom = $('#filterDateFrom').val();
+            if(toDate && currentFrom && currentFrom > toDate) {
+                $('#filterDateFrom').val(toDate); // تعديل "من" ليساوي "إلى"
+            }
+        });
+
+        // تشغيل التحقق عند التحميل لضبط القيود الأولية (بدون تحديث تلقائي)
+        if($('#filterDateFrom').val()) $('#filterDateTo').attr('min', $('#filterDateFrom').val());
+        if($('#filterDateTo').val()) $('#filterDateFrom').attr('max', $('#filterDateTo').val());
+    });
+
     function editExpense(data) {
         document.getElementById('editExpenseForm').action = `{{ url('store-owner/expenses') }}/${data.id}`;
         document.getElementById('edit_category_id').value = data.category_id;

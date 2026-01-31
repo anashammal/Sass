@@ -73,7 +73,7 @@
                     {{-- فلتر المورد --}}
                     <div class="col-md-3">
                         <label class="form-label small fw-bold text-muted">المورد</label>
-                        <select name="supplier_id" class="form-select">
+                        <select name="supplier_id" class="form-select auto-filter">
                             <option value="">-- كل الموردين --</option>
                             @foreach($suppliers as $sup)
                                 <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>
@@ -86,7 +86,7 @@
                     {{-- فلتر الحالة --}}
                     <div class="col-md-2">
                         <label class="form-label small fw-bold text-muted">حالة الدفع</label>
-                        <select name="payment_status" class="form-select">
+                        <select name="payment_status" class="form-select auto-filter">
                             <option value="">-- الكل --</option>
                             <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>مدفوعة</option>
                             <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>جزئية</option>
@@ -97,13 +97,19 @@
                     {{-- من تاريخ --}}
                     <div class="col-md-2">
                         <label class="form-label small fw-bold text-muted">من تاريخ</label>
-                        <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
+                            <input type="date" id="filterDateFrom" name="date_from" class="form-control enhanced-date-input auto-filter" value="{{ request('date_from') }}">
+                        </div>
                     </div>
 
                     {{-- إلى تاريخ --}}
                     <div class="col-md-2">
                         <label class="form-label small fw-bold text-muted">إلى تاريخ</label>
-                        <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
+                            <input type="date" id="filterDateTo" name="date_to" class="form-control enhanced-date-input auto-filter" value="{{ request('date_to') }}">
+                        </div>
                     </div>
 
                     {{-- أزرار التحكم والترتيب --}}
@@ -374,6 +380,34 @@
     }
 
     $(document).ready(function() {
+        // 1. التحديث التلقائي
+        $('.auto-filter').on('change', function() {
+            $('#filterForm').submit();
+        });
+
+        // 2. التحقق الذكي من التواريخ
+        $('#filterDateFrom').on('change', function() {
+            let fromDate = $(this).val();
+            $('#filterDateTo').attr('min', fromDate);
+            let currentTo = $('#filterDateTo').val();
+            if(fromDate && currentTo && currentTo < fromDate) {
+                $('#filterDateTo').val(fromDate);
+            }
+        });
+
+        $('#filterDateTo').on('change', function() {
+            let toDate = $(this).val();
+            $('#filterDateFrom').attr('max', toDate);
+            let currentFrom = $('#filterDateFrom').val();
+            if(toDate && currentFrom && currentFrom > toDate) {
+                $('#filterDateFrom').val(toDate);
+            }
+        });
+
+        // تشغيل التحقق البدئي (بدون تحديث تلقائي)
+        if($('#filterDateFrom').val()) $('#filterDateTo').attr('min', $('#filterDateFrom').val());
+        if($('#filterDateTo').val()) $('#filterDateFrom').attr('max', $('#filterDateTo').val());
+
         // عند الضغط على زر المعاينة
         $(document).on('click', '.view-invoice-btn', function() {
             var url = $(this).data('url');

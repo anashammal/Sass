@@ -40,18 +40,24 @@
             </div>
 
             {{-- فلاتر البحث --}}
-            <form method="GET" action="{{ route('reports.shifts') }}" class="row g-3 mb-4">
+            <form id="filterForm" method="GET" action="{{ route('reports.shifts') }}" class="row g-3 mb-4">
                 <div class="col-md-3">
-                    <label>من تاريخ</label>
-                    <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
+                    <label class="form-label fw-bold small text-muted">من تاريخ</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
+                        <input type="date" id="filterDateFrom" name="date_from" class="form-control enhanced-date-input auto-filter" value="{{ request('date_from') }}">
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label>إلى تاريخ</label>
-                    <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+                    <label class="form-label fw-bold small text-muted">إلى تاريخ</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
+                        <input type="date" id="filterDateTo" name="date_to" class="form-control enhanced-date-input auto-filter" value="{{ request('date_to') }}">
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label>الموظف</label>
-                    <select name="user_id" class="form-select">
+                    <label class="form-label fw-bold small text-muted">الموظف</label>
+                    <select name="user_id" class="form-select auto-filter">
                         <option value="">الكل</option>
                         @foreach($users as $user)
                             <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
@@ -59,7 +65,9 @@
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter"></i> عرض التقرير</button>
+                    <a href="{{ route('reports.shifts') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-undo me-1"></i> إعادة تعيين
+                    </a>
                 </div>
             </form>
 
@@ -185,4 +193,38 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function() {
+        // 1. التحديث التلقائي
+        $('.auto-filter').on('change', function() {
+            $('#filterForm').submit();
+        });
+
+        // 2. التحقق الذكي من التواريخ
+        $('#filterDateFrom').on('change', function() {
+            let fromDate = $(this).val();
+            $('#filterDateTo').attr('min', fromDate);
+            let currentTo = $('#filterDateTo').val();
+            if(fromDate && currentTo && currentTo < fromDate) {
+                $('#filterDateTo').val(fromDate);
+            }
+        });
+
+        $('#filterDateTo').on('change', function() {
+            let toDate = $(this).val();
+            $('#filterDateFrom').attr('max', toDate);
+            let currentFrom = $('#filterDateFrom').val();
+            if(toDate && currentFrom && currentFrom > toDate) {
+                $('#filterDateFrom').val(toDate);
+            }
+        });
+
+        // تشغيل التحقق البدئي (بدون تحديث تلقائي)
+        if($('#filterDateFrom').val()) $('#filterDateTo').attr('min', $('#filterDateFrom').val());
+        if($('#filterDateTo').val()) $('#filterDateFrom').attr('max', $('#filterDateTo').val());
+    });
+</script>
 @endsection

@@ -61,6 +61,32 @@
     .form-control, .form-select, .btn {
         font-size: 0.9rem !important;
     }
+
+    /* 🔥 تحسين حقول التاريخ (طلب المستخدم) 🔥 */
+    .enhanced-date-input {
+        font-family: 'Segoe UI', 'Roboto', sans-serif !important; /* خط انجليزي واضح للأرقام */
+        font-size: 1.05rem !important; /* تكبير الخط قليلاً */
+        font-weight: 600 !important;   /* تعريض الخط */
+        direction: ltr !important;     /* إجبار الاتجاه يسار-يمين لظهور الأرقام بشكل صحيح */
+        text-align: center !important; /* توسيط التاريخ */
+        padding: 4px 8px !important;   /* ضبط الحوامش */
+        letter-spacing: 0.5px;         /* تباعد خفيف للأرقام */
+        cursor: pointer !important;    /* المؤشر يدل على القابلية للنقر */
+    }
+    
+    /* جعل الحقل بالكامل منطقة نقر لفتح التقويم */
+    .enhanced-date-input::-webkit-calendar-picker-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        color: transparent;
+        background: transparent;
+        cursor: pointer;
+    }
     
     /* تنسيق خاص للطباعة (لإلغاء التصغير عند الطباعة) */
     @media print {
