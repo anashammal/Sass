@@ -93,7 +93,7 @@
         border-radius: 8px;
         border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    .pay-select { flex: 1; height: 32px; font-size: 0.8rem; background: transparent; border: none; color: #fff; }
+    .pay-select { flex: 1; height: 38px; font-size: 0.85rem; background: transparent; border: none; color: #fff; padding: 5px; }
     .pay-input { flex: 1; height: 32px; font-size: 0.95rem; font-weight: bold; text-align: center; background: transparent; border: none; color: #2ecc71; }
     .pay-input::placeholder { color: rgba(255,255,255,0.3); }
     
