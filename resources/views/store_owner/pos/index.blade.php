@@ -170,7 +170,7 @@
 
             <div class="table-responsive flex-grow-1">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light sticky-top" style="z-index: 1;">
+                    <thead class="bg-light sticky-top" style="z-index: 1; display: none;">
                         <tr>
                             <th class="ps-4" width="5%">#</th>
                             <th width="15%">الباركود</th>
@@ -1169,6 +1169,13 @@
 
         document.getElementById('itemsCount').innerText = count;
         document.getElementById('emptyCartMsg').style.display = cart.length ? 'none' : 'block';
+        
+        // إخفاء/إظهار صف العناوين (thead) بناءً على حالة السلة
+        const tableHead = document.querySelector('#cartTableBody').closest('table').querySelector('thead');
+        if (tableHead) {
+            tableHead.style.display = cart.length ? '' : 'none';
+        }
+        
         window.currentTotal = total;
         roundingDifference = 0; 
         calculateRemaining();
