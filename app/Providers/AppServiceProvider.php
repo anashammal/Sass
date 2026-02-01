@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrap();
 
-        if (env('APP_ENV') === 'production' || env('FORCE_HTTPS', false)) {
+        if (env('APP_ENV') === 'production' || env('FORCE_HTTPS', false) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) {
             URL::forceScheme('https');
         }
 
