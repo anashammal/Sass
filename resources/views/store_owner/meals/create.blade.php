@@ -68,8 +68,12 @@
                                         <label class="form-check-label fw-bold text-success" for="type_ingredient">مادة خام / مكون (شراء فقط)</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="product_type" id="type_standard" value="standard" {{ old('product_type') == 'standard' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
-                                        <label class="form-check-label fw-bold" for="type_standard">منتج جاهز (شراء وبيع مباشرة)</label>
+                                        <input class="form-check-input" type="radio" name="product_type" id="type_standard" value="standard" {{ old('product_type', 'meal') == 'standard' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
+                                        <label class="form-check-label fw-bold" for="type_standard">منتج جاهز (شراء وبيع)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="product_type" id="type_compound" value="compound" {{ old('product_type') == 'compound' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
+                                        <label class="form-check-label fw-bold text-primary" for="type_compound">مكون مركب (تحضير داخلي)</label>
                                     </div>
                                 </div>
                             </div>
@@ -107,11 +111,11 @@
                                 <label class="form-label small text-danger fw-bold" id="purchase_label">تكلفة الإنتاج / الشراء</label>
                                 <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', 0) }}" required oninput="calculateBaseCost()">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3" id="selling_price_div">
                                 <label class="form-label small text-success fw-bold">سعر البيع</label>
                                 <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', 0) }}" required oninput="calculateMargin()">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3" id="margin_div">
                                 <label class="form-label small text-muted">الربح %</label>
                                 <input type="number" step="any" name="base_profit_percent" id="base_margin" class="form-control text-center text-primary" value="{{ old('base_profit_percent', 0) }}" oninput="calculatePriceFromMargin()">
                             </div>
@@ -189,23 +193,44 @@
         
         let isSale = document.getElementById('base_is_sale');
         let isPurchase = document.getElementById('base_is_purchase');
+        
+        // Selling Price Input Divs
+        let sellDiv = document.getElementById('selling_price_div');
+        let marginDiv = document.getElementById('margin_div');
+        let tradeDiv = document.getElementById('trade_checkboxes'); // Force check later if needed
 
         if (type === 'meal') {
             section.style.display = 'block';
+            sellDiv.style.display = 'block';
+            marginDiv.style.display = 'block';
             isSale.checked = true;
             isPurchase.checked = false;
-            
+
             document.getElementById('purchase_label').innerText = 'تكلفة المكونات (آلي)';
             document.getElementById('purchase_price').readOnly = true;
         } else if (type === 'ingredient') {
             section.style.display = 'none';
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
             isSale.checked = false;
             isPurchase.checked = true;
 
             document.getElementById('purchase_label').innerText = 'سعر الشراء';
             document.getElementById('purchase_price').readOnly = false;
+        } else if (type === 'compound') { // New Compound Type
+            section.style.display = 'block'; // Shows Recipe
+            sellDiv.style.display = 'none'; // No Selling Price
+            marginDiv.style.display = 'none';
+            isSale.checked = false;
+            isPurchase.checked = false; // Internal Use
+
+            document.getElementById('purchase_label').innerText = 'تكلفة التحضير (آلي)';
+            document.getElementById('purchase_price').readOnly = true;
         } else {
+            // Standard
             section.style.display = 'none';
+            sellDiv.style.display = 'block';
+            marginDiv.style.display = 'block';
             isSale.checked = true;
             isPurchase.checked = true;
 

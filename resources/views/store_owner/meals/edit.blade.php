@@ -71,6 +71,10 @@
                                         <input class="form-check-input" type="radio" name="product_type" id="type_standard" value="standard" {{ old('product_type', $meal->product_type) == 'standard' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
                                         <label class="form-check-label fw-bold" for="type_standard">منتج جاهز (شراء وبيع)</label>
                                     </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="product_type" id="type_compound" value="compound" {{ old('product_type', $meal->product_type) == 'compound' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
+                                        <label class="form-check-label fw-bold text-primary" for="type_compound">مكون مركب (تحضير داخلي)</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -89,17 +93,31 @@
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label small">اسم الوحدة</label>
-                                <input type="text" name="base_unit_name" class="form-control" value="{{ old('base_unit_name', $base->unit_name) }}" required>
+                                @php
+                                    $standardCS = ['قطعة', 'كيلوغرام', 'غرام'];
+                                    $isCustom = !in_array($base->unit_name, $standardCS);
+                                    $selectVal = $isCustom ? 'custom' : $base->unit_name;
+                                @endphp
+                                <select name="base_unit_select" id="base_unit_select" class="form-select" onchange="toggleCustomUnitInput()">
+                                    <option value="قطعة" {{ $selectVal == 'قطعة' ? 'selected' : '' }}>قطعة</option>
+                                    <option value="كيلوغرام" {{ $selectVal == 'كيلوغرام' ? 'selected' : '' }}>كيلوغرام</option>
+                                    <option value="غرام" {{ $selectVal == 'غرام' ? 'selected' : '' }}>غرام</option>
+                                    <option value="custom" {{ $selectVal == 'custom' ? 'selected' : '' }}>مخصص (أدخل يدوياً)</option>
+                                </select>
+                                <input type="text" name="base_unit_name" id="base_unit_custom" class="form-control mt-2" 
+                                    style="{{ $isCustom ? '' : 'display: none;' }}" 
+                                    value="{{ old('base_unit_name', $base->unit_name) }}" 
+                                    {{ $isCustom ? '' : 'disabled' }}>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small text-danger fw-bold" id="purchase_label">تكلفة الإنتاج / الشراء</label>
                                 <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', (float)$base->purchase_price) }}" required oninput="calculateBaseCost()">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3" id="selling_price_div">
                                 <label class="form-label small text-success fw-bold">سعر البيع</label>
                                 <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', (float)$base->selling_price) }}" required oninput="calculateMargin()">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3" id="margin_div">
                                 <label class="form-label small text-muted">الربح %</label>
                                 <input type="number" step="any" name="base_profit_percent" id="base_margin" class="form-control text-center text-primary" value="{{ old('base_profit_percent', (float)$base->profit_percent) }}" oninput="calculatePriceFromMargin()">
                             </div>
@@ -212,8 +230,14 @@
         let isSale = document.getElementById('base_is_sale');
         let isPurchase = document.getElementById('base_is_purchase');
 
+        // Selling Price Input Divs
+        let sellDiv = document.getElementById('selling_price_div');
+        let marginDiv = document.getElementById('margin_div');
+
         if (type === 'meal') {
             section.style.display = 'block';
+            sellDiv.style.display = 'block';
+            marginDiv.style.display = 'block';
             isSale.checked = true;
             isPurchase.checked = false;
             
@@ -221,13 +245,26 @@
             document.getElementById('purchase_price').readOnly = true;
         } else if (type === 'ingredient') {
             section.style.display = 'none';
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
             isSale.checked = false;
             isPurchase.checked = true;
 
             document.getElementById('purchase_label').innerText = 'سعر الشراء';
             document.getElementById('purchase_price').readOnly = false;
+        } else if (type === 'compound') { // New Compound Type
+            section.style.display = 'block'; // Shows Recipe
+            sellDiv.style.display = 'none'; // No Selling Price
+            marginDiv.style.display = 'none';
+            isSale.checked = false;
+            isPurchase.checked = false; // Internal Use
+
+            document.getElementById('purchase_label').innerText = 'تكلفة التحضير (آلي)';
+            document.getElementById('purchase_price').readOnly = true;
         } else {
             section.style.display = 'none';
+            sellDiv.style.display = 'block';
+            marginDiv.style.display = 'block';
             isSale.checked = true;
             isPurchase.checked = true;
 
@@ -338,8 +375,21 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         toggleRecipeBuilder();
-        calculateTotalRecipe(); // Ensure total is correct on load
+        calculateTotalRecipe();
+        toggleCustomUnitInput();
     });
+
+    function toggleCustomUnitInput() {
+        let select = document.getElementById('base_unit_select');
+        let input = document.getElementById('base_unit_custom');
+        if (select.value === 'custom') {
+            input.style.display = 'block';
+            input.disabled = false;
+        } else {
+            input.style.display = 'none';
+            input.disabled = true;
+        }
+    }
 </script>
 @endsection
 @endsection

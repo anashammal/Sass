@@ -78,7 +78,7 @@ class MealController extends Controller
         $taxRates = explode(',', $store->tax_rates ?? '0,15');
         
         $ingredients = Product::where('store_id', $store->id)
-                ->whereIn('product_type', ['standard', 'ingredient'])
+                ->whereIn('product_type', ['standard', 'ingredient', 'compound']) // Allow Compound
                 ->with('units')
                 ->get();
 
@@ -131,14 +131,19 @@ class MealController extends Controller
 
             // If Count > 1, create Base Unit (Small) AND Purchase Unit (Big)
             if ($subUnitCount > 1 && !empty($request->sub_unit_name)) {
+                
+                $mainUnitSellingPrice = (float)$request->base_selling_price;
+                $baseUnitSellingPrice = ($subUnitCount > 0) ? ($mainUnitSellingPrice / $subUnitCount) : 0;
+
                 // 1. Create Base Unit (Smallest, e.g. Loaf)
-                $baseCost = $purchasePrice / $subUnitCount;
+                $baseCost = ($subUnitCount > 0) ? ($purchasePrice / $subUnitCount) : 0;
+                
                 $product->units()->create([
                     'unit_name' => $request->sub_unit_name, 
                     'conversion_factor' => 1,
                     'purchase_price' => $baseCost,
                     'cost_price' => $baseCost,
-                    'selling_price' => (float)$request->base_selling_price, // Assuming selling price is for the base unit
+                    'selling_price' => $baseUnitSellingPrice, // Calculated from Main Input
                     'profit_percent' => (float)$request->base_profit_percent,
                     'barcode' => $barcode,
                     'is_base_unit' => true,
@@ -152,11 +157,11 @@ class MealController extends Controller
                     'conversion_factor' => $subUnitCount,
                     'purchase_price' => $purchasePrice,
                     'cost_price' => $purchasePrice,
-                    'selling_price' => (float)$request->base_selling_price * $subUnitCount, // Logic guess: sell bag?
+                    'selling_price' => $mainUnitSellingPrice, // User Input IS the Main Unit Price
                     'profit_percent' => (float)$request->base_profit_percent,
                     'is_base_unit' => false,
-                    'is_purchase' => $request->has('base_is_purchase'), // Purchase is on the BIG unit
-                    'is_sale' => $request->has('base_is_sale'), // Maybe sell big unit too
+                    'is_purchase' => $request->has('base_is_purchase'), 
+                    'is_sale' => $request->has('base_is_sale'), 
                 ]);
 
             } else {
@@ -177,6 +182,44 @@ class MealController extends Controller
                     'is_sale' => $request->has('base_is_sale'),
                 ]);
             }
+
+            // --- Auto-Link Kg/Gram Logic ---
+            $baseNameLower = strtolower(trim($request->base_unit_name));
+            $isKg = in_array($baseNameLower, ['كيلوغرام', 'kg', 'kilo']);
+            $isGram = in_array($baseNameLower, ['غرام', 'gram', 'g']);
+
+            if ($isKg) {
+                // Base is Kg -> Create Gram (Factor 0.001)
+                $product->units()->firstOrCreate(
+                    ['unit_name' => 'غرام', 'product_id' => $product->id],
+                    [
+                        'conversion_factor' => 0.001,
+                        'purchase_price' => $baseCost * 0.001,
+                        'cost_price' => $baseCost * 0.001,
+                        'selling_price' => ((float)$request->base_selling_price) * 0.001,
+                        'profit_percent' => (float)$request->base_profit_percent,
+                        'is_base_unit' => false,
+                        'is_purchase' => true,
+                        'is_sale' => true
+                    ]
+                );
+            } elseif ($isGram) {
+                // Base is Gram -> Create Kg (Factor 1000)
+                $product->units()->firstOrCreate(
+                    ['unit_name' => 'كيلوغرام', 'product_id' => $product->id],
+                    [
+                        'conversion_factor' => 1000,
+                        'purchase_price' => $baseCost * 1000,
+                        'cost_price' => $baseCost * 1000,
+                        'selling_price' => ((float)$request->base_selling_price) * 1000,
+                        'profit_percent' => (float)$request->base_profit_percent,
+                        'is_base_unit' => false,
+                        'is_purchase' => true,
+                        'is_sale' => true
+                    ]
+                );
+            }
+            // --------------------------------
 
             if ($request->has('units') && is_array($request->units)) {
                 foreach ($request->units as $index => $unitData) {
@@ -208,10 +251,11 @@ class MealController extends Controller
                         $extraUnit->addMediaFromRequest("units.$index.image")->toMediaCollection('unit_images');
                     }
                 }
+
             }
 
-            // Recipe logic
-            if ($product->product_type == 'meal' && $request->has('recipe')) {
+            // Recipe logic (For Meals AND Compound Ingredients)
+            if (in_array($product->product_type, ['meal', 'compound']) && $request->has('recipe')) {
                 foreach ($request->recipe as $recipeData) {
                     if (!empty($recipeData['ingredient_id'])) {
                         $ing = Product::find($recipeData['ingredient_id']);
@@ -245,7 +289,7 @@ class MealController extends Controller
         $taxRates = explode(',', $store->tax_rates ?? '0,15');
         
         $ingredients = Product::where('store_id', $store->id)
-                ->whereIn('product_type', ['standard', 'ingredient'])
+                ->whereIn('product_type', ['standard', 'ingredient', 'compound']) // Allow Compound as Ingredient
                 ->with('units')
                 ->get();
         $meal->load('recipes.ingredient.units');
@@ -312,7 +356,45 @@ class MealController extends Controller
                     if (isset($u['id'])) $submittedUnitIds[] = $u['id'];
                 }
             }
+            // Do not delete auto-generated units (check logic if needed but simple delete except submitted is tricky if we auto-gen)
+            // For now, standard delete works manually.
             $meal->units()->where('is_base_unit', false)->whereNotIn('id', $submittedUnitIds)->delete();
+
+            // --- Auto-Link Kg/Gram Logic (Update) ---
+            $baseNameLower = strtolower(trim($request->base_unit_name));
+            $isKg = in_array($baseNameLower, ['كيلوغرام', 'kg', 'kilo']);
+            $isGram = in_array($baseNameLower, ['غرام', 'gram', 'g']);
+
+            if ($isKg) {
+                $meal->units()->firstOrCreate(
+                    ['unit_name' => 'غرام', 'product_id' => $meal->id],
+                    [
+                        'conversion_factor' => 0.001,
+                        'purchase_price' => $baseCost * 0.001,
+                        'cost_price' => $baseCost * 0.001,
+                        'selling_price' => ((float)$request->base_selling_price) * 0.001,
+                        'profit_percent' => (float)$request->base_profit_percent,
+                        'is_base_unit' => false,
+                        'is_purchase' => true,
+                        'is_sale' => true
+                    ]
+                );
+            } elseif ($isGram) {
+                $meal->units()->firstOrCreate(
+                    ['unit_name' => 'كيلوغرام', 'product_id' => $meal->id],
+                    [
+                        'conversion_factor' => 1000,
+                        'purchase_price' => $baseCost * 1000,
+                        'cost_price' => $baseCost * 1000,
+                        'selling_price' => ((float)$request->base_selling_price) * 1000,
+                        'profit_percent' => (float)$request->base_profit_percent,
+                        'is_base_unit' => false,
+                        'is_purchase' => true,
+                        'is_sale' => true
+                    ]
+                );
+            }
+            // --------------------------------
 
             if ($request->has('units') && is_array($request->units)) {
                 foreach ($request->units as $index => $unitData) {
@@ -353,7 +435,7 @@ class MealController extends Controller
             }
 
             // Sync recipe
-            if ($meal->product_type == 'meal') {
+            if (in_array($meal->product_type, ['meal', 'compound'])) {
                 $meal->recipes()->delete();
                 if ($request->has('recipe')) {
                     foreach ($request->recipe as $recipeData) {
