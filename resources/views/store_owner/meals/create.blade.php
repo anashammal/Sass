@@ -7,6 +7,18 @@
         <a href="{{ route('store.meals.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-right me-1"></i> العودة للمنيو</a>
     </div>
 
+    @if (session('success'))
+        <div class="alert alert-success shadow-sm">
+            <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger shadow-sm">
+            <i class="fas fa-exclamation-triangle me-1"></i> {{ session('error') }}
+        </div>
+    @endif
+
     @if ($errors->any())
         <div class="alert alert-danger shadow-sm">
             <ul class="mb-0">
@@ -39,9 +51,9 @@
                         <input type="text" name="name_en" class="form-control" value="{{ old('name_en') }}">
                     </div>
                     
-                    <div class="col-md-6">
+                    <div class="col-md-6" id="category_div">
                         <label class="form-label fw-bold">تصنيف المنيو <span class="text-danger">*</span></label>
-                        <select name="category_id" class="form-select" required>
+                        <select name="category_id" id="category_id" class="form-select" required>
                             <option value="">-- اختر التصنيف --</option>
                             @foreach ($categories as $cat)
                                 <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
@@ -90,22 +102,25 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
+                            <div class="col-md-3">
                                 <label class="form-label small">اسم الوحدة الرئيسية</label>
                                 <select name="base_unit_select" id="base_unit_select" class="form-select" onchange="toggleCustomUnitInput()">
                                     <option value="قطعة">قطعة</option>
                                     <option value="كيلوغرام">كيلوغرام</option>
                                     <option value="غرام">غرام</option>
+                                    <option value="ليتر">ليتر</option>
+                                    <option value="مل">مل</option>
                                     <option value="custom">مخصص (أدخل يدوياً)</option>
                                 </select>
                                 <input type="text" name="base_unit_name" id="base_unit_custom" class="form-control mt-2" style="display: none;" placeholder="اسم الوحدة (مثال: ربطة)" disabled value="{{ old('base_unit_name') }}">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small text-muted">يحتوي على (عدد/كمية)</label>
-                                <input type="number" step="any" name="sub_unit_count" id="sub_unit_count" class="form-control text-center" value="{{ old('sub_unit_count', 1) }}" oninput="toggleSubUnitField()">
+                                <label class="form-label small text-muted">عدد القطع بالعبوة</label>
+                                <input type="number" step="any" name="pieces_per_unit" id="pieces_per_unit" class="form-control text-center" value="{{ old('pieces_per_unit', 1) }}" oninput="toggleSubUnitField()">
                             </div>
                             <div class="col-md-3" id="sub_unit_name_div" style="display: none;">
-                                <label class="form-label small text-info">اسم الوحدة الفرعية</label>
-                                <input type="text" name="sub_unit_name" id="sub_unit_name" class="form-control" value="{{ old('sub_unit_name') }}" placeholder="مثال: رغيف، غرام">
+                                <label class="form-label small text-info">اسم القطعة (اختياري)</label>
+                                <input type="text" name="sub_unit_name" id="sub_unit_name" class="form-control" value="{{ old('sub_unit_name') }}" placeholder="مثال: حبة، غرام">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small text-danger fw-bold" id="purchase_label">تكلفة الإنتاج / الشراء</label>
@@ -130,15 +145,52 @@
                                     <img id="base_preview" src="#" alt="معاينة الصورة" class="img-thumbnail d-none" style="max-height: 80px;">
                                 </div>
                             </div>
-                            <div class="col-md-3 d-flex align-items-end gap-3 pb-1" id="trade_checkboxes" style="display: none !important;">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="base_is_purchase" id="base_is_purchase" checked>
-                                    <label class="form-check-label small fw-bold" for="base_is_purchase">شراء</label>
+                                <div class="col-md-3 d-flex align-items-end justify-content-start gap-3 pb-1" id="trade_checkboxes">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="base_is_purchase" id="base_is_purchase" checked>
+                                        <label class="form-check-label small fw-bold" for="base_is_purchase">شراء</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" checked>
+                                        <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+                                    </div>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" checked>
-                                    <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+                                
+                                {{-- توضيح تكلفة التفكيك --}}
+                                <div class="col-12 mt-2" id="unit_breakdown_div" style="display: none;">
+                                    <div class="alert alert-info py-2 mb-0 border-0 shadow-sm d-flex justify-content-between align-items-center">
+                                        <span class="small fw-bold"><i class="fas fa-info-circle me-1"></i> تكلفة القطعة الواحدة (<span id="item_name_at_breakdown">...</span>):</span>
+                                        <span class="english-num fw-bold fs-5 text-danger" id="cost_per_piece_display">0.00</span>
+                                    </div>
                                 </div>
+                        </div>
+
+                        {{-- الوحدات الإضافية (تظهر فقط للمنتجات الجاهزة) --}}
+                        <div id="extra_units_section" style="display: none;">
+                            <hr class="my-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-layer-group me-1"></i> الوحدات الإضافية (كرتون، درزن...)</h6>
+                                <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="addExtraUnit()"><i class="fa fa-plus me-1"></i> إضافة وحدة</button>
+                            </div>
+                            <div id="extra_units_container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- إعدادات المخزون (تنبيهات واستحقاق) - تظهر فقط للمنتجات الجاهزة --}}
+                <div class="card border-warning shadow-sm mb-3" id="inventory_settings_div" style="display: none;">
+                    <div class="card-header bg-warning text-dark fw-bold">
+                        <i class="fas fa-boxes me-1"></i> إعدادات المخزون
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">تنبيه انخفاض الكمية (Alert Quantity)</label>
+                                <input type="number" name="alert_quantity" class="form-control" value="5">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">تنبيه انتهاء الصلاحية (بالأيام)</label>
+                                <input type="number" name="expiry_warning_days" class="form-control" value="30">
                             </div>
                         </div>
                     </div>
@@ -187,9 +239,79 @@
 
 @section('scripts')
 <script>
+    let unitIndex = 0;
+
+    function addExtraUnit(data = null) {
+        let tpl = document.getElementById('unit_template').innerHTML.replace(/INDEX/g, unitIndex);
+        document.getElementById('extra_units_container').insertAdjacentHTML('beforeend', tpl);
+        
+        let row = document.getElementById('extra_units_container').lastElementChild;
+        if(data) {
+            // Fill data if needed (for edit/old)
+        }
+        calculateUnitCost(row.querySelector('.unit-factor'));
+        unitIndex++;
+    }
+
+    function handleUnitChange(select) {
+        let input = select.nextElementSibling; 
+        if (select.value === 'custom') {
+            input.classList.remove('d-none');
+            input.required = true;
+            input.focus();
+        } else {
+            input.classList.add('d-none');
+            input.required = false;
+            input.value = select.value;
+        }
+    }
+
+    function calculateUnitCost(input) {
+        let row = input.closest('.unit-row');
+        let baseCost = parseFloat(document.getElementById('purchase_price').value) || 0;
+        let factor = parseFloat(row.querySelector('.unit-factor').value) || 0;
+        let pieces = parseFloat(document.getElementById('pieces_per_unit').value) || 1;
+        
+        // Base cost per piece if sub_unit_count > 1
+        let baseCostPerPiece = (pieces > 0) ? (baseCost / pieces) : baseCost;
+        
+        let newCost = baseCostPerPiece * factor;
+        row.querySelector('.unit-cost').value = newCost.toFixed(2);
+        
+        let profitInput = row.querySelector('.unit-profit');
+        calcExtraUnitSell(profitInput);
+    }
+
+    function calcExtraUnitSell(input) {
+        let row = input.closest('.unit-row');
+        let cost = parseFloat(row.querySelector('.unit-cost').value) || 0;
+        let profit = parseFloat(input.value) || 0;
+        let sellInput = row.querySelector('.unit-sell');
+        if(cost > 0) {
+            let sellingPrice = cost * (1 + (profit / 100));
+            sellInput.value = sellingPrice.toFixed(2);
+        }
+    }
+
+    function calcExtraUnitProfit(input) {
+        let row = input.closest('.unit-row');
+        let cost = parseFloat(row.querySelector('.unit-cost').value) || 0;
+        let sell = parseFloat(input.value) || 0;
+        let profitInput = row.querySelector('.unit-profit');
+        if(cost > 0) {
+            let profitPercent = ((sell - cost) / cost) * 100;
+            profitInput.value = profitPercent.toFixed(2);
+        }
+    }
+
+    function updateAllUnitsCosts() {
+        document.querySelectorAll('.unit-factor').forEach(i => calculateUnitCost(i));
+    }
+
     function toggleRecipeBuilder() {
         let type = document.querySelector('input[name="product_type"]:checked')?.value;
         let section = document.getElementById('recipe_builder_section');
+        let extraUnitsSection = document.getElementById('extra_units_section');
         
         let isSale = document.getElementById('base_is_sale');
         let isPurchase = document.getElementById('base_is_purchase');
@@ -197,12 +319,17 @@
         // Selling Price Input Divs
         let sellDiv = document.getElementById('selling_price_div');
         let marginDiv = document.getElementById('margin_div');
-        let tradeDiv = document.getElementById('trade_checkboxes'); // Force check later if needed
+        let tradeDiv = document.getElementById('trade_checkboxes'); 
+        let catDiv = document.getElementById('category_div');
+        let catInput = document.getElementById('category_id');
 
         if (type === 'meal') {
             section.style.display = 'block';
+            extraUnitsSection.style.display = 'none';
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
+            catDiv.style.display = 'block';
+            catInput.required = true;
             isSale.checked = true;
             isPurchase.checked = false;
 
@@ -210,8 +337,11 @@
             document.getElementById('purchase_price').readOnly = true;
         } else if (type === 'ingredient') {
             section.style.display = 'none';
+            extraUnitsSection.style.display = 'none';
             sellDiv.style.display = 'none';
             marginDiv.style.display = 'none';
+            catDiv.style.display = 'none';
+            catInput.required = false;
             isSale.checked = false;
             isPurchase.checked = true;
 
@@ -219,23 +349,37 @@
             document.getElementById('purchase_price').readOnly = false;
         } else if (type === 'compound') { // New Compound Type
             section.style.display = 'block'; // Shows Recipe
+            extraUnitsSection.style.display = 'none';
             sellDiv.style.display = 'none'; // No Selling Price
             marginDiv.style.display = 'none';
+            catDiv.style.display = 'none';
+            catInput.required = false;
             isSale.checked = false;
             isPurchase.checked = false; // Internal Use
 
             document.getElementById('purchase_label').innerText = 'تكلفة التحضير (آلي)';
             document.getElementById('purchase_price').readOnly = true;
         } else {
-            // Standard
+            // Standard (Ready Product)
             section.style.display = 'none';
+            extraUnitsSection.style.display = 'block';
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
+            catDiv.style.display = 'none'; // Hide Category for Ready Products per user request
+            catInput.required = false;
             isSale.checked = true;
             isPurchase.checked = true;
 
             document.getElementById('purchase_label').innerText = 'سعر الشراء';
             document.getElementById('purchase_price').readOnly = false;
+        }
+
+        // Toggle Inventory Settings
+        let invDiv = document.getElementById('inventory_settings_div');
+        if (type === 'standard') {
+            invDiv.style.display = 'block';
+        } else {
+            invDiv.style.display = 'none';
         }
     }
 
@@ -253,7 +397,7 @@
 
     // Cost logic
     function toggleSubUnitField() {
-        let count = parseFloat(document.getElementById('sub_unit_count').value) || 1;
+        let count = parseFloat(document.getElementById('pieces_per_unit').value) || 1;
         let div = document.getElementById('sub_unit_name_div');
         if (count > 1) {
             div.style.display = 'block';
@@ -262,20 +406,49 @@
             div.style.display = 'none';
             document.getElementById('sub_unit_name').required = false;
         }
+        updateUnitBreakdown();
+        updateAllUnitsCosts();
     }
 
     function calculateBaseCost() {
         calculateMargin();
+        updateAllUnitsCosts();
     }
     function calculateMargin() {
         let cost = parseFloat(document.getElementById('purchase_price').value) || 0;
         let sell = parseFloat(document.getElementById('base_sell').value) || 0;
-        if(cost > 0) document.getElementById('base_margin').value = (((sell - cost) / cost) * 100).toFixed(2);
+        
+        let marginInput = document.getElementById('base_margin');
+        if(cost > 0) {
+            marginInput.value = (((sell - cost) / cost) * 100).toFixed(2);
+        } else {
+            marginInput.value = 0;
+        }
+        updateUnitBreakdown();
     }
     function calculatePriceFromMargin() {
         let cost = parseFloat(document.getElementById('purchase_price').value) || 0;
         let margin = parseFloat(document.getElementById('base_margin').value) || 0;
+        
         document.getElementById('base_sell').value = (cost * (1 + (margin / 100))).toFixed(2);
+        updateUnitBreakdown();
+    }
+
+    function updateUnitBreakdown() {
+        let cost = parseFloat(document.getElementById('purchase_price').value) || 0;
+        let pieces = parseFloat(document.getElementById('pieces_per_unit').value) || 1;
+        let itemName = document.getElementById('sub_unit_name').value || 'قطعة';
+        
+        let subDiv = document.getElementById('unit_breakdown_div');
+        if (subDiv) {
+            if (pieces > 1) {
+                subDiv.style.display = 'block';
+                document.getElementById('item_name_at_breakdown').innerText = itemName;
+                document.getElementById('cost_per_piece_display').innerText = (cost / pieces).toFixed(2);
+            } else {
+                subDiv.style.display = 'none';
+            }
+        }
     }
 
     // Recipe Builder with Unit Support
@@ -317,16 +490,12 @@
 
         let units = JSON.parse(decodeURIComponent(opt.dataset.units));
         
-        // Show units: if empty, show just the product name?
-        // Usually product has at least one unit (base).
         units.forEach(u => {
             let label = u.unit_name;
-            // Optionally add price hint: ${label} (${u.cost_price})
             let selected = u.is_base_unit ? 'selected' : '';
             unitSelect.innerHTML += `<option value="${u.id}" ${selected} data-cost="${u.cost_price}">${label}</option>`;
         });
         
-        // Trigger calculation updates
         updateRecipeEntry(unitSelect);
     }
 
@@ -379,4 +548,69 @@
     }
 </script>
 @endsection
+{{-- قالب الوحدة الإضافية --}}
+<template id="unit_template">
+    <div class="unit-row card border-secondary mb-2 shadow-sm position-relative">
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-2 bg-danger" onclick="this.closest('.unit-row').remove()"></button>
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-2 text-center">
+                    <img id="preview_INDEX" src="{{ asset('images/default-product.png') }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: contain;">
+                    <input type="file" name="units[INDEX][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="previewImage(this, 'preview_INDEX')">
+                </div>
+                
+                <div class="col-md-10">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="small fw-bold">اسم الوحدة</label>
+                            <select name="units[INDEX][name_select]" class="form-select form-select-sm unit-select fw-bold" onchange="handleUnitChange(this)">
+                                <option value="كرتون">كرتون</option>
+                                <option value="درزن">درزن</option>
+                                <option value="شريط">شريط</option>
+                                <option value="custom">مخصص..</option>
+                            </select>
+                            <input type="text" name="units[INDEX][name]" class="form-control form-control-sm d-none mt-1 unit-custom-input fw-bold" placeholder="اكتب الاسم">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="small fw-bold">التحويل</label>
+                            <input type="number" step="any" name="units[INDEX][factor]" class="form-control form-control-sm unit-factor fw-bold text-center" value="1" oninput="calculateUnitCost(this)">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="small fw-bold">الباركود</label>
+                            <input type="text" name="units[INDEX][barcode]" class="form-control form-control-sm fw-bold">
+                        </div>
+
+                        <div class="col-md-4 d-flex align-items-end justify-content-start gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="units[INDEX][is_purchase]" checked>
+                                <label class="form-check-label small fw-bold">شراء</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="units[INDEX][is_sale]" checked>
+                                <label class="form-check-label small fw-bold">بيع</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold">التكلفة (آلي)</label>
+                            <input type="number" step="any" name="units[INDEX][cost_price]" class="form-control form-control-sm bg-light unit-cost fw-bold text-danger text-center" readonly>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-primary">الربح %</label>
+                            <input type="number" step="any" name="units[INDEX][profit_percent]" class="form-control form-control-sm unit-profit fw-bold text-primary text-center" oninput="calcExtraUnitSell(this)">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="small text-success fw-bold">سعر البيع</label>
+                            <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success text-center" oninput="calcExtraUnitProfit(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
 @endsection

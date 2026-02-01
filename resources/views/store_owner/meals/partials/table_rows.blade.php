@@ -20,6 +20,10 @@
     <td>
         @if($product->product_type == 'meal')
             <span class="badge bg-danger">وجبة وجاهزة</span>
+        @elseif($product->product_type == 'standard')
+            <span class="badge bg-primary">منتج جاهز</span>
+        @elseif($product->product_type == 'compound')
+            <span class="badge bg-secondary">مكون مركب</span>
         @else
             <span class="badge bg-success">مادة خام</span>
         @endif

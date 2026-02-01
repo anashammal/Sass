@@ -7,6 +7,18 @@
         <a href="{{ route('store.meals.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-right me-1"></i> العودة للمنيو</a>
     </div>
 
+    @if (session('success'))
+        <div class="alert alert-success shadow-sm">
+            <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger shadow-sm">
+            <i class="fas fa-exclamation-triangle me-1"></i> {{ session('error') }}
+        </div>
+    @endif
+
     @if ($errors->any())
         <div class="alert alert-danger shadow-sm">
             <ul class="mb-0">
@@ -40,9 +52,10 @@
                         <input type="text" name="name_en" class="form-control" value="{{ old('name_en', $meal->name_en) }}">
                     </div>
                     
-                    <div class="col-md-6">
+                    <div class="col-md-6" id="category_div">
                         <label class="form-label fw-bold">تصنيف المنيو <span class="text-danger">*</span></label>
-                        <select name="category_id" class="form-select" required>
+                        <select name="category_id" id="category_id" class="form-select" required>
+                            <option value="">-- اختر التصنيف --</option>
                             @foreach ($categories as $cat)
                                 <option value="{{ $cat->id }}" {{ old('category_id', $meal->category_id) == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                             @endforeach
@@ -92,9 +105,9 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label small">اسم الوحدة</label>
+                                <label class="form-label small">اسم الوحدة الرئيسية</label>
                                 @php
-                                    $standardCS = ['قطعة', 'كيلوغرام', 'غرام'];
+                                    $standardCS = ['قطعة', 'كيلوغرام', 'غرام', 'ليتر', 'مل'];
                                     $isCustom = !in_array($base->unit_name, $standardCS);
                                     $selectVal = $isCustom ? 'custom' : $base->unit_name;
                                 @endphp
@@ -102,12 +115,22 @@
                                     <option value="قطعة" {{ $selectVal == 'قطعة' ? 'selected' : '' }}>قطعة</option>
                                     <option value="كيلوغرام" {{ $selectVal == 'كيلوغرام' ? 'selected' : '' }}>كيلوغرام</option>
                                     <option value="غرام" {{ $selectVal == 'غرام' ? 'selected' : '' }}>غرام</option>
+                                    <option value="ليتر" {{ $selectVal == 'ليتر' ? 'selected' : '' }}>ليتر</option>
+                                    <option value="مل" {{ $selectVal == 'مل' ? 'selected' : '' }}>مل</option>
                                     <option value="custom" {{ $selectVal == 'custom' ? 'selected' : '' }}>مخصص (أدخل يدوياً)</option>
                                 </select>
                                 <input type="text" name="base_unit_name" id="base_unit_custom" class="form-control mt-2" 
                                     style="{{ $isCustom ? '' : 'display: none;' }}" 
                                     value="{{ old('base_unit_name', $base->unit_name) }}" 
                                     {{ $isCustom ? '' : 'disabled' }}>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">عدد القطع بالعبوة</label>
+                                <input type="number" step="any" name="pieces_per_unit" id="pieces_per_unit" class="form-control text-center" value="{{ old('pieces_per_unit', $meal->units->where('parent_id', $base->id)->count() > 0 ? $meal->units->where('parent_id', $base->id)->first()->conversion_factor : 1) }}" oninput="toggleSubUnitField()">
+                            </div>
+                            <div class="col-md-3" id="sub_unit_name_div" style="{{ ($meal->units->where('parent_id', $base->id)->count() > 0) ? '' : 'display: none;' }}">
+                                <label class="form-label small text-info">اسم القطعة (اختياري)</label>
+                                <input type="text" name="sub_unit_name" id="sub_unit_name" class="form-control" value="{{ old('sub_unit_name', $meal->units->where('parent_id', $base->id)->first()->unit_name ?? '') }}" placeholder="مثال: حبة، غرام">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small text-danger fw-bold" id="purchase_label">تكلفة الإنتاج / الشراء</label>
@@ -132,15 +155,56 @@
                                     <img id="base_preview" src="{{ $base->image_url ?? '#' }}" alt="معاينة الصورة" class="img-thumbnail {{ $base->image_url ? '' : 'd-none' }}" style="max-height: 80px;">
                                 </div>
                             </div>
-                            <div class="col-md-3 d-flex align-items-end gap-3 pb-1" id="trade_checkboxes" style="display: none !important;">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="base_is_purchase" id="base_is_purchase" {{ $base->is_purchase ? 'checked' : '' }}>
-                                    <label class="form-check-label small fw-bold" for="base_is_purchase">شراء</label>
+                                <div class="col-md-3 d-flex align-items-end justify-content-start gap-3 pb-1" id="trade_checkboxes">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="base_is_purchase" id="base_is_purchase" {{ $base->is_purchase ? 'checked' : '' }}>
+                                        <label class="form-check-label small fw-bold" for="base_is_purchase">شراء</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" {{ $base->is_sale ? 'checked' : '' }}>
+                                        <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+                                    </div>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" {{ $base->is_sale ? 'checked' : '' }}>
-                                    <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+
+                                {{-- توضيح تكلفة التفكيك --}}
+                                <div class="col-12 mt-2" id="unit_breakdown_div" style="{{ $meal->units->where('parent_id', $base->id)->count() > 0 ? '' : 'display: none;' }}">
+                                    <div class="alert alert-info py-2 mb-0 border-0 shadow-sm d-flex justify-content-between align-items-center">
+                                        <span class="small fw-bold"><i class="fas fa-info-circle me-1"></i> تكلفة القطعة الواحدة (<span id="item_name_at_breakdown">{{ $meal->units->where('parent_id', $base->id)->first()->unit_name ?? 'قطعة' }}</span>):</span>
+                                        <span class="english-num fw-bold fs-5 text-danger" id="cost_per_piece_display">{{ number_format($meal->units->where('parent_id', $base->id)->first()->cost_price ?? 0, 2) }}</span>
+                                    </div>
                                 </div>
+                        </div>
+
+                        {{-- الوحدات الإضافية (تظهر فقط للمنتجات الجاهزة) --}}
+                        <div id="extra_units_section" style="{{ $meal->product_type == 'standard' ? '' : 'display: none;' }}">
+                            <hr class="my-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-layer-group me-1"></i> الوحدات الإضافية (كرتون، درزن...)</h6>
+                                <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="addExtraUnit()"><i class="fa fa-plus me-1"></i> إضافة وحدة</button>
+                            </div>
+                            <div id="extra_units_container">
+                                @foreach($meal->units->where('is_base_unit', false) as $extra)
+                                    @include('store_owner.meals.partials.unit_row', ['unit' => $extra, 'index' => $loop->index])
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- إعدادات المخزون (تنبيهات واستحقاق) - تظهر فقط للمنتجات الجاهزة --}}
+                <div class="card border-warning shadow-sm mb-3" id="inventory_settings_div" style="display: none;">
+                    <div class="card-header bg-warning text-dark fw-bold">
+                        <i class="fas fa-boxes me-1"></i> إعدادات المخزون
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">تنبيه انخفاض الكمية (Alert Quantity)</label>
+                                <input type="number" name="alert_quantity" class="form-control" value="{{ old('alert_quantity', $meal->alert_quantity ?? 5) }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">تنبيه انتهاء الصلاحية (بالأيام)</label>
+                                <input type="number" name="expiry_warning_days" class="form-control" value="{{ old('expiry_warning_days', $meal->expiry_warning_days ?? 30) }}">
                             </div>
                         </div>
                     </div>
@@ -223,30 +287,105 @@
 
 @section('scripts')
 <script>
+    let unitIndex = {{ $meal->units->count() + 1 }};
+
+    function addExtraUnit(data = null) {
+        let tpl = document.getElementById('unit_template').innerHTML.replace(/INDEX/g, unitIndex);
+        document.getElementById('extra_units_container').insertAdjacentHTML('beforeend', tpl);
+        
+        let row = document.getElementById('extra_units_container').lastElementChild;
+        calculateUnitCost(row.querySelector('.unit-factor'));
+        unitIndex++;
+    }
+
+    function handleUnitChange(select) {
+        let input = select.nextElementSibling; 
+        if (select.value === 'custom') {
+            input.classList.remove('d-none');
+            input.required = true;
+            input.focus();
+        } else {
+            input.classList.add('d-none');
+            input.required = false;
+            input.value = select.value;
+        }
+    }
+
+    function calculateUnitCost(input) {
+        let row = input.closest('.unit-row');
+        let baseCost = parseFloat(document.getElementById('purchase_price').value) || 0;
+        let factor = parseFloat(row.querySelector('.unit-factor').value) || 0;
+        let pieces = parseFloat(document.getElementById('pieces_per_unit').value) || 1;
+        
+        let baseCostPerPiece = (pieces > 0) ? (baseCost / pieces) : baseCost;
+        
+        let newCost = baseCostPerPiece * factor;
+        row.querySelector('.unit-cost').value = newCost.toFixed(2);
+        
+        let profitInput = row.querySelector('.unit-profit');
+        calcExtraUnitSell(profitInput);
+    }
+
+    function calcExtraUnitSell(input) {
+        let row = input.closest('.unit-row');
+        let cost = parseFloat(row.querySelector('.unit-cost').value) || 0;
+        let profit = parseFloat(input.value) || 0;
+        let sellInput = row.querySelector('.unit-sell');
+        if(cost > 0) {
+            let sellingPrice = cost * (1 + (profit / 100));
+            sellInput.value = sellingPrice.toFixed(2);
+        }
+    }
+
+    function calcExtraUnitProfit(input) {
+        let row = input.closest('.unit-row');
+        let cost = parseFloat(row.querySelector('.unit-cost').value) || 0;
+        let sell = parseFloat(input.value) || 0;
+        let profitInput = row.querySelector('.unit-profit');
+        if(cost > 0) {
+            let profitPercent = ((sell - cost) / cost) * 100;
+            profitInput.value = profitPercent.toFixed(2);
+        }
+    }
+
+    function updateAllUnitsCosts() {
+        document.querySelectorAll('.unit-factor').forEach(i => calculateUnitCost(i));
+    }
+
     function toggleRecipeBuilder() {
         let type = document.querySelector('input[name="product_type"]:checked')?.value;
         let section = document.getElementById('recipe_builder_section');
+        let extraUnitsSection = document.getElementById('extra_units_section');
         
         let isSale = document.getElementById('base_is_sale');
         let isPurchase = document.getElementById('base_is_purchase');
-
+        
         // Selling Price Input Divs
         let sellDiv = document.getElementById('selling_price_div');
         let marginDiv = document.getElementById('margin_div');
+        let tradeDiv = document.getElementById('trade_checkboxes'); 
+        let catDiv = document.getElementById('category_div');
+        let catInput = document.getElementById('category_id');
 
         if (type === 'meal') {
             section.style.display = 'block';
+            if(extraUnitsSection) extraUnitsSection.style.display = 'none';
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
+            catDiv.style.display = 'block';
+            catInput.required = true;
             isSale.checked = true;
             isPurchase.checked = false;
-            
+
             document.getElementById('purchase_label').innerText = 'تكلفة المكونات (آلي)';
             document.getElementById('purchase_price').readOnly = true;
         } else if (type === 'ingredient') {
             section.style.display = 'none';
+            if(extraUnitsSection) extraUnitsSection.style.display = 'none';
             sellDiv.style.display = 'none';
             marginDiv.style.display = 'none';
+            catDiv.style.display = 'none';
+            catInput.required = false;
             isSale.checked = false;
             isPurchase.checked = true;
 
@@ -254,22 +393,37 @@
             document.getElementById('purchase_price').readOnly = false;
         } else if (type === 'compound') { // New Compound Type
             section.style.display = 'block'; // Shows Recipe
+            if(extraUnitsSection) extraUnitsSection.style.display = 'none';
             sellDiv.style.display = 'none'; // No Selling Price
             marginDiv.style.display = 'none';
+            catDiv.style.display = 'none';
+            catInput.required = false;
             isSale.checked = false;
             isPurchase.checked = false; // Internal Use
 
             document.getElementById('purchase_label').innerText = 'تكلفة التحضير (آلي)';
             document.getElementById('purchase_price').readOnly = true;
         } else {
+            // Standard (Ready Product)
             section.style.display = 'none';
+            if(extraUnitsSection) extraUnitsSection.style.display = 'block';
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
+            catDiv.style.display = 'none'; // Hide Category for Ready Products per user request
+            catInput.required = false;
             isSale.checked = true;
             isPurchase.checked = true;
 
             document.getElementById('purchase_label').innerText = 'سعر الشراء';
             document.getElementById('purchase_price').readOnly = false;
+        }
+
+        // Toggle Inventory Settings
+        let invDiv = document.getElementById('inventory_settings_div');
+        if (type === 'standard') {
+            invDiv.style.display = 'block';
+        } else {
+            invDiv.style.display = 'none';
         }
     }
 
@@ -285,18 +439,59 @@
         }
     }
 
+    function toggleSubUnitField() {
+        let count = parseFloat(document.getElementById('pieces_per_unit').value) || 1;
+        let div = document.getElementById('sub_unit_name_div');
+        if (count > 1) {
+            div.style.display = 'block';
+            document.getElementById('sub_unit_name').required = true;
+        } else {
+            div.style.display = 'none';
+            document.getElementById('sub_unit_name').required = false;
+        }
+        updateUnitBreakdown();
+        updateAllUnitsCosts();
+    }
+
     function calculateBaseCost() {
         calculateMargin();
+        updateAllUnitsCosts();
     }
     function calculateMargin() {
         let cost = parseFloat(document.getElementById('purchase_price').value) || 0;
         let sell = parseFloat(document.getElementById('base_sell').value) || 0;
-        if(cost > 0) document.getElementById('base_margin').value = (((sell - cost) / cost) * 100).toFixed(2);
+        
+        let marginInput = document.getElementById('base_margin');
+        if(cost > 0) {
+            marginInput.value = (((sell - cost) / cost) * 100).toFixed(2);
+        } else {
+            marginInput.value = 0;
+        }
+        updateUnitBreakdown();
     }
     function calculatePriceFromMargin() {
         let cost = parseFloat(document.getElementById('purchase_price').value) || 0;
         let margin = parseFloat(document.getElementById('base_margin').value) || 0;
+        
         document.getElementById('base_sell').value = (cost * (1 + (margin / 100))).toFixed(2);
+        updateUnitBreakdown();
+    }
+
+    function updateUnitBreakdown() {
+        let cost = parseFloat(document.getElementById('purchase_price').value) || 0;
+        let pieces = parseFloat(document.getElementById('pieces_per_unit').value) || 1;
+        let itemName = document.getElementById('sub_unit_name').value || 'قطعة';
+        
+        let subDiv = document.getElementById('unit_breakdown_div');
+        if (subDiv) {
+            if (pieces > 1) {
+                subDiv.style.display = 'block';
+                document.getElementById('item_name_at_breakdown').innerText = itemName;
+                document.getElementById('cost_per_piece_display').innerText = (cost / pieces).toFixed(2);
+            } else {
+                subDiv.style.display = 'none';
+            }
+        }
     }
 
     // Recipe Builder with Unit Support
@@ -307,6 +502,7 @@
         let rowId = `recipe_row_${recipeIndex}`;
         let options = '<option value="">-- اختر مكون --</option>';
         ingredientsData.forEach(ing => {
+            // Encode units to avoid JSON breaking in attribute
             let unitsJson = encodeURIComponent(JSON.stringify(ing.units));
             options += `<option value="${ing.id}" data-units="${unitsJson}">${ing.name_ar}</option>`;
         });
@@ -338,8 +534,9 @@
         let units = JSON.parse(decodeURIComponent(opt.dataset.units));
         
         units.forEach(u => {
+            let label = u.unit_name;
             let selected = u.is_base_unit ? 'selected' : '';
-            unitSelect.innerHTML += `<option value="${u.id}" ${selected} data-cost="${u.cost_price}">${u.unit_name}</option>`;
+            unitSelect.innerHTML += `<option value="${u.id}" ${selected} data-cost="${u.cost_price}">${label}</option>`;
         });
         
         updateRecipeEntry(unitSelect);
@@ -391,5 +588,12 @@
         }
     }
 </script>
+@endsection
+
+@section('scripts_after')
+{{-- قالب الوحدة الإضافية --}}
+<template id="unit_template">
+    @include('store_owner.meals.partials.unit_row', ['index' => 'INDEX'])
+</template>
 @endsection
 @endsection

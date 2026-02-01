@@ -10,35 +10,48 @@
         </a>
     </div>
 
-<div class="row g-3 mb-4 no-print">
-    <div class="col">
-        <div class="card kpi-card kpi-primary h-100">
-            <div class="card-body d-flex align-items-center">
-                <div class="kpi-icon-container me-3">
-                    <i class="fas fa-utensils"></i>
+    <div class="row g-3 mb-4 no-print">
+        <div class="col">
+            <div class="card kpi-card kpi-primary h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3"><i class="fas fa-boxes"></i></div>
+                    <div><div class="kpi-label">الإجمالي</div><div class="kpi-value english-num">{{ $prodStats['total'] ?? 0 }}</div></div>
                 </div>
-                <div>
-                    <div class="kpi-label">إجمالي المنيو</div>
-                    <div class="kpi-value english-num">{{ $prodStats['total'] ?? 0 }}</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card kpi-card kpi-success h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3"><i class="fas fa-hamburger"></i></div>
+                    <div><div class="kpi-label">وجبات جاهزة</div><div class="kpi-value english-num">{{ $prodStats['meals'] ?? 0 }}</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card kpi-card kpi-info h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3"><i class="fas fa-carrot"></i></div>
+                    <div><div class="kpi-label">مواد خام</div><div class="kpi-value english-num">{{ $prodStats['ingredients'] ?? 0 }}</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card kpi-card kpi-secondary h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3"><i class="fas fa-blender"></i></div>
+                    <div><div class="kpi-label">مكونات مركبة</div><div class="kpi-value english-num">{{ $prodStats['compounds'] ?? 0 }}</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card kpi-card kpi-warning h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div><div class="kpi-label">تنبيه المخزون</div><div class="kpi-value english-num">{{ $prodStats['low_stock'] ?? 0 }}</div></div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="col">
-        <div class="card kpi-card kpi-warning h-100">
-            <div class="card-body d-flex align-items-center">
-                <div class="kpi-icon-container me-3">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <div>
-                    <div class="kpi-label">خامات أوشكت على النفاذ</div>
-                    <div class="kpi-value english-num">{{ $prodStats['low_stock'] ?? 0 }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3 no-print">
@@ -55,7 +68,33 @@
                     <div class="col-auto">
                         <div class="dropdown">
                             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-filter"></i> التصنيف
+                                <i class="fas fa-filter"></i> نوع الصنف
+                            </button>
+                            <ul class="dropdown-menu p-2 shadow">
+                                <li class="form-check">
+                                    <input class="form-check-input type-checkbox" type="checkbox" name="type[]" value="meal" id="type_meal" onchange="performSearch()">
+                                    <label class="form-check-label" for="type_meal">وجبة جاهزة</label>
+                                </li>
+                                <li class="form-check">
+                                    <input class="form-check-input type-checkbox" type="checkbox" name="type[]" value="ingredient" id="type_ingredient" onchange="performSearch()">
+                                    <label class="form-check-label" for="type_ingredient">مادة خام</label>
+                                </li>
+                                <li class="form-check">
+                                    <input class="form-check-input type-checkbox" type="checkbox" name="type[]" value="compound" id="type_compound" onchange="performSearch()">
+                                    <label class="form-check-label" for="type_compound">مكون مركب</label>
+                                </li>
+                                <li class="form-check">
+                                    <input class="form-check-input type-checkbox" type="checkbox" name="type[]" value="standard" id="type_standard" onchange="performSearch()">
+                                    <label class="form-check-label" for="type_standard">منتج جاهز</label>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-auto">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-tags"></i> التصنيف
                             </button>
                             <ul class="dropdown-menu p-2 shadow" style="max-height: 300px; overflow-y: auto;">
                                 @foreach($categories as $cat)
