@@ -7,6 +7,17 @@
         <a href="{{ route('store.meals.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-right me-1"></i> العودة للمنيو</a>
     </div>
 
+    {{-- Select2 CSS --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <style>
+        .select2-container--bootstrap-5 .select2-selection {
+            font-size: 0.9rem !important;
+            font-weight: bold !important;
+        }
+    </style>
+
+
     @if (session('success'))
         <div class="alert alert-success shadow-sm">
             <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
@@ -238,7 +249,9 @@
 </div>
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+
     let unitIndex = 0;
 
     function addExtraUnit(data = null) {
@@ -461,24 +474,111 @@
         ingredientsData.forEach(ing => {
             // Encode units to avoid JSON breaking in attribute
             let unitsJson = encodeURIComponent(JSON.stringify(ing.units));
-            options += `<option value="${ing.id}" data-units="${unitsJson}">${ing.name_ar}</option>`;
+            let barcodeTxt = ing.barcode ? ` [${ing.barcode}]` : '';
+            options += `<option value="${ing.id}" data-units="${unitsJson}">${ing.name_ar}${barcodeTxt}</option>`;
         });
+
 
         let html = `
             <tr id="${rowId}" class="recipe-row">
-                <td><select name="recipe[${recipeIndex}][ingredient_id]" class="form-select" onchange="populateRecipeUnits(this)" required>${options}</select></td>
+                <td>
+                    <select name="recipe[${recipeIndex}][ingredient_id]" class="form-select ingredient-select-2" onchange="populateRecipeUnits(this)" required>
+                        ${options}
+                    </select>
+                </td>
                 <td>
                     <select name="recipe[${recipeIndex}][unit_id]" class="form-select unit-select" onchange="updateRecipeEntry(this)" required>
                         <option value="">--</option>
                     </select>
                 </td>
+
                 <td><input type="number" step="any" name="recipe[${recipeIndex}][quantity]" class="form-control text-center qty" value="1" oninput="updateRecipeEntry(this)" required></td>
                 <td class="text-center fw-bold text-danger row-cost">0.00</td>
                 <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove(); calculateTotalRecipe();"><i class="fas fa-trash"></i></button></td>
             </tr>`;
         document.getElementById('recipe_rows').insertAdjacentHTML('beforeend', html);
+        
+        // Initialize Select2 on the new row
+        let selectEl = $(`#${rowId} .ingredient-select-2`);
+        selectEl.select2({
+            theme: 'bootstrap-5',
+            dir: 'rtl',
+            placeholder: '-- ابحث باسم الصنف أو الباركود --',
+            width: '100%',
+            minimumInputLength: 1, // Don't show list until typing
+            language: {
+                inputTooShort: function() {
+                    return "ابدأ الكتابة للبحث...";
+                },
+                noResults: function() {
+                    return "لا توجد نتائج";
+                },
+                searching: function() {
+                    return "جاري البحث...";
+                }
+            }
+        });
+
+        // Auto-open and focus search
+        selectEl.select2('open');
+
+        // Logic to auto-select if exactly 1 match in ingredientsData
+        selectEl.on('select2:open', function() {
+            let searchField = document.querySelector('.select2-search__field');
+            if (searchField) {
+                searchField.focus();
+                
+                $(searchField).on('input', function() {
+                    let query = this.value.trim().toLowerCase();
+                    if (query.length > 0) {
+                        // Filter local data
+                        let matches = ingredientsData.filter(ing => {
+                            let nameAr = (ing.name_ar || '').toLowerCase();
+                            let barcode = (ing.barcode || '').toLowerCase();
+                            return nameAr.includes(query) || barcode === query;
+                        });
+
+                        // If exactly one match, select it
+                        if (matches.length === 1) {
+                            selectEl.val(matches[0].id).trigger('change');
+                            selectEl.select2('close');
+                            
+                            // Focus quantity input
+                            let nextInput = document.getElementById(rowId).querySelector('.qty');
+                            if (nextInput) {
+                                setTimeout(() => nextInput.focus().select(), 100);
+                            }
+                        }
+                    }
+                });
+
+                // Support Enter key for first result
+                $(searchField).on('keydown', function(e) {
+                    if (e.which === 13) { // Enter
+                        setTimeout(() => {
+                            let results = document.querySelectorAll('.select2-results__option--selectable');
+                            if (results.length > 0) {
+                                let firstResultId = $(results[0]).data('data')?.id;
+                                if (firstResultId) {
+                                    selectEl.val(firstResultId).trigger('change');
+                                    selectEl.select2('close');
+                                    let nextInput = document.getElementById(rowId).querySelector('.qty');
+                                    if (nextInput) {
+                                        setTimeout(() => nextInput.focus().select(), 100);
+                                    }
+                                }
+                            }
+                        }, 50);
+                    }
+                });
+            }
+        });
+
         recipeIndex++;
     }
+
+
+
     
     function populateRecipeUnits(ingredientSelect) {
         let tr = ingredientSelect.closest('tr');
@@ -521,9 +621,40 @@
         let total = 0;
         document.querySelectorAll('.row-cost').forEach(td => total += parseFloat(td.innerText) || 0);
         document.getElementById('total_recipe_cost').innerText = total.toFixed(2);
-        if (document.querySelector('input[name="product_type"]:checked')?.value === 'meal') {
+        
+        let productType = document.querySelector('input[name="product_type"]:checked')?.value;
+        if (productType === 'meal' || productType === 'compound') {
             document.getElementById('purchase_price').value = total.toFixed(2);
             calculateBaseCost();
+        }
+    }
+
+
+    function toggleBaseSaleFields() {
+        let isSale = document.getElementById('base_is_sale').checked;
+        let sellDiv = document.getElementById('selling_price_div');
+        let marginDiv = document.getElementById('margin_div');
+        if (isSale) {
+            sellDiv.style.display = 'block';
+            marginDiv.style.display = 'block';
+        } else {
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
+        }
+    }
+
+    document.getElementById('base_is_sale').addEventListener('change', toggleBaseSaleFields);
+
+    function toggleRowSaleFields(checkbox) {
+        let row = checkbox.closest('.row');
+        let sellDiv = row.querySelector('.unit-sell').closest('.col-md-4');
+        let marginDiv = row.querySelector('.unit-profit').closest('.col-md-4');
+        if (checkbox.checked) {
+            sellDiv.style.display = 'block';
+            marginDiv.style.display = 'block';
+        } else {
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
         }
     }
 
@@ -531,7 +662,9 @@
         toggleRecipeBuilder();
         toggleSubUnitField();
         toggleCustomUnitInput();
+        toggleBaseSaleFields();
     });
+
 
     function toggleCustomUnitInput() {
         let select = document.getElementById('base_unit_select');
@@ -588,9 +721,10 @@
                                 <label class="form-check-label small fw-bold">شراء</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="units[INDEX][is_sale]" checked>
+                                <input class="form-check-input row-is-sale" type="checkbox" name="units[INDEX][is_sale]" checked onchange="toggleRowSaleFields(this)">
                                 <label class="form-check-label small fw-bold">بيع</label>
                             </div>
+
                         </div>
 
                         <div class="col-md-4">

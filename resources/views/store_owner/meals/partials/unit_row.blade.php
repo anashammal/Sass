@@ -43,9 +43,10 @@
                             <label class="form-check-label small fw-bold">شراء</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="units[{{ $index }}][is_sale]" {{ !isset($unit) || $unit->is_sale ? 'checked' : '' }}>
+                            <input class="form-check-input row-is-sale" type="checkbox" name="units[{{ $index }}][is_sale]" {{ !isset($unit) || $unit->is_sale ? 'checked' : '' }} onchange="toggleRowSaleFields(this)">
                             <label class="form-check-label small fw-bold">بيع</label>
                         </div>
+
                     </div>
 
                     <div class="col-md-4">
