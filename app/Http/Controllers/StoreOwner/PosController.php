@@ -27,19 +27,47 @@ class PosController extends Controller
         // ✅ ضمان وجود حساب "صاحب المتجر" عند فتح الصفحة
         // ✅ ضمان وجود حساب "صاحب المتجر" وتحديث القديم إن وجد (إصلاح شامل لجميع التكرارات)
         if (Auth::check() && Auth::user()->store) {
-            $storeId = Auth::user()->store->id;
+            $store = Auth::user()->store;
+            $storeId = $store->id;
             
-            // تحديث جميع العملاء الذين اسمهم "صاحب المتجر" ليصبحوا is_store_owner = true
-            Contact::where('store_id', $storeId)
-                   ->where('contact_name', 'LIKE', '%صاحب المتجر%')
-                   ->update(['is_store_owner' => true]);
+            // 1. Search for existing store owner record by flag
+            $owner = Contact::where('store_id', $storeId)
+                            ->where('is_store_owner', true)
+                            ->first();
 
-            // التأكد من وجود واحد على الأقل
-            Contact::firstOrCreate(
-                ['store_id' => $storeId, 'is_store_owner' => true],
-                ['contact_name' => 'صاحب المتجر', 'type' => 'customer', 'phone' => '0']
-            );
+            if (!$owner) {
+                // 2. Fallback: Search by Name + Store
+                $owner = Contact::where('store_id', $storeId)
+                                ->where('contact_name', 'صاحب المتجر')
+                                ->first();
+            }
+
+            if ($owner) {
+                // Update flag if needed
+                if (!$owner->is_store_owner) {
+                    $owner->update(['is_store_owner' => true]);
+                }
+            } else {
+                // 3. Create new using Store's verified data
+                // Priority: Phone -> Email -> Dummy ID
+                $phone = $store->phone_number;
+                if (!$phone || Contact::where('phone', $phone)->exists()) {
+                    $phone = $store->email && !Contact::where('phone', $store->email)->exists() 
+                             ? $store->email 
+                             : 'OWNER-' . $storeId;
+                }
+
+                Contact::create([
+                    'store_id' => $storeId,
+                    'is_store_owner' => true,
+                    'contact_name' => 'صاحب المتجر',
+                    'type' => 'customer',
+                    'phone' => $phone
+                ]);
+            }
         }
+
+
 
 
         $nextInvoice = 'INV-' . date('ymd-Hi');
