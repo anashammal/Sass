@@ -424,6 +424,21 @@ class PurchaseController extends Controller
 
             DB::commit();
 
+            // 🔥 تحديث تكلفة الوجبات المتأثرة بتغير أسعار المكونات (للمطاعم)
+            if (!$isDraft && $store->type == 'restaurant') {
+                foreach ($request->items as $itemData) {
+                    $ingredientId = $itemData['product_id'];
+                    // جلب كل الوجبات التي تستخدم هذا المكون في "الرسبي" بتاعها
+                    $affectedMeals = \App\Models\Product::whereHas('recipes', function($q) use ($ingredientId) {
+                                            $q->where('ingredient_product_id', $ingredientId);
+                                        })->get();
+
+                    foreach ($affectedMeals as $meal) {
+                        $meal->recalculateMealCost();
+                    }
+                }
+            }
+
             // ============================================================
             // 🔥 منطقة إشعارات المشتريات (الجديدة والمنفصلة) 🔥
             // ============================================================
@@ -667,7 +682,7 @@ class PurchaseController extends Controller
             $term = $request->term;
             $storeId = Auth::user()->store->id;
             
-            $products = Product::where('store_id', $storeId)
+            $query = Product::where('store_id', $storeId)
                 ->where(function($q) use ($term) {
                     $q->where('name_ar', 'like', "%$term%")
                       ->orWhere('name_en', 'like', "%$term%")
@@ -675,9 +690,15 @@ class PurchaseController extends Controller
                       ->orWhereHas('units', function($q2) use ($term) {
                           $q2->where('barcode', 'like', "%$term%");
                       });
-                })
-                // 🛑 التعديل هنا: حذفنا media لأنها تسبب الخطأ
-                ->with(['units']) 
+                });
+
+            // للمطاعم: لا تظهر الوجبات في البحث عند الشراء
+            $store = Auth::user()->store;
+            if ($store->type == 'restaurant') {
+                $query->where('product_type', '!=', 'meal');
+            }
+
+            $products = $query->with(['units']) 
                 ->take(20)
                 ->get();
     

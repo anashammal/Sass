@@ -17,17 +17,18 @@ class InventoryService
      */
     public function reduceStock(Product $product, float $quantitySold): float
     {
-        // 1. إذا كان المنتج لا يتتبع المخزون (مثل خدمة توصيل)
-        // لا يزال بإمكاننا تقدير التكلفة بناءً على "آخر سعر شراء" مسجل
-        if (!$product->track_stock) {
-            return (float)($quantitySold * ($product->last_cost_price ?? 0));
-        }
-
-        // 2. التحقق هل المنتج عبارة عن وجبة/وصفة (نظام المطاعم)
+        // 1. التحقق هل المنتج عبارة عن وجبة/وصفة (نظام المطاعم)
         // [المصدر: ملاحظات اضافية لتصميم النظام2.txt]
+        // نتحقق من الوصفات أولاً، لأنه إذا كان وجبة، فنحن نريد خصم المكونات بغض النظر عن تتبع مخزون الوجبة نفسها
         $recipes = $product->recipes;
         if ($recipes->count() > 0) {
             return $this->handleRecipeDeduction($recipes, $quantitySold);
+        }
+
+        // 2. إذا كان المنتج لا يتتبع المخزون (مثل خدمة توصيل)
+        // لا يزال بإمكاننا تقدير التكلفة بناءً على "آخر سعر شراء" مسجل
+        if (!$product->track_stock) {
+            return (float)($quantitySold * ($product->last_cost_price ?? 0));
         }
 
         // 3. التعامل مع المنتجات العادية (نظام FIFO)
@@ -126,20 +127,22 @@ class InventoryService
      */
     public function incrementStock(Product $product, float $quantityToReturn): void
     {
-        if (!$product->track_stock) return;
-
         // 1. إذا كان المنتج عبارة عن وجبة، نرجع المكونات
         $recipes = $product->recipes;
         if ($recipes->count() > 0) {
             foreach ($recipes as $recipe) {
-                $ingredientQty = $recipe->quantity * $quantityToReturn;
-                if ($recipe->wastage_percent > 0) {
-                    $ingredientQty += ($ingredientQty * ($recipe->wastage_percent / 100));
+                if ($recipe->ingredient) {
+                    $ingredientQty = $recipe->quantity * $quantityToReturn;
+                    if ($recipe->wastage_percent > 0) {
+                        $ingredientQty += ($ingredientQty * ($recipe->wastage_percent / 100));
+                    }
+                    $this->incrementStock($recipe->ingredient, $ingredientQty);
                 }
-                $this->incrementStock($recipe->ingredient, $ingredientQty);
             }
             return;
         }
+
+        if (!$product->track_stock) return;
 
         // 2. محاولة إرجاع الكمية لآخر دفعة نشطة (أو آخر دفعة تم إنشاؤها)
         $batch = $product->batches()->latest()->first();

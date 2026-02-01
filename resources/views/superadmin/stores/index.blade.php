@@ -37,6 +37,7 @@
                                 <th scope="col">اسم المتجر</th>
                                 <th scope="col">الدومين الفرعي</th>
                                 <th scope="col">صاحب المتجر</th>
+                                <th scope="col">نوع المتجر</th>
                                 <th scope="col">تاريخ الإنشاء</th>
                                 <th scope="col">إجراءات</th>
                             </tr>
@@ -48,6 +49,13 @@
                                     <td>{{ $store->name }}</td>
                                     <td>{{ $store->subdomain }}.tech-sys.online</td>
                                     <td>{{ $store->owner->name ?? 'غير محدد' }}</td>
+                                    <td>
+                                        @if($store->type == 'restaurant')
+                                            <span class="badge bg-info text-dark">مطعم</span>
+                                        @else
+                                            <span class="badge bg-light text-dark">تجارة عامة</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $store->created_at->format('Y-m-d') }}</td>
                                     <td>
                                         {{-- !! -- هذا هو الرابط الذي قمنا بتفعيله -- !! --}}

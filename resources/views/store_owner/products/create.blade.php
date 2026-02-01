@@ -51,7 +51,6 @@
     <form action="{{ route('store.products.store') }}" method="POST" enctype="multipart/form-data" id="productForm" novalidate>
         @csrf
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-box-open me-2"></i> إضافة منتج جديد</h5>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {{ old('is_active', 'on') == 'on' ? 'checked' : '' }}>
@@ -92,6 +91,8 @@
                         <label class="form-label">الوصف</label>
                         <input type="text" name="description" class="form-control" value="{{ old('description') }}">
                     </div>
+
+                        <input type="hidden" name="product_type" value="standard">
                 </div>
 
                 <hr class="my-4 text-secondary">
@@ -190,6 +191,7 @@
                         </div>
                     </div>
                 </div>
+
 
                 {{-- الوحدات الإضافية --}}
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -451,6 +453,103 @@
         
         unitIndex++;
     }
+
+    // --- منطق المطاعم والريسبي ---
+    function toggleRecipeBuilder() {
+        let type = document.querySelector('input[name="product_type"]:checked')?.value;
+        let section = document.getElementById('recipe_builder_section');
+        let purchaseCard = document.querySelector('.card.border-success'); // الوحدة الأساسية
+        
+        if (type === 'meal') {
+            if(section) section.style.display = 'block';
+            // في الوجبة لا نشتري، فقط نبيع
+            document.getElementById('base_is_purchase').checked = false;
+            document.getElementById('base_is_sale').checked = true;
+            // يمكن جعل حقل سعر الشراء للقراءة فقط أو إخفاؤه
+        } else if (type === 'ingredient') {
+            if(section) section.style.display = 'none';
+            document.getElementById('base_is_purchase').checked = true;
+            document.getElementById('base_is_sale').checked = false;
+        } else {
+            if(section) section.style.display = 'none';
+        }
+    }
+
+    let recipeIndex = 0;
+    const ingredientsData = @json($ingredients);
+
+    function addRecipeRow() {
+        let rowId = `recipe_row_${recipeIndex}`;
+        let options = '<option value="">-- اختر مكون --</option>';
+        ingredientsData.forEach(ing => {
+            options += `<option value="${ing.id}" data-cost="${ing.base_unit ? ing.base_unit.cost_price : 0}" data-unit="${ing.base_unit ? ing.base_unit.unit_name : ''}">${ing.name_ar}</option>`;
+        });
+
+        let html = `
+            <tr id="${rowId}" class="recipe-row">
+                <td>
+                    <select name="recipe[${recipeIndex}][ingredient_id]" class="form-select recipe-ing-select" onchange="updateRecipeRowCost(this)" required>
+                        ${options}
+                    </select>
+                </td>
+                <td>
+                    <div class="input-group">
+                        <input type="number" step="any" name="recipe[${recipeIndex}][quantity]" class="form-control text-center recipe-qty" value="1" oninput="updateRecipeRowCost(this)" required>
+                        <span class="input-group-text recipe-unit-display">-</span>
+                    </div>
+                </td>
+                <td class="text-center fw-bold text-danger recipe-row-cost">0.00</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="document.getElementById('${rowId}').remove(); calculateTotalRecipeCost();">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        document.getElementById('recipe_rows').insertAdjacentHTML('beforeend', html);
+        recipeIndex++;
+    }
+
+    function updateRecipeRowCost(el) {
+        let row = el.closest('.recipe-row');
+        let select = row.querySelector('.recipe-ing-select');
+        let qty = row.querySelector('.recipe-qty').value || 0;
+        let selectedOption = select.options[select.selectedIndex];
+        
+        if (select.value) {
+            let unitCost = parseFloat(selectedOption.getAttribute('data-cost')) || 0;
+            let unitName = selectedOption.getAttribute('data-unit') || '';
+            // Actual code fix below
+            let unitDisplay = row.querySelector('.recipe-unit-display');
+            if(unitDisplay) unitDisplay.innerText = unitName;
+
+            let rowCost = unitCost * qty;
+            row.querySelector('.recipe-row-cost').innerText = rowCost.toFixed(2);
+        }
+        
+        calculateTotalRecipeCost();
+    }
+
+    function calculateTotalRecipeCost() {
+        let total = 0;
+        document.querySelectorAll('.recipe-row-cost').forEach(cell => {
+            total += parseFloat(cell.innerText) || 0;
+        });
+        document.getElementById('total_recipe_cost').innerText = total.toFixed(2);
+        
+        // إذا كان المنتج 'meal'، نحدث سعر التكلفة الأساسي بناءً على مجموع المكونات
+        let type = document.querySelector('input[name="product_type"]:checked')?.value;
+        if (type === 'meal') {
+            document.getElementById('purchase_price').value = total.toFixed(2);
+            document.getElementById('pieces_per_unit').value = 1;
+            calculateBaseCost();
+        }
+    }
+
+    // تهيئة الصفحة عند التحميل
+    window.addEventListener('load', function() {
+        toggleRecipeBuilder();
+    });
 </script>
 @endsection
 @endsection

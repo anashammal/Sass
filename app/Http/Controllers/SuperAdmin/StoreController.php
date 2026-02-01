@@ -50,6 +50,7 @@ class StoreController extends Controller
             'store_name' => 'required|string|max:255',
             'subdomain' => 'required|string|alpha_dash|unique:stores,subdomain',
             'status' => 'required',
+            'type' => 'required|in:retail,restaurant',
             'owner_phone' => 'nullable|numeric'
         ]);
 
@@ -75,6 +76,7 @@ class StoreController extends Controller
                 'name' => $request->store_name,
                 'subdomain' => $request->subdomain, 
                 'status' => $request->status,
+                'type' => $request->type,
             ]);
 
             $user->store_id = $store->id;
@@ -202,6 +204,22 @@ class StoreController extends Controller
     }
     
     public function edit($id) { $store = Store::findOrFail($id); return view('superadmin.stores.edit', compact('store')); }
-    public function update(Request $request, $id) { /* ... */ }
+    public function update(Request $request, $id) 
+    {
+        $store = Store::findOrFail($id);
+        $request->validate([
+            'store_name' => 'required|string|max:255',
+            'status' => 'required',
+            'type' => 'required|in:retail,restaurant',
+        ]);
+
+        $store->update([
+            'name' => $request->store_name,
+            'status' => $request->status,
+            'type' => $request->type,
+        ]);
+
+        return redirect()->route('superadmin.stores.index')->with('success', 'تم تحديث بيانات المتجر بنجاح.');
+    }
     public function destroy($id) { Store::findOrFail($id)->delete(); return redirect()->back(); }
 }

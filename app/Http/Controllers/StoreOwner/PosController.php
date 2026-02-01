@@ -57,7 +57,7 @@ class PosController extends Controller
             $term = $request->term;
             $storeId = Auth::user()->store->id;
 
-            $products = Product::where('store_id', $storeId)
+            $query = Product::where('store_id', $storeId)
                 ->where('is_active', true)
                 ->where(function($q) use ($term) {
                     $q->where('name_ar', 'LIKE', "%{$term}%")
@@ -65,8 +65,15 @@ class PosController extends Controller
                       ->orWhereHas('units', function($q2) use ($term) {
                           $q2->where('barcode', 'LIKE', "%{$term}%");
                       });
-                })
-                ->with(['baseUnit', 'units']) 
+                });
+
+            // للمطاعم: لا تظهر المكونات الخام في البيع (POS)
+            $store = Auth::user()->store;
+            if ($store->type == 'restaurant') {
+                $query->where('product_type', '!=', 'ingredient');
+            }
+
+            $products = $query->with(['baseUnit', 'units']) 
                 ->take(20)
                 ->get();
 

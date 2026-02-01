@@ -104,6 +104,19 @@
                             </div>
                         </div>
 
+                        <div class="row mb-3">
+                            <label for="type" class="col-md-4 col-form-label text-md-end">نوع المتجر <span class="text-danger">*</span></label>
+                            <div class="col-md-8">
+                                <select id="type" class="form-select" name="type" required>
+                                    <option value="retail" {{ old('type') == 'retail' ? 'selected' : '' }}>تجارة عامة / تجزئة</option>
+                                    <option value="restaurant" {{ old('type') == 'restaurant' ? 'selected' : '' }}>مطعم</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-info-circle"></i> نوع "المطعم" يوفر ميزات إدارة المكونات والوجبات وحساب التكاليف.
+                                </small>
+                            </div>
+                        </div>
+
                         <div class="row mb-0 mt-4">
                             <div class="col-md-8 offset-md-4">
                                 <button type="submit" id="mainSubmitBtn" class="btn btn-primary btn-lg px-5">إنشاء المتجر وإرسال الرابط</button>

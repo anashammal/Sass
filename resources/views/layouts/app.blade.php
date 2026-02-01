@@ -1330,13 +1330,38 @@
                             @else
                                 {{-- <li class="sidebar-heading">إدارة المتجر</li> --}}
                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.dashboard') ? 'active' : '' }}" href="{{ route('store.dashboard') }}"><i class="fa fa-home"></i> الرئيسية</a></li>
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.products.*') ? 'active' : '' }}" href="{{ route('store.products.index') }}"><i class="fa fa-box-open"></i> المنتجات</a></li>
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.categories.*') ? 'active' : '' }}" href="{{ route('store.categories.index') }}"><i class="fa fa-tags"></i> التصنيفات</a></li>
+                                <li class="nav-item">
+                                    @if(strtolower(Auth::user()->store->type) == 'restaurant')
+                                        <a class="nav-link {{ request()->routeIs('store.meals.*') ? 'active' : '' }}" href="{{ route('store.meals.index') }}">
+                                            <i class="fa fa-box-open"></i> الوجبات والمكونات
+                                        </a>
+                                    @else
+                                        <a class="nav-link {{ request()->routeIs('store.products.*') ? 'active' : '' }}" href="{{ route('store.products.index') }}">
+                                            <i class="fa fa-box-open"></i> المنتجات
+                                        </a>
+                                    @endif
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('store.categories.*') ? 'active' : '' }}" href="{{ route('store.categories.index') }}">
+                                        <i class="fa fa-tags"></i>
+                                        @if(strtolower(Auth::user()->store->type) == 'restaurant')
+                                            تصنيفات المنيو
+                                        @else
+                                            التصنيفات
+                                        @endif
+                                    </a>
+                                </li>
                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.contacts.*') ? 'active' : '' }}" href="{{ route('store.contacts.index') }}"><i class="fa fa-users"></i> جهات الاتصال</a></li>
                                 <li class="nav-item">
                                     <a href="{{ route('store.purchases.index') }}" class="nav-link {{ request()->routeIs('store.purchases.*') ? 'active' : '' }}">
                                         <i class="nav-icon fas fa-shopping-cart"></i>
-                                        <p>المشتريات</p>
+                                        <p>
+                                            @if(strtolower(Auth::user()->store->type) == 'restaurant')
+                                                المواد الخام (المشتريات)
+                                            @else
+                                                المشتريات
+                                            @endif
+                                        </p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -1349,7 +1374,13 @@
 <li class="nav-item">
     <a href="#" class="nav-link {{ request()->routeIs('store.pos.*') ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#salesCollapse" role="button" aria-expanded="{{ request()->routeIs('store.pos.*') ? 'true' : 'false' }}">
         <i class="nav-icon fas fa-cash-register"></i>
-        <span>المبيعات</span>
+        <span>
+            @if(strtolower(Auth::user()->store->type) == 'restaurant')
+                الأوردرات (المبيعات)
+            @else
+                المبيعات
+            @endif
+        </span>
         <i class="fas fa-angle-left ms-auto"></i>
     </a>
     <div class="collapse {{ request()->routeIs('store.pos.*') && !request()->routeIs('store.pos.withdrawals') ? 'show' : '' }}" id="salesCollapse">

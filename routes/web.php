@@ -135,6 +135,7 @@ Route::middleware(['auth'])->group(function () {
 
         // 2. رابط الموارد الأساسي (مع استثناء show)
         Route::resource('products', ProductController::class)->except(['show']);
+        Route::resource('meals', \App\Http\Controllers\StoreOwner\MealController::class)->except(['show']);
         
         
 

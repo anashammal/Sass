@@ -13,7 +13,12 @@
         <div class="fw-bold text-dark">{{ $product->name_ar }}</div>
         @if($product->units->where('is_base_unit', false)->count() > 0)
             <button class="btn btn-sm btn-link text-decoration-none p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#units_{{ $product->id }}">
-                <i class="fas fa-chevron-down me-1"></i> وحدات إضافية ({{ $product->units->where('is_base_unit', false)->count() }})
+                <i class="fas fa-chevron-down me-1"></i> 
+                @if(Auth::user()->store->type == 'restaurant')
+                    أحجام/وحدات تقديم ({{ $product->units->where('is_base_unit', false)->count() }})
+                @else
+                    وحدات إضافية ({{ $product->units->where('is_base_unit', false)->count() }})
+                @endif
             </button>
         @endif
     </td>
@@ -52,6 +57,16 @@
             <span class="badge bg-success">فعال</span>
         @else
             <span class="badge bg-danger">معطل</span>
+        @endif
+    </td>
+
+    <td>
+        @if($product->product_type == 'meal')
+            <span class="badge bg-danger">وجبة</span>
+        @elseif($product->product_type == 'ingredient')
+            <span class="badge bg-success">مكون</span>
+        @else
+            <span class="badge bg-secondary">عادي</span>
         @endif
     </td>
     

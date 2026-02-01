@@ -130,6 +130,20 @@
                             </div>
                         </div>
 
+                        <div class="row mb-3">
+                            <label for="type" class="col-md-4 col-form-label text-md-end">نوع المتجر</label>
+                            <div class="col-md-8">
+                                <select id="type" class="form-control @error('type') is-invalid @enderror" name="type" required>
+                                    <option value="retail" {{ old('type', $store->type) == 'retail' ? 'selected' : '' }}>تجارة عامة / تجزئة</option>
+                                    <option value="restaurant" {{ old('type', $store->type) == 'restaurant' ? 'selected' : '' }}>مطعم</option>
+                                </select>
+                                @error('type') <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span> @enderror
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-info-circle"></i> تنبيه: تغيير النوع قد يؤثر على كيفية ظهور البيانات لصاحب المتجر.
+                                </small>
+                            </div>
+                        </div>
+
                         {{-- (السبب) --}}
                         <div class="row mb-3" id="status-reason-container" style="display: none;">
                             <label for="status_reason" class="col-md-4 col-form-label text-md-end">سبب تغيير الحالة</label>

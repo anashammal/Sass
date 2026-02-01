@@ -49,7 +49,9 @@
                     </div>
                     
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">التصنيف</label>
+                        <label class="form-label fw-bold">
+                            التصنيف
+                        </label>
                         <select name="category_id" class="form-select" required>
                             @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
@@ -60,6 +62,8 @@
                         <label class="form-label">الوصف</label>
                         <input type="text" name="description" class="form-control" value="{{ old('description', $product->description) }}">
                     </div>
+
+                    <input type="hidden" name="product_type" value="{{ $product->product_type }}">
                 </div>
 
                 <hr class="my-4 text-secondary">
@@ -68,7 +72,8 @@
                 @php $base = $product->baseUnit; @endphp
                 <div class="card border-success shadow-sm mb-3">
                     <div class="card-header bg-success text-white fw-bold">
-                        <i class="fas fa-cube me-1"></i> الوحدة الأساسية
+                        <i class="fas fa-cube me-1"></i> 
+                        الوحدة الأساسية
                     </div>
                     <div class="card-body">
                         <div class="row g-3 align-items-end">
@@ -160,6 +165,8 @@
                     </div>
                 </div>
 
+                {{-- مكونات الوجبة (Recipe Builder) - يظهر فقط للمطاعم وإذا كان النوع 'meal' --}}
+                
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold text-dark"><i class="fas fa-layer-group me-1"></i> الوحدات الإضافية</h6>
                     <button type="button" class="btn btn-sm btn-outline-success" onclick="addExtraUnit()"><i class="fa fa-plus"></i> إضافة وحدة</button>
@@ -338,6 +345,111 @@
         
         unitIndex++;
     }
+
+    // --- منطق المطاعم والريسبي ---
+    function toggleRecipeBuilder() {
+        let type = document.querySelector('input[name="product_type"]:checked')?.value;
+        let section = document.getElementById('recipe_builder_section');
+        
+        if (type === 'meal') {
+            if(section) section.style.display = 'block';
+            document.getElementById('base_is_purchase').checked = false;
+            document.getElementById('base_is_sale').checked = true;
+        } else if (type === 'ingredient') {
+            if(section) section.style.display = 'none';
+            document.getElementById('base_is_purchase').checked = true;
+            document.getElementById('base_is_sale').checked = false;
+        } else {
+            if(section) section.style.display = 'none';
+        }
+    }
+
+    let recipeIndex = 0;
+    const ingredientsData = @json($ingredients);
+
+    function addRecipeRow(data = null) {
+        let rowId = `recipe_row_${recipeIndex}`;
+        let options = '<option value="">-- اختر مكون --</option>';
+        ingredientsData.forEach(ing => {
+            let selected = (data && data.ingredient_product_id == ing.id) ? 'selected' : '';
+            options += `<option value="${ing.id}" data-cost="${ing.base_unit ? ing.base_unit.cost_price : 0}" data-unit="${ing.base_unit ? ing.base_unit.unit_name : ''}" ${selected}>${ing.name_ar}</option>`;
+        });
+
+        let qty = data ? data.quantity : 1;
+        let html = `
+            <tr id="${rowId}" class="recipe-row">
+                <td>
+                    <select name="recipe[${recipeIndex}][ingredient_id]" class="form-select recipe-ing-select" onchange="updateRecipeRowCost(this)" required>
+                        ${options}
+                    </select>
+                </td>
+                <td>
+                    <div class="input-group">
+                        <input type="number" step="any" name="recipe[${recipeIndex}][quantity]" class="form-control text-center recipe-qty" value="${qty}" oninput="updateRecipeRowCost(this)" required>
+                        <span class="input-group-text recipe-unit-display">-</span>
+                    </div>
+                </td>
+                <td class="text-center fw-bold text-danger recipe-row-cost">0.00</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="document.getElementById('${rowId}').remove(); calculateTotalRecipeCost();">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        document.getElementById('recipe_rows').insertAdjacentHTML('beforeend', html);
+        
+        let rowEl = document.getElementById(rowId);
+        updateRecipeRowCost(rowEl.querySelector('.recipe-ing-select'));
+        
+        recipeIndex++;
+    }
+
+    function updateRecipeRowCost(el) {
+        let row = el.closest('.recipe-row');
+        if(!row) return;
+        let select = row.querySelector('.recipe-ing-select');
+        let qty = row.querySelector('.recipe-qty').value || 0;
+        let selectedOption = select.options[select.selectedIndex];
+        
+        if (select.value) {
+            let unitCost = parseFloat(selectedOption.getAttribute('data-cost')) || 0;
+            let unitName = selectedOption.getAttribute('data-unit') || '';
+            let unitDisplay = row.querySelector('.recipe-unit-display');
+            if(unitDisplay) unitDisplay.innerText = unitName;
+
+            let rowCost = unitCost * qty;
+            row.querySelector('.recipe-row-cost').innerText = rowCost.toFixed(2);
+        }
+        
+        calculateTotalRecipeCost();
+    }
+
+    function calculateTotalRecipeCost() {
+        let total = 0;
+        document.querySelectorAll('.recipe-row-cost').forEach(cell => {
+            total += parseFloat(cell.innerText) || 0;
+        });
+        let totalDisplay = document.getElementById('total_recipe_cost');
+        if(totalDisplay) totalDisplay.innerText = total.toFixed(2);
+        
+        let type = document.querySelector('input[name="product_type"]:checked')?.value;
+        if (type === 'meal') {
+            document.getElementById('purchase_price').value = total.toFixed(2);
+            document.getElementById('pieces_per_unit').value = 1;
+            calculateBaseCost();
+        }
+    }
+
+    // تهيئة الصفحة عند التحميل
+    window.addEventListener('load', function() {
+        toggleRecipeBuilder();
+        @if($product->recipes->count() > 0)
+            @foreach($product->recipes as $recipe)
+                addRecipeRow(@json($recipe));
+            @endforeach
+        @endif
+    });
 </script>
 @endsection
 @endsection

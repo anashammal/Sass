@@ -101,6 +101,46 @@ class Product extends Model implements HasMedia
         return \Carbon\Carbon::parse($this->expiry_date)->isPast();
     }
 
+    /**
+     * 🔥 إعادة حساب تكلفة الوجبة بناءً على أسعار الخامات (المكونات)
+     */
+    public function recalculateMealCost()
+    {
+        if ($this->product_type !== 'meal') return;
+
+        $totalCost = 0;
+        $this->load('recipes.ingredient.units');
+
+        foreach ($this->recipes as $recipe) {
+            $ingredient = $recipe->ingredient;
+            if ($ingredient && $ingredient->baseUnit) {
+                // نستخدم تكلفة الوحدة الأساسية للمكون (خامة)
+                $totalCost += ($recipe->quantity * $ingredient->baseUnit->cost_price);
+            }
+        }
+
+        // تحديث سعر التكلفة والربح للوحدة الأساسية لهذه الوجبة
+        if ($this->baseUnit) {
+            $sellingPrice = (float)$this->baseUnit->selling_price;
+            $newProfitPercent = 0;
+            
+            if ($totalCost > 0) {
+                $newProfitPercent = (($sellingPrice - $totalCost) / $totalCost) * 100;
+            }
+
+            $this->baseUnit->update([
+                'purchase_price' => $totalCost,
+                'cost_price'     => $totalCost,
+                'profit_percent' => $newProfitPercent,
+            ]);
+            
+            // تحديث تكلفة المنتج نفسه (إذا كان مخزناً في حقل مستقل)
+            $this->update(['base_cost_price' => $totalCost]);
+        }
+        
+        return $totalCost;
+    }
+
     // =========================================================
     // 🔥 منطقة الصور (MediaLibrary Implementation) 🔥
     // =========================================================

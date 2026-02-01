@@ -4,8 +4,7 @@
 <div class="container-fluid py-4">
     
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-
-<h3 class="text-primary fw-bold"><i class="fas fa-box-open me-2"></i> إدارة المنتجات</h3>
+        <h3 class="text-primary fw-bold"><i class="fas fa-box-open me-2"></i> إدارة المنتجات</h3>
         <a href="{{ route('store.products.create') }}" class="btn btn-success shadow-sm">
             <i class="fas fa-plus me-1"></i> إضافة منتج جديد
         </a>
@@ -142,6 +141,7 @@
                             <th>سعر البيع</th>
                             <th>المخزون</th>
                             <th>الحالة</th>
+                            <th>النوع</th>
                             <th class="no-print">إجراءات</th>
                         </tr>
                     </thead>

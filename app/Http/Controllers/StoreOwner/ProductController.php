@@ -69,12 +69,13 @@ class ProductController extends Controller
         ];
 
         $categories = \App\Models\Category::where('store_id', $storeId)->get();
+        $store = Auth::user()->store;
 
         if ($request->ajax()) {
-            return view('store_owner.products.partials.table_rows', compact('products'))->render();
+            return view('store_owner.products.partials.table_rows', compact('products', 'store'))->render();
         }
 
-        return view('store_owner.products.index', compact('products', 'prodStats', 'categories'));
+        return view('store_owner.products.index', compact('products', 'prodStats', 'categories', 'store'));
     }
 
     public function create() 
@@ -82,7 +83,16 @@ class ProductController extends Controller
         $store = Auth::user()->store; 
         $categories = Category::where('store_id', $store->id)->get(); 
         $taxRates = explode(',', $store->tax_rates ?? '0,15');
-        return view('store_owner.products.create', compact('categories', 'store', 'taxRates')); 
+        
+        $ingredients = [];
+        if ($store->type == 'restaurant') {
+            $ingredients = Product::where('store_id', $store->id)
+                ->whereIn('product_type', ['standard', 'ingredient'])
+                ->with('units')
+                ->get();
+        }
+
+        return view('store_owner.products.create', compact('categories', 'store', 'taxRates', 'ingredients')); 
     }
 
     public function store(Request $request) 
@@ -119,7 +129,7 @@ class ProductController extends Controller
                 'expiry_warning_days' => $request->expiry_warning_days ?? 30,
                 'tax_percent' => $request->tax_percent ?? 0,
                 'is_active' => $request->has('is_active'),
-            
+                'product_type' => $request->product_type ?? 'standard',
             ]);
 
             if ($request->hasFile('base_unit_image')) {
@@ -175,6 +185,20 @@ class ProductController extends Controller
                 }
             }
 
+            // --- حفظ المكونات (Recipe) إذا كان النوع وجبة ---
+            if ($product->product_type == 'meal' && $request->has('recipe')) {
+                foreach ($request->recipe as $recipeData) {
+                    if (!empty($recipeData['ingredient_id'])) {
+                        $ing = Product::find($recipeData['ingredient_id']);
+                        $product->recipes()->create([
+                            'ingredient_product_id' => $recipeData['ingredient_id'],
+                            'quantity' => $recipeData['quantity'] ?? 1,
+                            'unit_id' => $ing->baseUnit ? $ing->baseUnit->id : null,
+                        ]);
+                    }
+                }
+            }
+
             DB::commit();
             return redirect()->route('store.products.index')->with('success', 'تم حفظ المنتج والوحدات بنجاح.');
 
@@ -184,10 +208,23 @@ class ProductController extends Controller
         }
     }
 
-    public function edit(Product $product) { 
+    public function edit(Product $product)
+    {
         if ($product->store_id !== Auth::user()->store->id) abort(403);
-        $categories = Category::where('store_id', Auth::user()->store->id)->get();
-        return view('store_owner.products.edit', compact('product', 'categories'));
+        $store = Auth::user()->store;
+        $categories = Category::where('store_id', $store->id)->get();
+        $taxRates = explode(',', $store->tax_rates ?? '0,15');
+        
+        $ingredients = [];
+        if ($store->type == 'restaurant') {
+            $ingredients = Product::where('store_id', $store->id)
+                ->whereIn('product_type', ['standard', 'ingredient'])
+                ->with('units')
+                ->get();
+            $product->load('recipes.ingredient');
+        }
+
+        return view('store_owner.products.edit', compact('product', 'categories', 'store', 'taxRates', 'ingredients'));
     }
 
     public function update(Request $request, Product $product)
@@ -228,6 +265,7 @@ class ProductController extends Controller
                 'expiry_warning_days' => $request->expiry_warning_days,
                 'tax_percent' => $request->tax_percent ?? 0,
                 'is_active' => $request->has('is_active'),
+                'product_type' => $request->product_type ?? 'standard',
             ]);
 
             if ($request->hasFile('base_unit_image')) {
@@ -294,6 +332,23 @@ class ProductController extends Controller
                         $newUnit = ProductUnit::create($data);
                         if ($request->hasFile("units.$index.image")) {
                             $newUnit->addMediaFromRequest("units.$index.image")->toMediaCollection('unit_images');
+                        }
+                    }
+                }
+            }
+
+            // --- تحديث المكونات (Recipe) ---
+            if ($product->product_type == 'meal') {
+                $product->recipes()->delete(); // حذف القديم
+                if ($request->has('recipe')) {
+                    foreach ($request->recipe as $recipeData) {
+                        if (!empty($recipeData['ingredient_id'])) {
+                            $ing = Product::find($recipeData['ingredient_id']);
+                            $product->recipes()->create([
+                                'ingredient_product_id' => $recipeData['ingredient_id'],
+                                'quantity' => $recipeData['quantity'] ?? 1,
+                                'unit_id' => $ing->baseUnit ? $ing->baseUnit->id : null,
+                            ]);
                         }
                     }
                 }

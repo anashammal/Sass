@@ -33,6 +33,7 @@ class Store extends Model
         'notify_email',
         'notify_whatsapp',
         'daily_report_time',
+        'type',
     ];
 
     // علاقة مع صاحب المتجر (User)

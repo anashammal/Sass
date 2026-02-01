@@ -11,7 +11,13 @@
                         <i class="fas fa-boxes"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">إجمالي المنتجات</div>
+                        <div class="kpi-label">
+                            @if(Auth::user()->store->type == 'restaurant')
+                                إجمالي قائمة الطعام (المنيو)
+                            @else
+                                إجمالي المنتجات
+                            @endif
+                        </div>
                         <div class="kpi-value english-num">{{ $stats['products_count'] ?? 0 }}</div>
                     </div>
                 </div>
@@ -25,7 +31,13 @@
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">نواقص المخزون</div>
+                        <div class="kpi-label">
+                            @if(Auth::user()->store->type == 'restaurant')
+                                خامات ومواد ناقصة
+                            @else
+                                نواقص المخزون
+                            @endif
+                        </div>
                         <div class="kpi-value english-num">{{ $stats['low_stock_count'] ?? 0 }}</div>
                     </div>
                 </div>
@@ -39,7 +51,13 @@
                         <i class="fas fa-calendar-times"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">منتجات منتهية/قريبة</div>
+                        <div class="kpi-label">
+                            @if(Auth::user()->store->type == 'restaurant')
+                                تنبيهات الصلاحية (الخامات)
+                            @else
+                                منتجات منتهية/قريبة
+                            @endif
+                        </div>
                         <div class="kpi-value english-num">{{ $expiredBatches->count() ?? 0 }}</div>
                     </div>
                 </div>
@@ -70,11 +88,22 @@
                     
                     <div class="d-flex justify-content-center gap-3 mt-4">
                         <a href="{{ route('store.pos.index') }}" class="btn btn-lg btn-primary">
-                            <i class="fas fa-cash-register me-2"></i> نقطة البيع (POS)
+                            <i class="fas fa-cash-register me-2"></i> 
+                            @if(Auth::user()->store->type == 'restaurant')
+                                نقطة البيع (الكاشير)
+                            @else
+                                نقطة البيع (POS)
+                            @endif
                         </a>
-                        <a href="{{ route('store.products.index') }}" class="btn btn-lg btn-outline-dark">
-                            <i class="fas fa-box-open me-2"></i> إدارة المنتجات
-                        </a>
+                        @if(strtolower(Auth::user()->store->type) == 'restaurant')
+                            <a href="{{ route('store.meals.index') }}" class="btn btn-lg btn-outline-dark">
+                                <i class="fas fa-utensils me-2"></i> إدارة المنيو والوجبات
+                            </a>
+                        @else
+                            <a href="{{ route('store.products.index') }}" class="btn btn-lg btn-outline-dark">
+                                <i class="fas fa-box-open me-2"></i> إدارة المنتجات
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
