@@ -65,6 +65,11 @@
     {{-- ? ??????? (?? ???????: ????? truncate ??????? ??????? ???? ????) --}}
     <td style="min-width: 200px; white-space: normal;">
         {{ $contact->address ?? '--' }}
+        @if($contact->latitude && $contact->longitude)
+            <a href="https://www.google.com/maps?q={{ $contact->latitude }},{{ $contact->longitude }}" target="_blank" class="ms-1 text-primary" title="عرض على الخريطة">
+                <i class="fas fa-map-marker-alt"></i>
+            </a>
+        @endif
     </td>
 
 {{-- ?????? --}}
