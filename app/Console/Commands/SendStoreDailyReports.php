@@ -126,29 +126,52 @@ class SendStoreDailyReports extends Command
         $msg .= "📎 *لتحميل التقرير التفصيلي PDF:*\n{$reportUrl}\n\n";
         $msg .= "🔗 [فتح النظام](" . config('app.url') . "/store-owner/dashboard)";
 
-        // 5. الإرسال (واتساب) - تعديل لاستخدام السيرفر المحلي
+        // 5. الإرسال (واتساب) - مستقل
+        $whatsappSuccess = false;
         if ($store->notify_whatsapp && $store->phone_number) {
             try {
-                Http::timeout(10)->post('http://127.0.0.1:3000/send-message', [
+                $response = Http::timeout(10)->post('http://127.0.0.1:3000/send-message', [
                     'phone' => $store->phone_number,
                     'message' => $msg,
-                    'session_id' => 'system' // استخدام جلسة النظام الموحدة
+                    'session_id' => 'system'
                 ]);
-            } catch (\Exception $e) { }
+                
+                if ($response->successful()) {
+                    $whatsappSuccess = true;
+                    // \Log::info("WhatsApp Report Sent: Store {$store->id}");
+                } else {
+                     \Log::warning("WhatsApp Report Failed (API Error): Store {$store->id}", ['response' => $response->body()]);
+                }
+            } catch (\Exception $e) {
+                 \Log::error("WhatsApp Report Failed (Exception): Store {$store->id}", ['error' => $e->getMessage()]);
+            }
         }
 
-        // 6. الإرسال (إيميل) - استخدام ReportMail مع المرفق
+        // 6. الإرسال (إيميل) - مستقل
+        $emailSuccess = false;
         if ($store->notify_email && $store->email) {
             try {
+                // محاولة تصحيح اسم المرسل في التقرير
+                $subject = "📊 تقرير متجر {$store->name} اليومي ({$date})"; // استخدام كلمة متجر بدلاً من مطعم إذا كانت موجودة
+
                 \Illuminate\Support\Facades\Mail::to($store->email)->send(
                     new \App\Mail\ReportMail(
-                        "📊 تقرير الحالة اليومي - {$store->name} ({$date})",
+                        $subject,
                         $msg,
                         $filePath,
                         $filename
                     )
                 );
-            } catch (\Exception $e) { }
+                $emailSuccess = true;
+                // \Log::info("Email Report Sent: Store {$store->id}");
+            } catch (\Exception $e) {
+                \Log::error("Email Report Failed: Store {$store->id}", ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // تسجيل ملخص بسيط
+        if (!$whatsappSuccess || !$emailSuccess) {
+            // \Log::info("Daily Report Status Store {$store->id}: WA=" . ($whatsappSuccess?'OK':'FAIL') . ", Email=" . ($emailSuccess?'OK':'FAIL'));
         }
     }
 }

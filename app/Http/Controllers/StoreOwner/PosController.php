@@ -405,47 +405,55 @@ class PosController extends Controller
                 
                 $stockBody = !empty($stockAlertLines) ? implode("\n", $stockAlertLines) : "";
 
-                // 🟢 1. منطق الواتساب 🟢
+                // 🟢 1. منطق الواتساب (مستقل) 🟢
                 if ($store->notify_whatsapp && $store->phone_number) {
-                    $waMsg = "";
-                    if ($store->wa_notify_stock && !empty($stockBody)) {
-                        $waMsg .= $stockBody . "\n\n";
-                    }
-                    
-                    // إشعار المبيعات (فقط إذا لم يكن سحباً)
-                    if (!$isWithdrawal && $store->wa_notify_sales) {
-                        $sendInv = false;
-                        if ($store->wa_sales_credit_only) { 
-                            if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
-                        } else { 
-                            if ($netTotal >= ($store->wa_sales_min ?? 0)) $sendInv = true; 
-                            if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
+                    try {
+                        $waMsg = "";
+                        if ($store->wa_notify_stock && !empty($stockBody)) {
+                            $waMsg .= $stockBody . "\n\n";
                         }
-                        if ($sendInv) {
-                            $waMsg .= "🧾 *فاتورة #{$sale->id}*\n💰 {$netTotal}\n👤 " . ($sale->contact ? $sale->contact->contact_name : 'نقدي');
+                        
+                        // إشعار المبيعات (فقط إذا لم يكن سحباً)
+                        if (!$isWithdrawal && $store->wa_notify_sales) {
+                            $sendInv = false;
+                            if ($store->wa_sales_credit_only) { 
+                                if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
+                            } else { 
+                                if ($netTotal >= ($store->wa_sales_min ?? 0)) $sendInv = true; 
+                                if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
+                            }
+                            if ($sendInv) {
+                                $waMsg .= "🧾 *فاتورة #{$sale->id}*\n💰 {$netTotal}\n👤 " . ($sale->contact ? $sale->contact->contact_name : 'نقدي');
+                            }
                         }
-                    }
 
-                    if (!empty($waMsg)) {
-                        Http::timeout(2)->post('https://wa.tech-sys.online/send-message', [
-                            'phone' => $store->phone_number, 
-                            'message' => trim($waMsg), 
-                            'session_id' => 'store_' . $storeId
-                        ]);
+                        if (!empty($waMsg)) {
+                            Http::timeout(2)->post('https://wa.tech-sys.online/send-message', [
+                                'phone' => $store->phone_number, 
+                                'message' => trim($waMsg), 
+                                'session_id' => 'store_' . $storeId
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error("POS WhatsApp Error: " . $e->getMessage());
                     }
                 }
 
-                // 🔵 2. منطق الإيميل 🔵
+                // 🔵 2. منطق الإيميل (مستقل) 🔵
                 if ($store->notify_email && $store->email) {
-                    // تنبيه المخزون عبر الإيميل
-                    if ($store->email_notify_stock && !empty($emailAlertData)) {
-                        $reason = $isWithdrawal ? "سحب كمية من قبل صاحب المتجر" : "عملية بيع جديدة";
-                        Mail::to($store->email)->send(new StockAlertMail($emailAlertData, $store->name, $reason));
+                    try {
+                        // تنبيه المخزون عبر الإيميل
+                        if ($store->email_notify_stock && !empty($emailAlertData)) {
+                            $reason = $isWithdrawal ? "سحب كمية من قبل صاحب المتجر" : "عملية بيع جديدة";
+                            Mail::to($store->email)->send(new StockAlertMail($emailAlertData, $store->name, $reason));
+                        }
+                    } catch (\Exception $e) {
+                         Log::error("POS Email Error: " . $e->getMessage());
                     }
                 }
 
             } catch (\Exception $e) { 
-                Log::error("Notif Error: " . $e->getMessage()); 
+                Log::error("General Notif Error: " . $e->getMessage()); 
             }
 
             if ($isWithdrawal) {

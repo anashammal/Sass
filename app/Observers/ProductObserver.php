@@ -49,21 +49,24 @@ class ProductObserver
         $msg .= "🛑 حد التنبيه: " . (float)$product->alert_quantity;
 
         // =================================================
-        // أولاً: إرسال الإيميل
+        // أولاً: إرسال الإيميل - مستقل
         // =================================================
+        $emailSuccess = false;
         if ($store->notify_email && $store->email) {
             try {
                 Mail::raw($msg, function ($m) use ($store, $title) {
                     $m->to($store->email)->subject($title);
                 });
+                $emailSuccess = true;
             } catch (\Exception $e) {
-                Log::error("Mail Error: " . $e->getMessage());
+                Log::error("Mail Error (Product Alert): " . $e->getMessage());
             }
         }
 
         // =================================================
-        // ثانياً: إرسال الواتساب (مع التحقق الذكي)
+        // ثانياً: إرسال الواتساب - مستقل
         // =================================================
+        $whatsappSuccess = false;
         if ($store->notify_whatsapp && $store->phone_number) {
             
             // تنظيف الرقم
@@ -74,13 +77,15 @@ class ProductObserver
                 // المحاولة لمدة 3 ثواني
                 $response = Http::timeout(3)->post('http://localhost:3000/send-message', [
                     'phone' => $phone, 
-                    'message' => $msg
+                    'message' => $msg,
+                    'session_id' => 'system' // توحيد الجلسة
                 ]);
 
-                if($response->failed()) {
-                    Log::error("WhatsApp API Failed: " . $response->body());
+                if($response->successful()) {
+                    $whatsappSuccess = true;
+                    // Log::info("WhatsApp Sent Successfully to: " . $phone);
                 } else {
-                    Log::info("WhatsApp Sent Successfully to: " . $phone);
+                    Log::error("WhatsApp API Failed: " . $response->body());
                 }
 
             } catch (\Exception $e) {

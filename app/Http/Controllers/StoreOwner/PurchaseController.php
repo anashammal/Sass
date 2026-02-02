@@ -462,63 +462,66 @@ class PurchaseController extends Controller
 
                     // 1. منطق الواتساب (مستقل)
                     if ($store->notify_whatsapp && $store->phone_number && $store->wa_notify_purchases) {
-                        $waSend = false;
-                        
-                        if ($store->wa_purchases_credit_only) {
-                            // شرط الدين فقط للواتس
-                            if ($isCredit && $due >= $store->wa_purchases_credit_min) $waSend = true;
-                        } else {
-                            // شرط عام للواتس
-                            if ($netTotal >= $store->wa_purchases_min) $waSend = true;
-                            if ($isCredit && $due >= $store->wa_purchases_credit_min) $waSend = true;
-                        }
+                        try {
+                            $waSend = false;
+                            
+                            if ($store->wa_purchases_credit_only) {
+                                if ($isCredit && $due >= $store->wa_purchases_credit_min) $waSend = true;
+                            } else {
+                                if ($netTotal >= $store->wa_purchases_min) $waSend = true;
+                                if ($isCredit && $due >= $store->wa_purchases_credit_min) $waSend = true;
+                            }
 
-                        if ($waSend) {
-                            $msg = "🚛 *فاتورة مشتريات جديدة #{$purchase->id}*\n";
-                            $msg .= "👤 المورد: {$supplierName}\n";
-                            $msg .= "💰 القيمة: " . number_format($netTotal, 2) . "\n";
-                            if($isCredit) $msg .= "❗️ آجل (دين): " . number_format($due, 2) . "\n";
-                            $msg .= "✍️ بواسطة: {$user->name}";
+                            if ($waSend) {
+                                $msg = "🚛 *فاتورة مشتريات جديدة #{$purchase->id}*\n";
+                                $msg .= "👤 المورد: {$supplierName}\n";
+                                $msg .= "💰 القيمة: " . number_format($netTotal, 2) . "\n";
+                                if($isCredit) $msg .= "❗️ آجل (دين): " . number_format($due, 2) . "\n";
+                                $msg .= "✍️ بواسطة: {$user->name}";
 
-                            // استخدام timeout قصير جداً لتقليل التعليق
-                            Http::timeout(1)->withoutVerifying()->post('https://wa.tech-sys.online/send-message', [
-                                'phone' => $store->phone_number,
-                                'message' => $msg,
-                                'session_id' => 'store_' . $store->id
-                            ]);
+                                Http::timeout(2)->withoutVerifying()->post('https://wa.tech-sys.online/send-message', [
+                                    'phone' => $store->phone_number,
+                                    'message' => $msg,
+                                    'session_id' => 'store_' . $store->id
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                             Log::error("Purchase WhatsApp Error: " . $e->getMessage());
                         }
                     }
 
                     // 2. منطق الإيميل (مستقل)
                     if ($store->notify_email && $store->email && $store->email_notify_purchases) {
-                        $emailSend = false;
+                        try {
+                            $emailSend = false;
 
-                        if ($store->email_purchases_credit_only) {
-                            // شرط الدين فقط للإيميل
-                            if ($isCredit && $due >= $store->email_purchases_credit_min) $emailSend = true;
-                        } else {
-                            // شرط عام للإيميل
-                            if ($netTotal >= $store->email_purchases_min) $emailSend = true;
-                            if ($isCredit && $due >= $store->email_purchases_credit_min) $emailSend = true;
-                        }
+                            if ($store->email_purchases_credit_only) {
+                                if ($isCredit && $due >= $store->email_purchases_credit_min) $emailSend = true;
+                            } else {
+                                if ($netTotal >= $store->email_purchases_min) $emailSend = true;
+                                if ($isCredit && $due >= $store->email_purchases_credit_min) $emailSend = true;
+                            }
 
-                        if ($emailSend) {
-                            $emailMsg = "تم تسجيل فاتورة مشتريات جديدة.\n\n";
-                            $emailMsg .= "رقم الفاتورة: #{$purchase->id}\n";
-                            $emailMsg .= "المورد: {$supplierName}\n";
-                            $emailMsg .= "الإجمالي: " . number_format($netTotal, 2) . "\n";
-                            $emailMsg .= "المدفوع: " . number_format($totalPaid, 2) . "\n";
-                            $emailMsg .= "المتبقي (آجل): " . number_format($due, 2) . "\n";
-                            $emailMsg .= "بواسطة: {$user->name}";
+                            if ($emailSend) {
+                                $emailMsg = "تم تسجيل فاتورة مشتريات جديدة.\n\n";
+                                $emailMsg .= "رقم الفاتورة: #{$purchase->id}\n";
+                                $emailMsg .= "المورد: {$supplierName}\n";
+                                $emailMsg .= "الإجمالي: " . number_format($netTotal, 2) . "\n";
+                                $emailMsg .= "المدفوع: " . number_format($totalPaid, 2) . "\n";
+                                $emailMsg .= "المتبقي (آجل): " . number_format($due, 2) . "\n";
+                                $emailMsg .= "بواسطة: {$user->name}";
 
-                            Mail::raw($emailMsg, function($m) use ($store, $purchase) {
-                                $m->to($store->email)->subject("فاتورة شراء #{$purchase->id}");
-                            });
+                                Mail::raw($emailMsg, function($m) use ($store, $purchase) {
+                                    $m->to($store->email)->subject("فاتورة شراء #{$purchase->id}");
+                                });
+                            }
+                        } catch (\Exception $e) {
+                            Log::error("Purchase Email Error: " . $e->getMessage());
                         }
                     }
 
                 } catch (\Exception $e) {
-                    Log::error("Purchase Notification Failed: " . $e->getMessage());
+                    Log::error("Purchase Notification General Failed: " . $e->getMessage());
                 }
             }
             // ============================================================
