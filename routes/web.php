@@ -28,6 +28,7 @@ use App\Http\Controllers\StoreOwner\ReportController;
 use App\Http\Controllers\StoreOwner\ShiftController;
 use App\Http\Controllers\StoreOwner\WhatsAppController as StoreWhatsAppController;
 use App\Http\Controllers\StoreOwner\EmailController;
+use App\Http\Controllers\StoreOwner\ContactVerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -197,6 +198,10 @@ Route::middleware(['auth'])->group(function () {
 
         // إدارة البريد الإلكتروني للتقارير
         Route::post('/email/send', [EmailController::class, 'sendEmail'])->name('email.send');
+        
+        // التحقق من جهات الاتصال
+        Route::post('contacts/verify/send', [ContactVerificationController::class, 'sendCode'])->name('contacts.verify.send');
+        Route::post('contacts/verify/confirm', [ContactVerificationController::class, 'verifyCode'])->name('contacts.verify.confirm');
     // صفحة إدارة المنتجات المنتهية وقريبة الانتهاء
 Route::get('products/expired-manager', [ProductController::class, 'expiredManager'])->name('products.expired_manager');
 

@@ -44,11 +44,19 @@
         @endif
     </td>
 
-    <td dir="ltr" class="font-monospace small">{{ $contact->phone ?? '--' }}</td>
+    <td dir="ltr" class="font-monospace small">
+        {{ $contact->phone ?? '--' }}
+        @if($contact->phone_verified_at)
+            <i class="fas fa-certificate text-success ms-1" title="تم التحقق"></i>
+        @endif
+    </td>
     
     <td class="small">
         @if($contact->email)
             <a href="mailto:{{ $contact->email }}">{{ $contact->email }}</a>
+            @if($contact->email_verified_at)
+                <i class="fas fa-certificate text-success ms-1" title="تم التحقق"></i>
+            @endif
         @else <span class="text-muted">--</span> @endif
     </td>
     

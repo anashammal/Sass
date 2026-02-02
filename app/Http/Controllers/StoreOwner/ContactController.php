@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Contact;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 
 class ContactController extends Controller
 {
@@ -88,17 +89,26 @@ public function index(Request $request)
             elseif (in_array('supplier', $types)) $finalType = 'supplier';
 
             $fullPhone = $request->phone;
-            if ($request->filled('phone') && $request->filled('dial_code') && !str_starts_with($request->phone, '+')) {
-                $fullPhone = $request->dial_code . $request->phone;
-            }
 
-            Contact::create([
+            $contact = Contact::create([
                 'store_id' => $storeId, 'contact_name' => $request->name, 'type' => $finalType,
                 'company_name' => $request->company_name, 'phone' => $fullPhone, 'email' => $request->email,
                 'address' => $request->address, 'tax_number' => $request->tax_number,
+                'latitude' => $request->latitude, 'longitude' => $request->longitude,
                 'credit_limit' => $request->credit_limit ?? 0, 'balance' => $request->opening_balance ?? 0,
             ]);
-            return redirect()->route('store.contacts.index')->with('success', 'تم الحفظ.');
+
+            // التحقق من الجلسة إذا تم التحقق قبل الحفظ
+            if (Session::get("verify_phone_{$fullPhone}_verified")) {
+                $contact->update(['phone_verified_at' => now()]);
+                Session::forget(["verify_phone_{$fullPhone}_verified", "verify_phone_{$fullPhone}"]);
+            }
+            if ($request->email && Session::get("verify_email_{$request->email}_verified")) {
+                $contact->update(['email_verified_at' => now()]);
+                Session::forget(["verify_email_{$request->email}_verified", "verify_email_{$request->email}"]);
+            }
+
+            return redirect()->route('store.contacts.index')->with('success', 'تم الحفظ بنجاح.');
         } catch (\Exception $e) { return back()->with('error', $e->getMessage())->withInput(); }
     }
 
@@ -116,13 +126,22 @@ public function index(Request $request)
             if (in_array('customer', $types) && in_array('supplier', $types)) $finalType = 'both';
             elseif (in_array('supplier', $types)) $finalType = 'supplier';
 
+            $oldPhone = $contact->phone;
+            $oldEmail = $contact->email;
+
             $contact->update([
                 'contact_name' => $request->name, 'type' => $finalType,
                 'company_name' => $request->company_name, 'phone' => $request->phone,
                 'email' => $request->email, 'address' => $request->address,
                 'tax_number' => $request->tax_number, 'credit_limit' => $request->credit_limit,
+                'latitude' => $request->latitude, 'longitude' => $request->longitude,
             ]);
-            return redirect()->route('store.contacts.index')->with('success', 'تم التحديث.');
+
+            // تصفير التحقق إذا تغير الرقم أو الإيميل
+            if ($oldPhone !== $request->phone) $contact->update(['phone_verified_at' => null]);
+            if ($oldEmail !== $request->email) $contact->update(['email_verified_at' => null]);
+
+            return redirect()->route('store.contacts.index')->with('success', 'تم التحديث بنجاح.');
         } catch (\Exception $e) { return back()->with('error', $e->getMessage()); }
     }
 

@@ -67,13 +67,226 @@
                             <hr class="my-4">
 
                             <div class="col-md-6">
-                                <label class="form-label">الهاتف</label>
-                                <input type="text" class="form-control" name="phone" value="{{ old('phone', $contact->phone) }}" dir="ltr">
+                                <label class="form-label">الهاتف
+                                    <span id="phone_v_status" class="ms-2" style="{{ $contact->phone_verified_at ? 'display:inline-block;' : 'display:none;' }}">
+                                        <i class="fas fa-certificate text-success" title="تم التحقق"></i>
+                                    </span>
+                                </label>
+                                <div class="d-flex gap-1">
+                                    <div class="tel-input-wrapper flex-grow-1">
+                                        <input type="tel" class="form-control" id="phone_input" value="{{ old('phone', $contact->phone) }}" dir="ltr">
+                                        <input type="hidden" name="phone" id="full_phone" value="{{ old('phone', $contact->phone) }}">
+                                        <div id="phone-error" class="phone-error-msg">رقم الهاتف غير صحيح لهذه الدولة</div>
+                                    </div>
+                                    @if(!$contact->phone_verified_at)
+                                        <button type="button" class="btn btn-light btn-sm border" id="send_phone_v" onclick="triggerVerification('phone')">تحقق</button>
+                                    @endif
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">البريد</label>
-                                <input type="email" class="form-control" name="email" value="{{ old('email', $contact->email) }}">
+                                <label class="form-label">البريد
+                                    <span id="email_v_status" class="ms-2" style="{{ $contact->email_verified_at ? 'display:inline-block;' : 'display:none;' }}">
+                                        <i class="fas fa-certificate text-success" title="تم التحقق"></i>
+                                    </span>
+                                </label>
+                                <div class="d-flex gap-1">
+                                    <div class="flex-grow-1">
+                                        <input type="email" class="form-control" name="email" id="email" value="{{ old('email', $contact->email) }}">
+                                    </div>
+                                    @if(!$contact->email_verified_at)
+                                        <button type="button" class="btn btn-light btn-sm border" id="send_email_v" onclick="triggerVerification('email')">تحقق</button>
+                                    @endif
+                                </div>
                             </div>
+
+                            <script>
+                                (function() {
+                                    const arNames = {
+                                        "tr": "تركيا - Turkey", "sa": "السعودية - Saudi Arabia", "ae": "الإمارات - UAE",
+                                        "jo": "الأردن - Jordan", "sy": "سوريا - Syria", "eg": "مصر - Egypt",
+                                        "kw": "الكويت - Kuwait", "qa": "قطر - Qatar", "bh": "البحرين - Bahrain",
+                                        "om": "عمان - Oman", "ye": "اليمن - Yemen", "iq": "العراق - Iraq",
+                                        "ps": "فلسطين - Palestine", "lb": "لبنان - Lebanon", "ly": "ليبيا - Libya",
+                                        "ma": "المغرب - Morocco", "dz": "الجزائر - Algeria", "tn": "تونس - Tunisia",
+                                        "sd": "السودان - Sudan", "so": "الصومال - Somalia", "dj": "جيبوتي - Djibouti",
+                                        "mr": "موريتانيا - Mauritania", "km": "جزر القمر - Comoros"
+                                    };
+
+                                    function init() {
+                                        const phoneInput = document.querySelector("#phone_input");
+                                        const fullPhoneInput = document.querySelector("#full_phone");
+                                        
+                                        if (!phoneInput) return;
+
+                                        if (typeof window.intlTelInput === 'undefined') {
+                                            setTimeout(init, 500);
+                                            return;
+                                        }
+
+                                        const iti = window.intlTelInput(phoneInput, {
+                                            initialCountry: "auto",
+                                            geoIpLookup: callback => {
+                                                fetch("https://ipapi.co/json")
+                                                    .then(res => res.json())
+                                                    .then(data => callback(data.country_code))
+                                                    .catch(() => callback("tr"));
+                                            },
+                                            preferredCountries: ["tr", "sa", "ae", "jo", "sy", "eg"],
+                                            separateDialCode: true,
+                                            autoPlaceholder: "aggressive",
+                                            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js",
+                                            countryNameLocale: "ar",
+                                            i18n: {
+                                                searchPlaceholder: "ابحث عن دولة...",
+                                            }
+                                        });
+
+                                        // --- منطق البريد الإلكتروني (إكمال تلقائي ومنع العربي) ---
+                                        const emailInput = document.querySelector('input[name="email"]');
+                                        const domains = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
+                                        
+                                        if (emailInput) {
+                                            emailInput.addEventListener("input", function(e) {
+                                                // منع الأحرف العربية تماماً
+                                                this.value = this.value.replace(/[\u0600-\u06FF]/g, "");
+                                                
+                                                const val = this.value;
+                                                const atIndex = val.indexOf("@");
+                                                
+                                                // التلوين بناءً على الصحة
+                                                const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+                                                this.style.borderColor = isValid ? "#10b981" : "#ef4444";
+                                                this.style.boxShadow = isValid ? "0 0 0 0.25rem rgba(16, 185, 129, 0.1)" : "0 0 0 0.25rem rgba(239, 68, 68, 0.1)";
+
+                                                if (atIndex > -1) {
+                                                    const query = val.substring(atIndex + 1);
+                                                    if (query.length > 0) {
+                                                        const match = domains.find(d => d.startsWith(query));
+                                                        if (match && e.inputType !== "deleteContentBackward") {
+                                                            const start = val.length;
+                                                            this.value = val.substring(0, atIndex + 1) + match;
+                                                            this.setSelectionRange(start, this.value.length);
+                                                        }
+                                                    }
+                                                }
+                                            });
+
+                                            emailInput.addEventListener("blur", function() {
+                                                this.value = this.value.toLowerCase().trim();
+                                            });
+                                        }
+
+                                        const validate = () => {
+                                            fullPhoneInput.value = iti.getNumber();
+                                            if (phoneInput.value.trim()) {
+                                                if (iti.isValidNumber()) {
+                                                    phoneInput.classList.remove("is-invalid-phone");
+                                                    errorMsg.style.display = "none";
+                                                } else {
+                                                    phoneInput.classList.add("is-invalid-phone");
+                                                    errorMsg.style.display = "block";
+                                                }
+                                            } else {
+                                                phoneInput.classList.remove("is-invalid-phone");
+                                                errorMsg.style.display = "none";
+                                            }
+                                        };
+
+                                        phoneInput.addEventListener('keypress', e => {
+                                            if (e.which < 48 || e.which > 57) {
+                                                if (e.which !== 8 && e.which !== 0 && e.which !== 43) e.preventDefault();
+                                            }
+                                        });
+
+                                        phoneInput.addEventListener('change', validate);
+                                        phoneInput.addEventListener('keyup', validate);
+                                        phoneInput.addEventListener('countrychange', validate);
+                                        
+                                        if (phoneInput.value) setTimeout(validate, 500);
+                                    }
+
+                                    if (document.readyState === 'loading') {
+                                        document.addEventListener('DOMContentLoaded', init);
+                                    } else {
+                                        init();
+                                    }
+                                })();
+
+                                // دالة إرسال كود التحقق للمعدل
+                                async function triggerVerification(type) {
+                                    const value = (type === 'phone') ? document.querySelector("#full_phone").value : document.querySelector("#email").value;
+                                    const contact_id = "{{ $contact->id }}";
+                                    
+                                    if (!value) {
+                                        Swal.fire('خطأ', 'يرجى إدخال البيانات أولاً', 'error');
+                                        return;
+                                    }
+
+                                    const btn = document.querySelector('#send_' + type + '_v');
+                                    btn.disabled = true;
+                                    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+                                    try {
+                                        const response = await fetch("{{ route('store.contacts.verify.send') }}", {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                            },
+                                            body: JSON.stringify({ type, value, contact_id })
+                                        });
+
+                                        const data = await response.json();
+                                        if (data.success) {
+                                            const { value: code } = await Swal.fire({
+                                                title: 'أدخل رمز التحقق',
+                                                text: data.message,
+                                                input: 'text',
+                                                inputPlaceholder: '123456',
+                                                showCancelButton: true,
+                                                confirmButtonText: 'تأكيد الرمز',
+                                                cancelButtonText: 'إلغاء'
+                                            });
+
+                                            if (code) {
+                                                verifyCode(type, value, code);
+                                            }
+                                        } else {
+                                            Swal.fire('فشل', data.message, 'error');
+                                        }
+                                    } catch (e) {
+                                        Swal.fire('خطأ', 'حدث خطأ غير متوقع', 'error');
+                                    } finally {
+                                        btn.disabled = false;
+                                        btn.innerText = 'تحقق';
+                                    }
+                                }
+
+                                async function verifyCode(type, value, code) {
+                                    const contact_id = "{{ $contact->id }}";
+                                    try {
+                                        const response = await fetch("{{ route('store.contacts.verify.confirm') }}", {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                            },
+                                            body: JSON.stringify({ type, value, code, contact_id })
+                                        });
+
+                                        const data = await response.json();
+                                        if (data.success) {
+                                            Swal.fire('تم التحقق!', 'تم التحقق بنجاح', 'success');
+                                            document.querySelector('#' + type + '_v_status').style.display = 'inline-block';
+                                            document.querySelector('#send_' + type + '_v').style.display = 'none';
+                                        } else {
+                                            Swal.fire('خطأ', data.message, 'error');
+                                        }
+                                    } catch (e) {
+                                        Swal.fire('خطأ', 'فشل التحقق من الرمز', 'error');
+                                    }
+                                }
+                            </script>
 
                             <div class="col-md-6">
                                 <label class="form-label">الرقم الضريبي</label>

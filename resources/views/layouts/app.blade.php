@@ -15,7 +15,12 @@
     <link href="https://fonts.googleapis.com/css?family=Nunito:400,600,700,800,900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    
+    {{-- intl-tel-input --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js"></script>
 
     <style>
 /* تصغير واجهة الموقع بالكامل لتظهر بشكل أرتب */
@@ -798,9 +803,74 @@
         .badge {
             padding: 0.5rem 1rem;
             border-radius: 8px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
+        }
+
+        /* --- تخصيص intl-tel-input للـ RTL والمظهر الفاخر --- */
+        :root {
+            --iti-path-flags-1x: url("{{ asset('assets/intl-tel-input/flags.png') }}");
+            --iti-path-flags-2x: url("{{ asset('assets/intl-tel-input/flags@2x.png') }}");
+        }
+        
+        .iti { width: 100%; display: block; }
+        .iti__country-list { 
+            direction: rtl !important; 
+            text-align: right !important; 
+            border-radius: 12px !important; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important; 
+            z-index: 9999 !important;
+        }
+
+        /* تحسين مظهر شريط البحث */
+        .iti__search-input {
+            width: 100% !important;
+            padding: 10px 15px !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 8px !important;
+            margin: 5px !important;
+            direction: rtl !important;
+            text-align: right !important;
+        }
+
+        /* إصلاح الأعلام - استخدام CDN لضمان الظهور الفوري */
+        .iti__flag {
+            background-image: url("https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/img/flags.png") !important;
+        }
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .iti__flag {
+                background-image: url("https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/img/flags@2x.png") !important;
+            }
+        }
+
+        /* علم سوريا المخصص */
+        .iti__sy, .iti__flag.iti__sy {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'%3E%3Crect width='3' height='2' fill='%23000'/%3E%3Crect width='3' height='1.333' fill='%23fff'/%3E%3Crect width='3' height='0.666' fill='%23007a33'/%3E%3Cg fill='%23ce1126'%3E%3Cpath d='M0.75 1.15l.147.107-.056-.173.147-.107-.182 0-.056-.173L.7 0.98l-.182 0 .147.107-.056.173z'/%3E%3Cpath d='M1.5 1.15l.147.107-.056-.173.147-.107-.182 0-.056-.173L1.45 0.98l-.182 0 .147.107-.056.173z'/%3E%3Cpath d='M2.25 1.15l.147.107-.056-.173.147-.107-.182 0-.056-.173L2.2 0.98l-.182 0 .147.107-.056.173z'/%3E%3C/g%3E%3C/svg%3E") !important;
+            background-position: center !important;
+            background-size: contain !important;
+            background-repeat: no-repeat !important;
+            width: 20px !important;
+            height: 14px !important;
+            display: inline-block !important;
+        }
+
+        /* ضبط حقل الإدخال ليعمل مع المكتبة */
+        input#phone_input { 
+            padding-left: 100px !important; /* مساحة كافية للعلم والرمز */
+            text-align: left !important;
+            direction: ltr !important;
+            font-family: sans-serif !important;
+        }
+        [dir="rtl"] .iti__flag-box { margin-right: 0; margin-left: 10px; }
+        .iti__selected-flag { background-color: transparent !important; padding: 0 12px !important; }
+        .phone-error-msg {
+            color: #dc3545;
             font-size: 0.8rem;
+            font-weight: 700;
+            margin-top: 5px;
+            display: none;
+        }
+        .is-invalid-phone {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
         }
 
         /* --- Premium Alerts --- */
@@ -1919,6 +1989,5 @@
         </div>
     </div>
 </div>
-</script>
 </body>
 </html>
