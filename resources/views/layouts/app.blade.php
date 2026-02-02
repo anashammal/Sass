@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'Tech-Sys') }}</title>
@@ -1038,11 +1038,158 @@
     
     
     
+    /* ========================================= */
+    /* 📱 MOBILE APP EXPERIENCE (Phone Only) 📱 */
+    /* ========================================= */
+    @media (max-width: 768px) {
+        /* Reset Desktop Enforced Scale */
+        :root { --base-scale: 1; }
+        body { 
+            zoom: 1 !important; 
+            padding-bottom: 80px; /* Space for Bottom Nav */
+            padding-top: 60px; /* Space for Mobile Header */
+            background-color: #f6f7fb; 
+        }
+        
+        /* Hide Desktop Elements */
+        .navbar-custom { display: none !important; }
+        #sidebarMenu { display: none !important; } 
+        
+        /* Show Mobile Elements */
+        .mobile-header { display: flex !important; }
+        .mobile-bottom-nav { display: flex !important; }
+        
+        /* Improve Touch Areas & Text */
+        .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+        input, select { min-height: 44px; font-size: 16px !important; } /* 16px prevents iOS zoom */
+        
+        /* Adjust Container Padding */
+        .container-fluid { padding-left: 15px; padding-right: 15px; }
+        
+        /* Safe Area fix for iPhone X+ */
+        .mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom); height: calc(65px + env(safe-area-inset-bottom)); }
+
+        /* KPI Cards Mobile Optimization */
+        .col-md-3 .card { margin-bottom: 15px; }
+        
+        /* Hide scrollbars for cleaner look */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    }
+    
+    /* Mobile Elements Default Hidden on Desktop */
+    .mobile-header { display: none; }
+    .mobile-bottom-nav { display: none; }
+    
+    /* Mobile Header Styles */
+    .mobile-header {
+        position: fixed; top: 0; left: 0; right: 0;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        z-index: 1040;
+        padding: 0 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    /* Mobile Bottom Nav Styles */
+    .mobile-bottom-nav {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        height: 70px;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(10px);
+        z-index: 1050;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+        justify-content: space-around;
+        align-items: center;
+        border-top: 1px solid rgba(0,0,0,0.05);
+        border-radius: 20px 20px 0 0;
+    }
+    
+    .mobile-nav-item {
+        display: flex; flex-direction: column; align-items: center;
+        text-decoration: none; color: #94a3b8; width: 20%;
+        transition: all 0.3s;
+        font-size: 0.70rem;
+        font-weight: 700;
+        position: relative;
+        top: -5px;
+    }
+    
+    .mobile-nav-item i { font-size: 1.4rem; margin-bottom: 4px; transition: all 0.3s; }
+    
+    .mobile-nav-item.active { color: #667eea; }
+    .mobile-nav-item.active i { transform: translateY(-3px); color: #764ba2; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    /* Center FAB (POS Button) */
+    .mobile-nav-fab {
+        position: absolute; top: -35px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        width: 60px; height: 60px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: white;
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.5);
+        border: 4px solid #fff;
+        transition: transform 0.2s;
+    }
+    .mobile-nav-fab i { font-size: 1.6rem; }
+    .mobile-nav-fab:active { transform: scale(0.90); }
+    
+    /* Offcanvas Menu Customization */
+    .offcanvas-mobile-menu {
+        background: linear-gradient(180deg, #2d2452 0%, #1a1436 100%);
+        color: white;
+    }
     </style>
 
 </head>
 <body>
     <div id="app" class="d-flex flex-column h-100">
+        
+        {{-- 📱 Mobile Custom Header 📱 --}}
+        <div class="mobile-header d-md-none">
+            <div class="d-flex align-items-center">
+                @auth
+                    @php
+                         $mobLogo = null;
+                         if(auth()->user()->store) {
+                             $mobStore = auth()->user()->store;
+                             if ($mobStore->logo_path) $mobLogo = url('storage/' . $mobStore->logo_path);
+                         }
+                    @endphp
+                    <img src="{{ $mobLogo ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->store->name ?? 'T').'&background=random' }}" 
+                         style="width: 38px; height: 38px; border-radius: 12px; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" class="me-2">
+                    <div style="line-height: 1.1;">
+                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ Str::limit(auth()->user()->store->name ?? 'TechSys', 20) }}</div>
+                        <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size: 0.65rem;">مدير المتجر</span>
+                    </div>
+                @else
+                    <span class="fw-bold text-dark fs-5">TechSys</span>
+                @endauth
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                 <a href="#" class="position-relative text-secondary p-2">
+                    <i class="fa fa-bell fa-lg"></i>
+                     @if(isset($expiryAlerts) && ($expiryAlerts['expired']->count() + $expiryAlerts['near']->count()) > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                            <span class="visually-hidden">New alerts</span>
+                        </span>
+                    @endif
+                </a>
+                @auth
+                <a href="{{ route('store.settings.index') }}">
+                     <div class="bg-gradient text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+                          style="width: 35px; height: 35px; font-size: 0.9rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
+                    </div>
+                </a>
+                @endauth
+            </div>
+        </div>
         
         <nav class="navbar navbar-expand-md navbar-custom sticky-top">
             <div class="container-fluid">
@@ -1504,6 +1651,86 @@
                 @endauth
             </div>
         </div>
+        {{-- 📱 Mobile Bottom Navigation 📱 --}}
+        @auth
+        <div class="mobile-bottom-nav d-md-none">
+            <a href="{{ route('store.dashboard') }}" class="mobile-nav-item {{ request()->routeIs('store.dashboard') ? 'active' : '' }}">
+                <i class="fas fa-home"></i> <span>الرئيسية</span>
+            </a>
+            
+            @if(auth()->user()->store && strtolower(auth()->user()->store->type) == 'restaurant')
+                <a href="{{ route('store.meals.index') }}" class="mobile-nav-item {{ request()->routeIs('store.meals.*') ? 'active' : '' }}">
+                    <i class="fas fa-utensils"></i> <span>المنيو</span>
+                </a>
+            @else
+                <a href="{{ route('store.products.index') }}" class="mobile-nav-item {{ request()->routeIs('store.products.*') ? 'active' : '' }}">
+                    <i class="fas fa-box"></i> <span>المنتجات</span>
+                </a>
+            @endif
+        
+            <a href="{{ route('store.pos.index') }}" class="mobile-nav-item" style="width: 20%;">
+                <div class="mobile-nav-fab d-flex align-items-center justify-content-center">
+                    <i class="fas fa-cash-register"></i>
+                </div>
+                <span style="margin-top: 35px;">البيع</span>
+            </a>
+        
+            <a href="{{ route('reports.shifts') }}" class="mobile-nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                <i class="fas fa-chart-pie"></i> <span>التقارير</span>
+            </a>
+            
+            <a href="#" class="mobile-nav-item" data-bs-toggle="offcanvas" data-bs-target="#mobileMenuOffcanvas">
+                <i class="fas fa-th"></i> <span>المزيد</span>
+            </a>
+        </div>
+
+        {{-- 📱 Mobile Sidebar (Offcanvas) 📱 --}}
+        <div class="offcanvas offcanvas-start offcanvas-mobile-menu" tabindex="-1" id="mobileMenuOffcanvas" style="width: 75%; border-right: 1px solid rgba(255,255,255,0.1);">
+            <div class="offcanvas-header pt-4 pb-2 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white text-primary rounded-3 d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                        <i class="fas fa-store fa-lg"></i>
+                    </div>
+                    <div>
+                        <h5 class="offcanvas-title fw-bold mb-0 text-white">{{ auth()->user()->store->name ?? 'القائمة' }}</h5>
+                        <small class="text-white text-opacity-50">لوحة التحكم</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+            </div>
+            <div class="offcanvas-body p-0 mt-3">
+                <div class="list-group list-group-flush bg-transparent">
+                    <div class="px-4 py-2 text-white text-opacity-25 small fw-bold text-uppercase ls-1">إدارة المتجر</div>
+                    
+                    <a href="{{ route('store.contacts.index') }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 py-3 px-4">
+                        <i class="fas fa-users me-3 text-info opacity-75" style="width:20px"></i> العملاء
+                    </a>
+                    
+                    <a href="{{ route('store.purchases.index') }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 py-3 px-4">
+                        <i class="fas fa-truck-loading me-3 text-warning opacity-75" style="width:20px"></i> المشتريات
+                    </a>
+                    
+                    <a href="{{ route('store.expenses.index') }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 py-3 px-4">
+                        <i class="fas fa-file-invoice-dollar me-3 text-danger opacity-75" style="width:20px"></i> المصاريف
+                    </a>
+                    
+                    <div class="my-2 border-top border-white border-opacity-10"></div>
+                    
+                    <a href="{{ route('store.settings.index') }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 py-3 px-4">
+                        <i class="fas fa-cog me-3 text-secondary opacity-75" style="width:20px"></i> الإعدادات
+                    </a>
+
+                    <div class="mt-5 px-4">
+                        <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" 
+                           class="btn btn-danger w-100 rounded-pill py-2 shadow-sm d-flex align-items-center justify-content-center">
+                            <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endauth
+
     </div>
     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
     

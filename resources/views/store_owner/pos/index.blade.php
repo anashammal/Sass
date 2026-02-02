@@ -179,6 +179,23 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+    /* 📱 Tablet & Mobile Responsive POS 📱 */
+    @media (max-width: 992px) {
+        .pos-layout {
+            flex-direction: column;
+            height: auto !important;
+        }
+        .pos-left, .pos-right {
+            width: 100% !important;
+            flex: none !important;
+            margin-bottom: 15px;
+            height: auto !important;
+        }
+        .pos-left .table-responsive {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    }
 </style>
 
 <div class="container-fluid py-3">
