@@ -34,6 +34,9 @@ class Store extends Model
         'notify_whatsapp',
         'daily_report_time',
         'type',
+        'address',
+        'latitude',
+        'longitude',
     ];
 
     // علاقة مع صاحب المتجر (User)

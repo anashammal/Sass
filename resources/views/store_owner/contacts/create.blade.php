@@ -383,9 +383,9 @@
                                     }
                                 }
                             </script>
-                            <script async src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places&callback=initMap"></script>
+                            <script async src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&libraries=places&callback=initMap"></script>
 
-                            {{-- 5. المعلومات المالية (نقلت للأعلى) --}}
+                            {{-- 5. المعلومات المالية --}}
                             <div class="col-md-6">
                                 <label for="credit_limit" class="form-label">حد الدين (للزبائن)</label>
                                 <div class="input-group">

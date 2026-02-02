@@ -98,10 +98,21 @@ class SettingsController extends Controller
             $request->merge([$chk => $request->has($chk) ? 1 : 0]);
         }
 
-        // 2. التحقق من الأرقام
+        // 2. التحقق من البيانات
         $request->validate([
             'store_name_update' => 'required|string|max:100',
-            // ... (باقي تحققاتك القديمة)
+            'email' => 'nullable|email',
+            'phone_number' => 'nullable|string|max:20',
+            'tax_number' => 'nullable|string|max:100',
+            'tax_rates' => 'nullable|string|max:100',
+            'country_code' => 'nullable|string|max:10',
+            'invoice_mode' => 'nullable|string|max:50',
+            'timezone' => 'nullable|string|max:100',
+            'clock_type' => 'nullable|string|in:digital,analog',
+            'clock_theme' => 'nullable|string',
+            'address' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
             
             // تحقق القيم المالية (إيميل)
             'email_sales_min' => 'nullable|numeric|min:0',
@@ -116,13 +127,21 @@ class SettingsController extends Controller
             'wa_purchases_credit_min' => 'nullable|numeric|min:0',
         ]);
 
-        // 3. حفظ البيانات الأساسية (كما هي في كودك)
+        // 3. حفظ البيانات الأساسية
         $store->name = $request->store_name_update;
         $store->phone_number = $request->phone_number;
         $store->email = $request->email;
-        // ... (تكملة حفظ الصور والضريبة والوقت...)
-        if($request->has('timezone')) $store->timezone = $request->timezone; 
-        // ...
+        $store->tax_number = $request->tax_number;
+        $store->tax_rates = $request->tax_rates;
+        $store->country_code = $request->country_code;
+        $store->invoice_mode = $request->invoice_mode;
+        if($request->has('timezone')) $store->timezone = $request->timezone;
+        if($request->has('clock_type')) $store->clock_type = $request->clock_type;
+        if($request->has('clock_theme')) $store->clock_theme = $request->clock_theme;
+        
+        $store->address = $request->address;
+        $store->latitude = $request->latitude;
+        $store->longitude = $request->longitude;
 
         // 4. 🔥 حفظ إعدادات الإشعارات المنفصلة 🔥
         $store->notify_email = $request->notify_email;
@@ -160,10 +179,21 @@ class SettingsController extends Controller
         $store->wa_daily_report = $request->wa_daily_report;
         $store->whatsapp_auto_prompt = $request->whatsapp_auto_prompt;
 
-        // حفظ الصور (كما في كودك الأصلي)
-        if ($request->hasFile('logo')) { /* ... */ }
-        
+        // 5. رفع الصور (إذا تم تغييرها)
+        if ($request->hasFile('logo')) {
+            if ($store->logo_path) Storage::disk('public')->delete($store->logo_path);
+            $store->logo_path = $request->file('logo')->store('stores/'.$store->id, 'public');
+        }
+        if ($request->hasFile('stamp')) {
+            if ($store->stamp_path) Storage::disk('public')->delete($store->stamp_path);
+            $store->stamp_path = $request->file('stamp')->store('stores/'.$store->id, 'public');
+        }
+        if ($request->hasFile('signature')) {
+            if ($store->signature_path) Storage::disk('public')->delete($store->signature_path);
+            $store->signature_path = $request->file('signature')->store('stores/'.$store->id, 'public');
+        }
+
         $store->save();
-        return back()->with('success', 'تم تحديث خيارات الإشعارات بنجاح');
+        return back()->with('success', 'تم تحديث الإعدادات بنجاح');
     }
 }

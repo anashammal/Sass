@@ -51,7 +51,11 @@ class StoreController extends Controller
             'subdomain' => 'required|string|alpha_dash|unique:stores,subdomain',
             'status' => 'required',
             'type' => 'required|in:retail,restaurant',
-            'owner_phone' => 'nullable|numeric'
+            'owner_phone' => 'nullable|numeric',
+            'tax_number' => 'nullable|string|max:100',
+            'address' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric'
         ]);
 
         if ($request->filled('owner_phone')) {
@@ -77,6 +81,10 @@ class StoreController extends Controller
                 'subdomain' => $request->subdomain, 
                 'status' => $request->status,
                 'type' => $request->type,
+                'tax_number' => $request->tax_number,
+                'address' => $request->address,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
             ]);
 
             $user->store_id = $store->id;
@@ -211,12 +219,20 @@ class StoreController extends Controller
             'store_name' => 'required|string|max:255',
             'status' => 'required',
             'type' => 'required|in:retail,restaurant',
+            'tax_number' => 'nullable|string|max:100',
+            'address' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         $store->update([
             'name' => $request->store_name,
             'status' => $request->status,
             'type' => $request->type,
+            'tax_number' => $request->tax_number,
+            'address' => $request->address,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
         ]);
 
         return redirect()->route('superadmin.stores.index')->with('success', 'تم تحديث بيانات المتجر بنجاح.');

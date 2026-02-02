@@ -117,11 +117,53 @@
                             </div>
                         </div>
 
-                        <div class="row mb-0 mt-4">
-                            <div class="col-md-8 offset-md-4">
-                                <button type="submit" id="mainSubmitBtn" class="btn btn-primary btn-lg px-5">إنشاء المتجر وإرسال الرابط</button>
+                        <div class="row mb-3">
+                            <label for="tax_number" class="col-12 form-label fw-bold">الرقم الضريبي (اختياري)</label>
+                            <div class="col-12">
+                                <input id="tax_number" type="text" class="form-control" name="tax_number" value="{{ old('tax_number') }}" placeholder="أدخل الرقم الضريبي">
                             </div>
                         </div>
+
+                        <div class="row mb-3">
+                            <label for="address" class="col-12 form-label fw-bold mt-3">العنوان (قوقل ماب)</label>
+                            <div class="col-12">
+                                <div class="input-group shadow-sm border rounded-3 overflow-hidden" dir="ltr">
+                                    <button type="button" class="btn btn-primary px-3" onclick="getCurrentLocation()" title="موقعي الحالي">
+                                        <i class="fas fa-location-arrow"></i>
+                                    </button>
+                                    <input type="text" class="form-control border-0" id="address" name="address" value="{{ old('address') }}" 
+                                           placeholder="ابحث عن عنوان المتجر (سيظهر الإكمال التلقائي هنا)" dir="rtl" style="font-size: 1rem;">
+                                </div>
+                                <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude') }}">
+                                <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude') }}">
+                                <div id="map" class="mt-3 rounded-3 shadow-sm border" style="height: 350px; width: 100%; background: #f8f9fa;">
+                                    <div class="d-flex align-items-center justify-content-center h-100 text-muted small">
+                                        <span>يرجى إضافة Google Maps API Key لتفعيل الخريطة</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-0 mt-5">
+                            <div class="col-12">
+                                <button type="submit" id="mainSubmitBtn" class="btn btn-success btn-lg w-100 fw-bold shadow-sm py-3">
+                                    <i class="fas fa-store me-1"></i> إنشاء المتجر وإرسال الرابط
+                                </button>
+                            </div>
+                        </div>
+
+                        <style>
+                            .pac-container {
+                                z-index: 10000 !important;
+                                border-radius: 8px !important;
+                                box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+                                border-top: none !important;
+                                margin-top: 5px !important;
+                                font-family: inherit;
+                            }
+                            .pac-item { padding: 10px; cursor: pointer; }
+                            .pac-item:hover { background-color: #f8f9fa; }
+                        </style>
                     </form>
                 </div>
             </div>
@@ -238,5 +280,74 @@
             }
         });
     }
+
+    // --- قوقل ماب وإدارة المواقع ---
+    let map, marker, autocomplete;
+
+    function initMap() {
+        const defaultPos = { lat: 24.7136, lng: 46.6753 };
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: defaultPos, zoom: 13, mapTypeControl: false,
+        });
+
+        marker = new google.maps.Marker({
+            position: defaultPos, map: map, draggable: true, animation: google.maps.Animation.DROP,
+        });
+
+        marker.addListener("dragend", () => {
+            const pos = marker.getPosition();
+            updateCoords(pos.lat(), pos.lng());
+            reverseGeocode(pos);
+        });
+
+        const addressInput = document.getElementById("address");
+        autocomplete = new google.maps.places.Autocomplete(addressInput);
+        autocomplete.bindTo("bounds", map);
+
+        autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) return;
+            if (place.geometry.viewport) map.fitBounds(place.geometry.viewport);
+            else { map.setCenter(place.geometry.location); map.setZoom(17); }
+            marker.setPosition(place.geometry.location);
+            updateCoords(place.geometry.location.lat(), place.geometry.location.lng());
+        });
+
+        map.addListener("click", (e) => {
+            marker.setPosition(e.latLng);
+            updateCoords(e.latLng.lat(), e.latLng.lng());
+            reverseGeocode(e.latLng);
+        });
+    }
+
+    function updateCoords(lat, lng) {
+        document.getElementById("latitude").value = lat;
+        document.getElementById("longitude").value = lng;
+    }
+
+    function reverseGeocode(pos) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: pos }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                document.getElementById("address").value = results[0].formatted_address;
+            }
+        });
+    }
+
+    function getCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const currentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    map.setCenter(currentPos); map.setZoom(17);
+                    marker.setPosition(currentPos);
+                    updateCoords(currentPos.lat, currentPos.lng);
+                    reverseGeocode(currentPos);
+                },
+                () => Swal.fire('تنبيه', 'تم رفض الوصول لموقعك الحالي', 'warning')
+            );
+        }
+    }
 </script>
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&libraries=places&callback=initMap"></script>
 @endsection

@@ -34,4 +34,8 @@ return [
         'url' => env('WHATSAPP_SERVER_URL', 'https://wa.tech-sys.online'),
     ],
 
+    'google_maps' => [
+        'key' => env('GOOGLE_MAPS_API_KEY'),
+    ],
+
 ];
