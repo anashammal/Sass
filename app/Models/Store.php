@@ -50,13 +50,19 @@ class Store extends Model
     // 1. دالة لجلب رابط الشعار (النظام الجديد)
     public function getLogoUrlAttribute()
     {
+        $baseUrl = rtrim(request()->getBaseUrl(), '/');
+
         if ($this->logo_path) {
-            return parse_url(asset('storage/' . $this->logo_path), PHP_URL_PATH);
+            return $baseUrl . '/storage/' . $this->logo_path;
         }
         
         // جلب شعار النظام الافتراضي
         $systemLogo = \App\Models\SystemSetting::where('key', 'system_default_logo')->value('value');
-        return parse_url($systemLogo ? asset('storage/' . $systemLogo) : asset('images/default-logo.png'), PHP_URL_PATH);
+        if ($systemLogo) {
+             return $baseUrl . '/storage/' . $systemLogo;
+        }
+
+        return $baseUrl . '/images/default-logo.png';
     }
 
     // 2. دالة التوافق (Compatibility Fix) - هذه الدالة ستحل مشكلة الخطأ

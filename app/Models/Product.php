@@ -156,6 +156,16 @@ class Product extends Model implements HasMedia
     public function getImageUrlAttribute()
     {
         $url = $this->getFirstMediaUrl('products', 'thumb') ?: asset('images/default-product.png');
+        
+        // Extract relative path starting from storage/ or images/
+        if (strpos($url, '/storage/') !== false) {
+            $path = explode('/storage/', $url, 2)[1];
+            return rtrim(request()->getBaseUrl(), '/') . '/storage/' . $path;
+        } elseif (strpos($url, '/images/') !== false) {
+             $path = explode('/images/', $url, 2)[1];
+             return rtrim(request()->getBaseUrl(), '/') . '/images/' . $path;
+        }
+
         return parse_url($url, PHP_URL_PATH);
     }
 }
