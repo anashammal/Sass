@@ -36,6 +36,8 @@ Route::middleware(['auth', 'store_owner'])->group(function () {
     Route::group(['prefix' => 'onboarding', 'as' => 'storeowner.onboarding.'], function () {
         Route::get('/setup', [OnboardingController::class, 'setup'])->name('setup');
         Route::post('/complete', [OnboardingController::class, 'complete'])->name('complete');
+        Route::post('/send-otp', [OnboardingController::class, 'sendOtp'])->name('send-otp');
+        Route::post('/verify-otp', [OnboardingController::class, 'verifyOtp'])->name('verify-otp');
     });
 
 });

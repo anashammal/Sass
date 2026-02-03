@@ -107,6 +107,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/settings/{id}', [SettingsController::class, 'update'])->name('settings.update');
         Route::get('/store/setup', [OnboardingController::class, 'index'])->name('onboarding.setup');
         Route::post('/store/setup', [OnboardingController::class, 'update'])->name('onboarding.update');
+        Route::post('/onboarding/send-otp', [OnboardingController::class, 'sendOtp'])->name('onboarding.send-otp');
+        Route::post('/onboarding/verify-otp', [OnboardingController::class, 'verifyOtp'])->name('onboarding.verify-otp');
 
         // روابط الحذف الآمن للتصنيفات
         Route::get('categories/check-status/{category}', [CategoryController::class, 'checkStatus'])->name('categories.check_status');
