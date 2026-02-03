@@ -30,6 +30,17 @@ class ProductUnit extends Model implements HasMedia
     // لتسهيل استدعاء الصورة لاحقاً
     public function getImageAttribute()
     {
-        return $this->getFirstMediaUrl('unit_images', 'thumb') ?: asset('images/default-product.png');
+        $url = $this->getFirstMediaUrl('unit_images', 'thumb') ?: asset('images/default-product.png');
+        
+        // Extract relative path
+        if (strpos($url, '/storage/') !== false) {
+            $path = explode('/storage/', $url, 2)[1];
+            return rtrim(request()->getBaseUrl(), '/') . '/storage/' . $path;
+        } elseif (strpos($url, '/images/') !== false) {
+             $path = explode('/images/', $url, 2)[1];
+             return rtrim(request()->getBaseUrl(), '/') . '/images/' . $path;
+        }
+
+        return parse_url($url, PHP_URL_PATH);
     }
 }
