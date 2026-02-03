@@ -155,6 +155,7 @@ class Product extends Model implements HasMedia
 
     public function getImageUrlAttribute()
     {
-        return $this->getFirstMediaUrl('products', 'thumb') ?: asset('images/default-product.png');
+        $url = $this->getFirstMediaUrl('products', 'thumb') ?: asset('images/default-product.png');
+        return parse_url($url, PHP_URL_PATH);
     }
 }

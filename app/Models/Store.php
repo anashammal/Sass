@@ -51,12 +51,12 @@ class Store extends Model
     public function getLogoUrlAttribute()
     {
         if ($this->logo_path) {
-            return asset('storage/' . $this->logo_path);
+            return parse_url(asset('storage/' . $this->logo_path), PHP_URL_PATH);
         }
         
         // جلب شعار النظام الافتراضي
         $systemLogo = \App\Models\SystemSetting::where('key', 'system_default_logo')->value('value');
-        return $systemLogo ? asset('storage/' . $systemLogo) : asset('images/default-logo.png');
+        return parse_url($systemLogo ? asset('storage/' . $systemLogo) : asset('images/default-logo.png'), PHP_URL_PATH);
     }
 
     // 2. دالة التوافق (Compatibility Fix) - هذه الدالة ستحل مشكلة الخطأ
