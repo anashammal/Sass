@@ -42,6 +42,9 @@
 
     <form action="{{ route('store.meals.store') }}" method="POST" enctype="multipart/form-data" id="mealForm" novalidate>
         @csrf
+        @if(request('iframe')) <input type="hidden" name="iframe" value="1"> @endif
+        @if(request('quick_add')) <input type="hidden" name="quick_add" value="1"> @endif
+
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-plus-circle me-1"></i> تفاصيل الصنف الجديد</h5>
@@ -82,16 +85,18 @@
                             <div class="card-body">
                                 <label class="form-label fw-bold text-primary">نوع الصنف في المنيو</label>
                                 <div class="d-flex gap-4 mt-2">
+                                    @if(!request('quick_add'))
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="product_type" id="type_meal" value="meal" {{ old('product_type', 'meal') == 'meal' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
                                         <label class="form-check-label fw-bold text-danger" for="type_meal">وجبة جاهزة (بيع فقط - تعتمد على مكونات)</label>
                                     </div>
+                                    @endif
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="product_type" id="type_ingredient" value="ingredient" {{ old('product_type') == 'ingredient' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
+                                        <input class="form-check-input" type="radio" name="product_type" id="type_ingredient" value="ingredient" {{ old('product_type', request('quick_add') ? 'ingredient' : 'meal') == 'ingredient' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
                                         <label class="form-check-label fw-bold text-success" for="type_ingredient">مادة خام / مكون (شراء فقط)</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="product_type" id="type_standard" value="standard" {{ old('product_type', 'meal') == 'standard' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
+                                        <input class="form-check-input" type="radio" name="product_type" id="type_standard" value="standard" {{ old('product_type') == 'standard' ? 'checked' : '' }} onchange="toggleRecipeBuilder()">
                                         <label class="form-check-label fw-bold" for="type_standard">منتج جاهز (شراء وبيع)</label>
                                     </div>
                                     <div class="form-check">
@@ -466,17 +471,51 @@
 
     // Recipe Builder with Unit Support
     let recipeIndex = 0;
-    const ingredientsData = @json($ingredients);
+    let lastRequestRowId = null;
+
+    // Listen for Quick Add success message
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'quick_add_success') {
+            const newId = event.data.productId;
+            const newName = event.data.productName;
+            
+            // If we know which row triggered the quick add, update and select it
+            if (lastRequestRowId) {
+                let selectEl = $(`#${lastRequestRowId} .ingredient-select-2`);
+                
+                // Fetch full product details (to get units)
+                $.ajax({
+                    url: "{{ route('store.meals.ingredients_json') }}?id=" + newId,
+                    method: 'GET',
+                    success: function(data) {
+                        if (data && data.length > 0) {
+                            let ing = data[0];
+                            let unitsJson = encodeURIComponent(JSON.stringify(ing.units));
+                            let barcodeTxt = ing.barcode ? ` [${ing.barcode}]` : '';
+                            
+                            // Add new option and select it
+                            let newOption = new Option(ing.name_ar + barcodeTxt, ing.id, true, true);
+                            $(newOption).attr('data-units', unitsJson);
+                            selectEl.empty().append(newOption).trigger('change');
+                            
+                            // Logic inside populateRecipeUnits will hide the button
+                            populateRecipeUnits(selectEl[0]);
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+    function openQuickAddIngredient(rowId) {
+        lastRequestRowId = rowId;
+        const url = "{{ route('store.meals.create') }}?quick_add=1";
+        window.open(url, 'QuickAddIngredient', 'width=1100,height=850,scrollbars=yes');
+    }
 
     function addRecipeRow() {
         let rowId = `recipe_row_${recipeIndex}`;
-        let options = '<option value="">-- اختر مكون --</option>';
-        ingredientsData.forEach(ing => {
-            // Encode units to avoid JSON breaking in attribute
-            let unitsJson = encodeURIComponent(JSON.stringify(ing.units));
-            let barcodeTxt = ing.barcode ? ` [${ing.barcode}]` : '';
-            options += `<option value="${ing.id}" data-units="${unitsJson}">${ing.name_ar}${barcodeTxt}</option>`;
-        });
+        let options = '<option value="">-- ابحث عن صنف أو باركود --</option>';
 
 
         let html = `
@@ -494,87 +533,77 @@
 
                 <td><input type="number" step="any" name="recipe[${recipeIndex}][quantity]" class="form-control text-center qty" value="1" oninput="updateRecipeEntry(this)" required></td>
                 <td class="text-center fw-bold text-danger row-cost">0.00</td>
-                <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove(); calculateTotalRecipe();"><i class="fas fa-trash"></i></button></td>
+                <td class="text-center">
+                    <div class="d-flex gap-1 justify-content-center">
+                        <button type="button" class="btn btn-outline-success btn-sm quick-add-btn" onclick="openQuickAddIngredient('${rowId}')" title="إضافة صنف جديد">
+                            <i class="fas fa-plus-circle"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove(); calculateTotalRecipe();">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
             </tr>`;
         document.getElementById('recipe_rows').insertAdjacentHTML('beforeend', html);
-        
-        // Initialize Select2 on the new row
-        let selectEl = $(`#${rowId} .ingredient-select-2`);
-        selectEl.select2({
+        initIngredientSelect2($(`#${rowId} .ingredient-select-2`));
+        recipeIndex++;
+    }
+
+    function initIngredientSelect2(selectObj) {
+        let tr = selectObj.closest('tr');
+        selectObj.select2({
             theme: 'bootstrap-5',
             dir: 'rtl',
             placeholder: '-- ابحث باسم الصنف أو الباركود --',
             width: '100%',
-            minimumInputLength: 1, // Don't show list until typing
-            language: {
-                inputTooShort: function() {
-                    return "ابدأ الكتابة للبحث...";
-                },
-                noResults: function() {
-                    return "لا توجد نتائج";
-                },
-                searching: function() {
-                    return "جاري البحث...";
-                }
-            }
-        });
+            minimumInputLength: 1,
+            ajax: {
+                url: "{{ route('store.meals.ingredients_json') }}",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) { return { q: params.term }; },
+                processResults: function (data, params) {
+                    let results = data.map(ing => {
+                        return { id: ing.id, text: ing.name_ar + (ing.barcode ? ` [${ing.barcode}]` : ''), units: ing.units };
+                    });
 
-        // Auto-open and focus search
-        selectEl.select2('open');
-
-        // Logic to auto-select if exactly 1 match in ingredientsData
-        selectEl.on('select2:open', function() {
-            let searchField = document.querySelector('.select2-search__field');
-            if (searchField) {
-                searchField.focus();
-                
-                $(searchField).on('input', function() {
-                    let query = this.value.trim().toLowerCase();
-                    if (query.length > 0) {
-                        // Filter local data
-                        let matches = ingredientsData.filter(ing => {
-                            let nameAr = (ing.name_ar || '').toLowerCase();
-                            let barcode = (ing.barcode || '').toLowerCase();
-                            return nameAr.includes(query) || barcode === query;
-                        });
-
-                        // If exactly one match, select it
-                        if (matches.length === 1) {
-                            selectEl.val(matches[0].id).trigger('change');
-                            selectEl.select2('close');
-                            
-                            // Focus quantity input
-                            let nextInput = document.getElementById(rowId).querySelector('.qty');
-                            if (nextInput) {
-                                setTimeout(() => nextInput.focus().select(), 100);
-                            }
-                        }
-                    }
-                });
-
-                // Support Enter key for first result
-                $(searchField).on('keydown', function(e) {
-                    if (e.which === 13) { // Enter
+                    // Auto-select if exactly 1 result
+                    if (results.length === 1 && params.term) {
                         setTimeout(() => {
-                            let results = document.querySelectorAll('.select2-results__option--selectable');
-                            if (results.length > 0) {
-                                let firstResultId = $(results[0]).data('data')?.id;
-                                if (firstResultId) {
-                                    selectEl.val(firstResultId).trigger('change');
-                                    selectEl.select2('close');
-                                    let nextInput = document.getElementById(rowId).querySelector('.qty');
-                                    if (nextInput) {
-                                        setTimeout(() => nextInput.focus().select(), 100);
-                                    }
-                                }
+                            if ($('.select2-search__field').val()) {
+                                let item = results[0];
+                                let newOption = new Option(item.text, item.id, true, true);
+                                $(newOption).attr('data-units', encodeURIComponent(JSON.stringify(item.units)));
+                                selectObj.empty().append(newOption).trigger('change');
+                                selectObj.select2('close');
+                                populateRecipeUnits(selectObj[0]);
+                                setTimeout(() => tr.find('.qty').focus().select(), 50);
                             }
-                        }, 50);
+                        }, 100);
                     }
-                });
+                    return { results: results };
+                },
+                cache: true
+            },
+            language: {
+                inputTooShort: function() { return "ابدأ الكتابة للبحث..."; },
+                noResults: function() { return "لا توجد نتائج"; },
+                searching: function() { return "جاري البحث..."; }
             }
         });
 
-        recipeIndex++;
+        selectObj.on('select2:select', function(e) {
+            let data = e.params.data;
+            if (data.units) {
+                $(this).find(':selected').attr('data-units', encodeURIComponent(JSON.stringify(data.units)));
+            }
+            populateRecipeUnits(this);
+            setTimeout(() => tr.find('.qty').focus().select(), 50);
+        });
+
+        if (!selectObj.val()) {
+            setTimeout(() => selectObj.select2('open'), 50);
+        }
     }
 
 
@@ -582,6 +611,13 @@
     
     function populateRecipeUnits(ingredientSelect) {
         let tr = ingredientSelect.closest('tr');
+        let quickAddBtn = tr.querySelector('.quick-add-btn');
+        if (ingredientSelect.value) {
+            if (quickAddBtn) quickAddBtn.style.display = 'none';
+        } else {
+            if (quickAddBtn) quickAddBtn.style.display = 'inline-block';
+        }
+
         let unitSelect = tr.querySelector('.unit-select');
         unitSelect.innerHTML = '<option value="">--</option>';
         
@@ -746,5 +782,7 @@
             </div>
         </div>
     </div>
+    </div>
 </template>
+
 @endsection

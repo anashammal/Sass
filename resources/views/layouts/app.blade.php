@@ -97,6 +97,18 @@
     @media print {
         body { zoom: 1; }
     }
+
+    /* 🔥 تنسيق خاص لوضع الـ Iframe (الإضافة السريعة) 🔥 */
+    @if(request('iframe'))
+    .sidebar, .navbar, .mobile-header, .mobile-nav-bar, .mobile-bottom-nav { display: none !important; }
+    body { padding-top: 0 !important; margin: 0 !important; zoom: 1 !important; background: #fff !important; }
+    #app { padding: 0 !important; }
+    .col-md-3, .col-lg-2 { display: none !important; }
+    .col-md-9, .col-lg-10 { width: 100% !important; flex: 0 0 100% !important; max-width: 100% !important; border:none !important; }
+    .card { box-shadow: none !important; border: 1px solid #eee !important; }
+    .container-fluid { padding: 10px !important; }
+    @endif
+
         /* --- تخصيصات الثيم الفخم --- */
         body { 
             font-family: 'Nunito', sans-serif; 

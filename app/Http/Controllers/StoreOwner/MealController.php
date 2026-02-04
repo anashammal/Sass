@@ -76,6 +76,44 @@ class MealController extends Controller
         return view('store_owner.meals.index', compact('products', 'prodStats', 'categories', 'store'));
     }
 
+    public function getIngredientsJson(Request $request)
+    {
+        $query = Product::where('store_id', Auth::user()->store->id)
+            ->whereIn('product_type', ['standard', 'ingredient', 'compound'])
+            ->with('units');
+
+        if ($request->has('q')) {
+            $q = $request->q;
+            $query->where(function($w) use ($q) {
+                $w->where('name_ar', 'like', "%{$q}%")
+                  ->orWhere('sku', 'like', "%{$q}%");
+            });
+        }
+        
+        if ($request->has('id')) {
+            $query->where('id', $request->id);
+        }
+
+        $ingredients = $query->limit(20)->get()
+            ->map(function($ing) {
+                return [
+                    'id' => $ing->id,
+                    'name_ar' => $ing->name_ar,
+                    'barcode' => $ing->sku,
+                    'units' => $ing->units->map(function($u) {
+                        return [
+                            'id' => $u->id,
+                            'unit_name' => $u->unit_name,
+                            'cost_price' => $u->cost_price,
+                            'is_base_unit' => $u->is_base_unit,
+                        ];
+                    })
+                ];
+            });
+            
+        return response()->json($ingredients);
+    }
+
     public function create() 
     { 
         if (strtolower(Auth::user()->store->type) !== 'restaurant') {
@@ -313,6 +351,14 @@ class MealController extends Controller
             }
 
             DB::commit();
+
+            if (request('iframe') && request('quick_add')) {
+                return view('store_owner.meals.partials.quick_add_success', [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name_ar
+                ]);
+            }
+
             return redirect()->route('store.meals.index')->with('success', 'تم حفظ الوجبة بنجاح.');
 
         } catch (\Exception $e) {
@@ -555,6 +601,14 @@ class MealController extends Controller
             }
 
             DB::commit();
+
+            if (request('iframe') && request('quick_add')) {
+                return view('store_owner.meals.partials.quick_add_success', [
+                    'product_id' => $meal->id,
+                    'product_name' => $meal->name_ar
+                ]);
+            }
+
             return redirect()->route('store.meals.index')->with('success', 'تم تعديل الوجبة بنجاح.');
 
         } catch (\Exception $e) {

@@ -26,27 +26,70 @@
         padding: 2px 5px;
         border-radius: 4px;
     }
-<style>
-    /* 1. منع التفاف النص في كل خلايا الجدول افتراضياً */
-    #itemsTable th, #itemsTable td {
-        vertical-align: middle !important;
-        white-space: nowrap; /* سطر واحد فقط */
+
+    /* 1. تنسيق الجدول الذكي - Dynamic Table */
+    #itemsTable {
+        table-layout: auto !important; /* يسمح للجدول بالتوسع بناءً على المحتوى */
+        width: 100%;
     }
 
-    /* 2. استثناء عمود المنتج ليسمح بتعدد الأسطر */
+    #itemsTable th {
+        background-color: #343a40 !important;
+        color: white;
+        white-space: nowrap; /* منع العناوين من الالتفاف لضمان العرض الأدنى */
+        text-align: center;
+        padding: 10px 5px !important;
+        font-weight: 600;
+    }
+
+    #itemsTable td {
+        vertical-align: middle !important;
+        padding: 6px 4px !important;
+    }
+
+    /* 2. التحكم في عرض الأعمدة بالحد الأدنى */
+    /* عمود المنتج يأخذ المساحة المتبقية مع التفاف النص */
     .product-col {
-        white-space: normal !important; /* السماح بالنزول لسطر ثاني */
-        min-width: 200px; /* أقل عرض مسموح */
-        max-width: 350px; /* أقصى عرض */
-        line-height: 1.4; /* مسافة مريحة بين الأسطر */
+        white-space: normal !important;
+        width: 130px !important; 
+        min-width: 100px !important;
+        max-width: 150px !important;
+        line-height: 1.2;
+        text-align: right !important;
+        font-size: 0.82rem;
+    }
+
+    /* باقي الأعمدة تأخذ أقل عرض ممكن يكفي لمحتواها */
+    .col-shrink {
+        width: 1%;
+        white-space: nowrap;
     }
     
-    /* تنسيق الصور */
-    .product-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+    /* تنسيق الصور والمصغرات */
+    .product-thumb { width: 35px; height: 35px; object-fit: cover; border-radius: 6px; border: 1px solid #dee2e6; }
+
+    /* تحسين شكل المدخلات الديناميكية */
+    #itemsTable .form-control, #itemsTable .form-select {
+        height: 30px;
+        padding: 2px 4px !important;
+        font-size: 0.8rem;
+        border-radius: 5px;
+        border: 1px solid #ced4da;
+        width: 100%; 
+        min-width: 40px;
+        field-sizing: content; 
+    }
     
-    /* الوميض والتحذير (كودك السابق) */
-    @keyframes blink-animation { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
-    .flash-warning { animation: blink-animation 1.5s infinite; font-weight: bold; font-size: 0.8rem; padding: 2px 5px; }
+    /* استثناءات لتحسين الوضوح */
+    .input-barcode { min-width: 115px !important; }
+    .input-expiry  { min-width: 110px !important; } 
+    .input-qty     { min-width: 45px !important; }
+    .input-price   { min-width: 75px !important; }
+    .input-total   { min-width: 95px !important; background-color: #fcfcfc !important; color: #000 !important; }
+    .input-unit    { min-width: 85px !important; }
+    
+    .discount-group .form-control { width: 60% !important; border-left: 0 !important; }
+    .discount-group .form-select { width: 40% !important; padding: 0 !important; font-size: 0.75rem; border-right: 0 !important; background-color: #f8f9fa; }
 </style>
 <div class="container-fluid">
     <form action="{{ route('store.purchases.store') }}" method="POST" id="purchaseForm" enctype="multipart/form-data" novalidate>
@@ -118,20 +161,20 @@
                             <table class="table table-bordered text-center align-middle mb-0" id="itemsTable">
                                 <thead class="bg-dark text-white small">
                                     <tr>
-                                        <th style="width: 10%">صورة</th>
-                                        <th style="width: 8%">المنتج</th>
-                                        <th style="width: 14%">الباركود</th>
-                                        <th style="width: 9%">الوحدة</th>
-                                        <th style="width: 6%">الكمية</th>
-                                        <th style="width: 8%">سعر الشراء</th>
-                                        <th style="width: 7%">الربح %</th> 
-                                        <th style="width: 7%">الخصم</th>
-                                        <th style="width: 7%">سعر المبيع</th>
-                                        <th width="5%">تاريخ الانتهاء</th>
-                                        <th width="4%">تنبيه قبل (يوم)</th>
-                                        <th style="width: 8%">الضريبة</th>
-                                        <th style="width: 14%">الإجمالي</th>
-                                        <th style="width: 2%"></th>
+                                        <th class="col-shrink">صورة</th>
+                                        <th class="product-col">المنتج</th>
+                                        <th class="col-shrink">الباركود</th>
+                                        <th class="col-shrink">الوحدة</th>
+                                        <th class="col-shrink">الكمية</th>
+                                        <th class="col-shrink">سعر الشراء</th>
+                                        <th class="col-shrink">الربح %</th> 
+                                        <th class="col-shrink">الخصم</th>
+                                        <th class="col-shrink">سعر المبيع</th>
+                                        <th class="col-shrink">تاريخ الانتهاء</th>
+                                        <th class="col-shrink">تنبيه</th>
+                                        <th class="col-shrink">الضريبة</th>
+                                        <th class="col-shrink">الإجمالي</th>
+                                        <th class="col-shrink"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableBody"></tbody>
@@ -577,40 +620,48 @@
 
         // بناء الصف (HTML) بشكل صحيح بدون تكرار أو قطع
         tr.innerHTML = `
-            <td>
-                <button type="button" class="btn btn-sm btn-info text-white" onclick="toggleDetails(${rowIdx})"><i class="fas fa-chevron-down"></i></button>
-                <img src="${imgUrl}" id="img_${rowIdx}" class="product-thumb mt-1" style="width: 40px; height: 40px; object-fit: cover;">
+            <td class="col-shrink">
+                <div class="d-flex flex-column align-items-center gap-1">
+                    <button type="button" class="btn btn-xs btn-info text-white p-0" style="width:18px; height:18px; font-size:9px;" onclick="toggleDetails(${rowIdx})"><i class="fas fa-chevron-down"></i></button>
+                    <img src="${imgUrl}" id="img_${rowIdx}" class="product-thumb" alt="">
+                </div>
             </td>
-            <td class="text-start">
+            <td class="product-col">
                 <input type="hidden" name="items[${rowIdx}][product_id]" value="${product.id}">
-                <span class="fw-bold small">${product.name_ar}</span>
+                <div class="fw-bold small">${product.name_ar}</div>
             </td>
-            <td><input type="text" class="form-control form-control-sm text-center bg-white barcode-display" id="barcode_${rowIdx}" value="${initialBarcode}" readonly></td>
-            <td>
-                <select name="items[${rowIdx}][unit_id]" class="form-select form-select-sm unit-select" onchange="updateRowData(${rowIdx})">${optionsHtml}</select>
+            <td class="col-shrink"><input type="text" class="form-control form-control-sm text-center bg-white barcode-display input-barcode" id="barcode_${rowIdx}" value="${initialBarcode}" readonly></td>
+            <td class="col-shrink">
+                <select name="items[${rowIdx}][unit_id]" class="form-select form-select-sm unit-select input-unit" onchange="updateRowData(${rowIdx})">${optionsHtml}</select>
             </td>
-            <td><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty" value="1" oninput="calcTotals(${rowIdx})" onfocus="this.select()"></td>
-            <td><input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control form-control-sm text-center price text-danger fw-bold" value="${parseFloat(calculatedCost.toFixed(4))}" oninput="syncSubUnits(${rowIdx}, 'purchase')" onfocus="this.select()"></td>
-            <td><input type="text" inputmode="decimal" name="items[${rowIdx}][profit_percent]" class="form-control form-control-sm text-center profit text-primary" value="${formatNum(profitPercent)}" oninput="calcSellPrice(${rowIdx})" onfocus="this.select()"></td>
-            <td><div class="input-group input-group-sm" style="min-width: 90px;"><input type="text" inputmode="decimal" name="items[${rowIdx}][discount]" class="form-control text-center discount px-1" value="0" oninput="calcTotals(${rowIdx})"><select name="items[${rowIdx}][discount_type]" class="form-select discount-type px-0" onchange="calcTotals(${rowIdx})"><option value="fixed">₺</option><option value="percent">%</option></select></div></td>
-            <td>
-                <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control form-control-sm text-center sell text-success fw-bold" value="${formatNum(sellPrice)}" oninput="calcProfitPercent(${rowIdx})" onfocus="this.select()">
-                <div class="main-warning-container mt-1" style="min-height:20px;"></div>
+            <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty input-qty" value="1" oninput="calcTotals(${rowIdx})" onfocus="this.select()"></td>
+            <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control form-control-sm text-center price text-danger fw-bold input-price" value="${parseFloat(calculatedCost.toFixed(4))}" oninput="syncSubUnits(${rowIdx}, 'purchase')" onfocus="this.select()"></td>
+            <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][profit_percent]" class="form-control form-control-sm text-center profit text-primary input-profit" value="${formatNum(profitPercent)}" oninput="calcSellPrice(${rowIdx})" onfocus="this.select()"></td>
+            <td class="col-shrink">
+                <div class="input-group input-group-sm discount-group input-discount">
+                    <input type="text" inputmode="decimal" name="items[${rowIdx}][discount]" class="form-control text-center discount px-1" value="0" oninput="calcTotals(${rowIdx})">
+                    <select name="items[${rowIdx}][discount_type]" class="form-select discount-type px-0" onchange="calcTotals(${rowIdx})">
+                        <option value="fixed">₺</option>
+                        <option value="percent">%</option>
+                    </select>
+                </div>
+            </td>
+            <td class="col-shrink">
+                <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control form-control-sm text-center sell text-success fw-bold input-price" value="${formatNum(sellPrice)}" oninput="calcProfitPercent(${rowIdx})" onfocus="this.select()">
+                <div class="main-warning-container mt-1" style="min-height:18px;"></div>
             </td>
 
-            {{-- 🟢 تاريخ الانتهاء 🟢 --}}
-            <td>
-                <input type="date" name="items[${rowIdx}][expiry_date]" class="form-control form-control-sm text-center" title="تاريخ الانتهاء">
+            <td class="col-shrink">
+                <input type="date" name="items[${rowIdx}][expiry_date]" class="form-control form-control-sm text-center px-1 input-expiry" title="تاريخ الانتهاء">
             </td>
 
-            {{-- 🟢 أيام التنبيه (الافتراضي 10) 🟢 --}}
-            <td>
-                <input type="number" name="items[${rowIdx}][alert_days]" class="form-control form-control-sm text-center text-danger fw-bold" value="10" placeholder="10" title="نبهني قبل X يوم">
+            <td class="col-shrink">
+                <input type="number" name="items[${rowIdx}][alert_days]" class="form-control form-control-sm text-center text-danger fw-bold px-1" style="width: 50px;" value="10" placeholder="10" title="نبهني قبل X يوم">
             </td>
             
-            <td><select name="items[${rowIdx}][tax]" class="form-select form-select-sm tax bg-warning bg-opacity-10" onchange="calcTotals(${rowIdx})">${taxOptionsHtml}</select></td>
-            <td><input type="text" class="form-control form-control-sm text-center bg-light fw-bold total" readonly></td>
-            <td><button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removeRow(${rowIdx})"><i class="fas fa-times"></i></button></td>
+            <td class="col-shrink"><select name="items[${rowIdx}][tax]" class="form-select form-select-sm tax bg-warning bg-opacity-10" onchange="calcTotals(${rowIdx})">${taxOptionsHtml}</select></td>
+            <td class="col-shrink"><input type="text" class="form-control form-control-sm text-center bg-light fw-bold total input-total" readonly></td>
+            <td class="col-shrink text-center"><button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removeRow(${rowIdx})"><i class="fas fa-times"></i></button></td>
         `;
         
         document.getElementById('tableBody').appendChild(tr);
