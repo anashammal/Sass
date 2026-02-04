@@ -12,6 +12,7 @@ class ProductUnit extends Model implements HasMedia
     use InteractsWithMedia; // 👈 إضافة التريت
 
     protected $guarded = [];
+    protected $appends = ['image'];
 
     protected $casts = [
         'is_base_unit' => 'boolean',
@@ -35,12 +36,12 @@ class ProductUnit extends Model implements HasMedia
         // Extract relative path
         if (strpos($url, '/storage/') !== false) {
             $path = explode('/storage/', $url, 2)[1];
-            return rtrim(request()->getBaseUrl(), '/') . '/storage/' . $path;
+            return route('serve.media.workaround', ['path' => $path]);
         } elseif (strpos($url, '/images/') !== false) {
              $path = explode('/images/', $url, 2)[1];
-             return rtrim(request()->getBaseUrl(), '/') . '/images/' . $path;
+             return asset('images/' . $path);
         }
 
-        return parse_url($url, PHP_URL_PATH);
+        return $url;
     }
 }

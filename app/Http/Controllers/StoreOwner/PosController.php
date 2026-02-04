@@ -636,7 +636,8 @@ class PosController extends Controller
             // إصلاح مسار الشعار
             $fixPath = function($p) { 
                 if(!$p) return null;
-                return asset('storage/'.str_replace(['public/','storage/'], '', $p)); 
+                $clean = str_replace(['public/', 'storage/'], '', $p);
+                return route('serve.media.workaround', ['path' => $clean]);
             };
 
             return response()->json([
@@ -750,7 +751,7 @@ class PosController extends Controller
             $fixUrl = function($path) {
                 if (empty($path)) return null;
                 $clean = str_replace(['public/', 'storage/'], '', $path);
-                return asset('storage/' . $clean);
+                return route('serve.media.workaround', ['path' => $clean]);
             };
 
             $storeData = [

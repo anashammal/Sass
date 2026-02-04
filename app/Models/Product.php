@@ -15,6 +15,7 @@ class Product extends Model implements HasMedia
 
     // ✅ هذا السطر يعني: اسمح بتعديل كل الحقول (بما فيها expiry_date) ما عدا الـ id
     protected $guarded = ['id'];
+    protected $appends = ['image_url'];
 
     protected $casts = [
         'is_active' => 'boolean',
@@ -181,12 +182,12 @@ class Product extends Model implements HasMedia
         // Extract relative path starting from storage/ or images/
         if (strpos($url, '/storage/') !== false) {
             $path = explode('/storage/', $url, 2)[1];
-            return rtrim(request()->getBaseUrl(), '/') . '/storage/' . $path;
+            return route('serve.media.workaround', ['path' => $path]);
         } elseif (strpos($url, '/images/') !== false) {
              $path = explode('/images/', $url, 2)[1];
-             return rtrim(request()->getBaseUrl(), '/') . '/images/' . $path;
+             return asset('images/' . $path);
         }
 
-        return parse_url($url, PHP_URL_PATH);
+        return $url;
     }
 }
