@@ -123,6 +123,27 @@
                         </div>
                     </div>
 
+                    {{-- 🟢 فلتر الحالة --}}
+                    <div class="col-auto">
+                        <select name="status" class="form-select" onchange="performSearch()">
+                            <option value="">كل الحالات</option>
+                            <option value="1">أصناف فعالة</option>
+                            <option value="0">أصناف معطلة</option>
+                        </select>
+                    </div>
+
+                    {{-- فلتر الأعمدة --}}
+                    <div class="col-auto">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-eye"></i> الأعمدة
+                            </button>
+                            <ul class="dropdown-menu p-2 shadow" id="columnToggleMenu">
+                                {{-- سيملأ بواسطة JS --}}
+                            </ul>
+                        </div>
+                    </div>
+
                     <div class="col">
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
@@ -140,7 +161,7 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle text-center mb-0" id="mealsTable">
-                    <thead class="bg-light">
+                    <thead class="bg-light" id="mainTableHead">
                         <tr>
                             <th class="py-3" style="width: 80px;">صورة</th>
                             <th>الاسم</th>
@@ -180,8 +201,60 @@
             .then(html => {
                 document.getElementById('mealsTableBody').innerHTML = html;
                 document.getElementById('mealsTableBody').style.opacity = '1';
+                applyColumnVisibility();
             });
         }, 300);
     }
+
+    // فلتر الأعمدة
+    function initColumnVisibility() {
+        const headers = document.querySelectorAll('#mealsTable > thead > tr > th');
+        const menu = document.getElementById('columnToggleMenu');
+        menu.innerHTML = '';
+
+        headers.forEach((th, index) => {
+            const text = th.textContent.trim();
+            if (!text || text === 'صورة' || text === 'إجراءات') return;
+
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="form-check ms-2">
+                    <input class="form-check-input column-toggle" type="checkbox" checked 
+                           data-column="${index}" id="col_${index}" onchange="toggleColumn(${index}, this.checked)">
+                    <label class="form-check-label" for="col_${index}">${text}</label>
+                </div>
+            `;
+            menu.appendChild(li);
+        });
+    }
+
+    function toggleColumn(index, isVisible) {
+        const table = document.getElementById('mealsTable');
+        const th = table.querySelector(`#mainTableHead > tr > th:nth-child(${index + 1})`);
+        if(th) th.style.display = isVisible ? '' : 'none';
+
+        const cells = table.querySelectorAll(`tbody > tr > td:nth-child(${index + 1})`);
+        cells.forEach(cell => {
+            if(cell.closest('table').id === 'mealsTable') {
+                cell.style.display = isVisible ? '' : 'none';
+            }
+        });
+    }
+
+    function applyColumnVisibility() {
+        const toggles = document.querySelectorAll('.column-toggle');
+        toggles.forEach(toggle => toggleColumn(parseInt(toggle.dataset.column), toggle.checked));
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initColumnVisibility();
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.pagination a')) {
+            e.preventDefault();
+            performSearch(e.target.closest('.pagination a').href);
+        }
+    });
 </script>
 @endsection
