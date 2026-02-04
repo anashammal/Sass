@@ -104,8 +104,12 @@
                                 <span class="input-group-text bg-white border-end-0"><i class="fas fa-search"></i></span>
                                 <input type="text" id="productSearch" class="form-control border-start-0" 
                                        placeholder="ابحث باسم المنتج أو امسح الباركود (استخدم الأسهم ⬇️⬆️)..." autocomplete="off">
-                                {{-- تم التعديل لاستدعاء دالة فتح الإطار --}}
+                                {{-- تم التعديل لاستدعاء دالة فتح الإطار - مع دعم المطاعم --}}
+@if(Auth::user()->store->type == 'restaurant')
+<button type="button" class="btn btn-success" onclick="openCreateMealModal()"><i class="fas fa-plus-circle me-1"></i> وجبة أو مكون خام</button>
+@else
 <button type="button" class="btn btn-success" onclick="openCreateProductModal()"><i class="fas fa-plus-circle me-1"></i> منتج جديد</button>
+@endif
                             </div>
                             <div id="searchResults" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1000; top: 100%; display: none;"></div>
                         </div>
@@ -264,6 +268,21 @@
     </div>
 </div>
 
+{{-- مودال إضافة وجبة (خاص بالمطاعم) --}}
+<div class="modal fade" id="quickMealModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95%;">
+        <div class="modal-content" style="height: 90vh;">
+            <div class="modal-header bg-success text-white py-2">
+                <h5 class="modal-title"><i class="fas fa-utensils me-2"></i> إضافة وجبة أو مكون جديد</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="overflow: hidden;">
+                <iframe id="createMealFrame" src="" style="width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // --- المتغيرات العامة ---
     let rowIdx = 0;
@@ -276,7 +295,9 @@
         console.log("✅ Main Script Loaded");
 
         // إعداد بحث الموردين (مع الاختيار التلقائي)
+        console.log("Initializing Supplier Search...");
         setupSearch('supplierSearchInput', 'supplierResults', "{{ route('store.contacts.search') }}", function(s) {
+            console.log("Supplier Selected:", s);
             document.getElementById('supplierSearchInput').value = s.contact_name || s.company_name;
             document.getElementById('supplierId').value = s.id;
             
@@ -300,7 +321,9 @@
         }, true); // true = تفعيل الاختيار التلقائي للموردين
 
         // إعداد بحث المنتجات
+        console.log("Initializing Product Search...");
         setupSearch('productSearch', 'searchResults', "{{ route('store.products.search') }}", function(p) {
+            console.log("Product Selected:", p);
             addProductRow(p);
             // تفريغ الحقل
             let input = document.getElementById('productSearch');
@@ -421,6 +444,58 @@
                 }
             };
         }
+
+        // --- 🟢 كود مراقبة نافذة إضافة الوجبة للمطاعم ---
+        const mealFrame = document.getElementById('createMealFrame');
+        if(mealFrame) {
+            mealFrame.onload = function() {
+                try {
+                    const newUrl = mealFrame.contentWindow.location.href;
+                    if (!newUrl.includes('create') && !newUrl.includes('edit')) {
+                        console.log("✅ تم حفظ الوجبة بنجاح، الرابط الجديد: " + newUrl);
+                        
+                        var mealModalEl = document.getElementById('quickMealModal');
+                        var modal = bootstrap.Modal.getInstance(mealModalEl);
+                        if(modal) modal.hide();
+
+                        // الوجبات والمكونات تعامل كمنتجات في الفاتورة
+                        // نحاول استخراج ID
+                        const match = newUrl.match(/meals\/(\d+)/);
+                        // أو products إذا كان مكوناً خاماً وتم تحويله لصفحة المنتجات (يعتمد على النظام)
+                        // لكن لنفترض أنه سيعود لصفحة الوجبات أو المنتجات.
+                        // في نظامك، الوجبات قد تكون في جدول products أيضاً أو منفصلة.
+                        // إذا كانت في products فالرابط سيكون products/id. 
+                        // إذا كانت meals/id، فنحتاج endpoint للبحث عنها.
+                        // لكنك قلت "وجبة أو مكون خام"، وكلاهما يخزنان كمنتجات عادةً.
+                        
+                        let newId = null;
+                        if (match && match[1]) newId = match[1];
+                        else {
+                             const matchProd = newUrl.match(/products\/(\d+)/);
+                             if (matchProd && matchProd[1]) newId = matchProd[1];
+                        }
+
+                        if (newId) {
+                            fetch(`{{ route('store.products.search') }}?term=${newId}`) // نستخدم نفس البحث لأن الوجبات منتجات
+                                .then(r => r.json())
+                                .then(data => {
+                                     let item = null;
+                                     if(Array.isArray(data)) item = data.find(p => p.id == newId) || data[0];
+                                     else item = data;
+
+                                     if(item) {
+                                         addProductRow(item);
+                                         if(typeof toastr !== 'undefined') toastr.success('تم إضافة الوجبة/المكون للفاتورة');
+                                     }
+                                })
+                                .catch(err => console.error('خطأ في جلب الوجبة', err));
+                        }
+                    }
+                } catch (e) {
+                    console.log('Access restricted or loading...');
+                }
+            };
+        }
     });
 
     // --- دوال مساعدة ---
@@ -437,6 +512,10 @@
 
     // --- دالة إضافة صف المنتج المصححة ---
     function addProductRow(product) {
+        if (!product || !product.units || product.units.length === 0) {
+            console.error("Product has no units or is null:", product);
+            return;
+        }
         document.getElementById('emptyState').style.display = 'none';
         window.productsData[rowIdx] = product;
 
@@ -444,8 +523,9 @@
         let selectedUnitId = product.scanned_unit_id;
         if (!selectedUnitId) {
             let base = product.units.find(u => u.is_base_unit == 1) || product.units[0];
-            selectedUnitId = base.id;
+            selectedUnitId = base ? base.id : null;
         }
+        if (!selectedUnitId) return;
 
         // حسابات التكلفة (تعديل: الاعتماد على سعر الوحدة المختارة أولاً)
         let selectedUnit = product.units.find(u => u.id == selectedUnitId);
@@ -1267,23 +1347,62 @@
     }
 // --- دالة فتح نافذة إضافة المنتج ---
     function openCreateProductModal() {
+        console.log("Opening Product Modal...");
         const frame = document.getElementById('createProductFrame');
+        if (!frame) return console.error("createProductFrame not found");
         
-        // 👇 التعديل هنا: أضفنا ?iframe=1 في نهاية الرابط
         frame.src = "{{ url('/store-owner/products/create') }}?iframe=1"; 
         
-        var myModal = new bootstrap.Modal(document.getElementById('quickProductModal'));
-        myModal.show();
+        const modalEl = document.getElementById('quickProductModal');
+        if (!modalEl) return console.error("quickProductModal not found");
+
+        if (typeof bootstrap !== 'undefined') {
+            const myModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            myModal.show();
+        } else {
+            console.error("Bootstrap is not defined!");
+            alert("خطأ في تحميل مكتبة Bootstrap");
+        }
     }
+
 // --- دالة فتح نافذة إضافة المورد ---
     function openCreateSupplierModal() {
+        console.log("Opening Supplier Modal...");
         const frame = document.getElementById('createSupplierFrame');
-        // تأكد من ضبط الرابط الصحيح لإضافة مورد (type=supplier عادة ما يستخدم في أنظمة ERP)
-        // أضفنا iframe=1 لإخفاء القوائم
+        if (!frame) return console.error("createSupplierFrame not found");
+
         frame.src = "{{ route('store.contacts.create') }}?type=supplier&iframe=1"; 
         
-        var myModal = new bootstrap.Modal(document.getElementById('addSupplierModal'));
-        myModal.show();
+        const modalEl = document.getElementById('addSupplierModal');
+        if (!modalEl) return console.error("addSupplierModal not found");
+
+        if (typeof bootstrap !== 'undefined') {
+            const myModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            myModal.show();
+        } else {
+            console.error("Bootstrap is not defined!");
+            alert("خطأ في تحميل مكتبة Bootstrap");
+        }
+    }
+
+    // --- دالة فتح نافذة إضافة وجبة (للمطاعم) ---
+    function openCreateMealModal() {
+        console.log("Opening Meal Modal...");
+        const frame = document.getElementById('createMealFrame');
+        if (!frame) return console.error("createMealFrame not found");
+
+        frame.src = "{{ route('store.meals.create') }}?iframe=1"; 
+        
+        const modalEl = document.getElementById('quickMealModal');
+        if (!modalEl) return console.error("quickMealModal not found");
+
+        if (typeof bootstrap !== 'undefined') {
+            const myModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            myModal.show();
+        } else {
+            console.error("Bootstrap is not defined!");
+            alert("خطأ في تحميل مكتبة Bootstrap");
+        }
     }
 </script>
 

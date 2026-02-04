@@ -695,11 +695,9 @@ class PurchaseController extends Controller
                       });
                 });
 
-            // للمطاعم: لا تظهر الوجبات في البحث عند الشراء
-            $store = Auth::user()->store;
-            if ($store->type == 'restaurant') {
-                $query->where('product_type', '!=', 'meal');
-            }
+            // للمطاعم: تم السماح بظهور الوجبات لأن المستخدم طلب إضافتها للفاتورة
+            // سنضيف كل الأنواع للتأكد من شمولية البحث
+            $query->whereIn('product_type', ['standard', 'ingredient', 'meal', 'compound']);
 
             $products = $query->with(['units']) 
                 ->take(20)
@@ -712,23 +710,22 @@ class PurchaseController extends Controller
                 $matchedUnit = $product->units->firstWhere('barcode', $term);
                 $product->scanned_unit_id = $matchedUnit ? $matchedUnit->id : null;
                 
-                // جلب الصور يدوياً من الداتابيس (بديل المكتبة المحذوفة)
+                // جلب الصور يدوياً من الداتابيس (تأكد من وجود الجدول)
                 $mainImg = asset('images/default-product.png');
-                $prodMedia = DB::table('media')->where('model_type', 'App\Models\Product')->where('model_id', $product->id)->first();
-                if ($prodMedia) {
-                    $mainImg = asset('storage/' . $prodMedia->id . '/' . $prodMedia->file_name);
-                }
+                try {
+                    $prodMedia = DB::table('media')->where('model_type', 'App\\Models\\Product')->where('model_id', $product->id)->first();
+                    if ($prodMedia) {
+                        $mainImg = asset('storage/' . $prodMedia->id . '/' . $prodMedia->file_name);
+                    }
+                } catch (\Exception $e) { /* ignore media error */ }
+                
                 $product->main_image = $mainImg;
 
-                // 🔥 تم إزالة الفلترة لعرض جميع الوحدات (حتى البيع فقط) في قسم "الوحدات المرتبطة" 🔥
-                //$filteredUnits = $product->units->filter(function($u) {
-                //    return $u->is_purchase;
-                //});
-                //$product->setRelation('units', $filteredUnits->values());
-
                 foreach($product->units as $unit) {
-                    $unitMedia = DB::table('media')->where('model_type', 'App\Models\ProductUnit')->where('model_id', $unit->id)->first();
-                    $unit->image_url = $unitMedia ? asset('storage/' . $unitMedia->id . '/' . $unitMedia->file_name) : $mainImg;
+                    try {
+                        $unitMedia = DB::table('media')->where('model_type', 'App\\Models\\ProductUnit')->where('model_id', $unit->id)->first();
+                        $unit->image_url = $unitMedia ? asset('storage/' . $unitMedia->id . '/' . $unitMedia->file_name) : $mainImg;
+                    } catch (\Exception $e) { $unit->image_url = $mainImg; }
                 }
 
                 return $product;
@@ -737,6 +734,7 @@ class PurchaseController extends Controller
             return response()->json($products);
     
         } catch (\Exception $e) {
+            Log::error("Search Products Error: " . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

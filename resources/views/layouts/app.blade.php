@@ -1150,6 +1150,7 @@
     <div id="app" class="d-flex flex-column h-100">
         
         {{-- 📱 Mobile Custom Header 📱 --}}
+        @if(!request('iframe'))
         <div class="mobile-header d-md-none">
             <div class="d-flex align-items-center">
                 @auth
@@ -1190,7 +1191,9 @@
                 @endauth
             </div>
         </div>
+        @endif
         
+        @if(!request('iframe'))
         <nav class="navbar navbar-expand-md navbar-custom sticky-top">
             <div class="container-fluid">
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
@@ -1532,10 +1535,12 @@
                 </div>
             </div>
         </nav>
+        @endif
 
         <div class="container-fluid flex-grow-1">
             <div class="row h-100">
                 @auth
+                @if(!request('iframe'))
                 <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                     <div class="position-sticky pt-3">
                         <ul class="nav flex-column">
@@ -1641,7 +1646,8 @@
                         </ul>
                     </div>
                 </nav>
-                <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                @endif
+                <main class="{{ request('iframe') ? 'col-12 px-0' : 'col-md-9 ms-sm-auto col-lg-10 px-md-4' }} py-4">
                     @yield('content')
                 </main>
                 @else
@@ -1653,6 +1659,7 @@
         </div>
         {{-- 📱 Mobile Bottom Navigation 📱 --}}
         @auth
+        @if(!request('iframe'))
         <div class="mobile-bottom-nav d-md-none">
             <a href="{{ route('store.dashboard') }}" class="mobile-nav-item {{ request()->routeIs('store.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-home"></i> <span>الرئيسية</span>
@@ -1683,6 +1690,7 @@
                 <i class="fas fa-th"></i> <span>المزيد</span>
             </a>
         </div>
+        @endif
 
         {{-- 📱 Mobile Sidebar (Offcanvas) 📱 --}}
         <div class="offcanvas offcanvas-start offcanvas-mobile-menu" tabindex="-1" id="mobileMenuOffcanvas" style="width: 75%; border-right: 1px solid rgba(255,255,255,0.1);">
