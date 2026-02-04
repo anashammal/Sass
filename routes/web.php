@@ -42,8 +42,8 @@ Route::get('/force-clear', function() {
     return '<h1>تم تنظيف النظام بنجاح! ✅</h1> <a href="/store-owner/pos">العودة للبيع</a>';
 });
 
-// حل مشكلة عرض الصور من التخزين
-Route::get('storage-files/{path}', [ProductController::class, 'serveMedia'])
+// حل مشكلة عرض الصور من التخزين (يدعم المحلي والأونلاين)
+Route::get('storage-files/{path}', [\App\Http\Controllers\StoreOwner\ProductController::class, 'serveMedia'])
     ->where('path', '.*')->name('serve.media.workaround');
 
 Route::get('/', function () { 

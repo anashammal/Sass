@@ -1170,7 +1170,7 @@
                          $mobLogo = null;
                          if(auth()->user()->store) {
                              $mobStore = auth()->user()->store;
-                             if ($mobStore->logo_path) $mobLogo = url('storage/' . $mobStore->logo_path);
+                             if ($mobStore->logo_path) $mobLogo = route('serve.media.workaround', ['path' => $mobStore->logo_path]);
                          }
                     @endphp
                     <img src="{{ $mobLogo ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->store->name ?? 'T').'&background=random' }}" 
@@ -1218,15 +1218,15 @@
                             @php
                                 $logoUrl = null;
                                 $brandName = 'TechSys';
-                                if(auth()->id() == 1) {
+                                 if(auth()->id() == 1) {
                                     $logoPath = \App\Models\SystemSetting::where('key', 'system_default_logo')->value('value');
-                                    $logoUrl = $logoPath ? url('storage/'.$logoPath) : null;
+                                    $logoUrl = $logoPath ? route('serve.media.workaround', ['path' => $logoPath]) : null;
                                     $brandName = 'لوحة الإدارة';
                                 } else {
                                     $myStore = \App\Models\Store::where('owner_id', auth()->id())->first();
                                     if ($myStore) {
                                         $brandName = $myStore->name;
-                                        if ($myStore->logo_path) $logoUrl = url('storage/' . $myStore->logo_path);
+                                        if ($myStore->logo_path) $logoUrl = route('serve.media.workaround', ['path' => $myStore->logo_path]);
                                     }
                                 }
                             @endphp

@@ -326,7 +326,7 @@
     function previewAttachment(url) {
         const body = document.getElementById('previewModalBody');
         const extension = url.split('.').pop().toLowerCase();
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
         
         body.innerHTML = ''; // تنظيف المعاينة السابقة
         
