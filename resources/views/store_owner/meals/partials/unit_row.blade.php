@@ -6,7 +6,7 @@
                 <input type="hidden" name="units[{{ $index }}][id]" value="{{ $unit->id }}">
             @endif
             <div class="col-md-2 text-center">
-                <img id="preview_{{ $index }}" src="{{ isset($unit) && $unit->image_url ? $unit->image_url : asset('images/default-product.png') }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: contain;">
+                <img id="preview_{{ $index }}" src="{{ isset($unit) && $unit->image ? $unit->image : asset('images/default-product.png') }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: contain;">
                 <input type="file" name="units[{{ $index }}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="previewImage(this, 'preview_{{ $index }}')">
             </div>
             

@@ -406,8 +406,11 @@
             let reader = new FileReader();
             reader.onload = function(e) {
                 let img = document.getElementById(imgId);
-                img.src = e.target.result;
-                img.classList.remove('d-none');
+                if (img) {
+                    img.src = e.target.result;
+                    img.classList.remove('d-none');
+                    img.style.display = 'inline-block'; // Force display
+                }
             }
             reader.readAsDataURL(input.files[0]);
         }

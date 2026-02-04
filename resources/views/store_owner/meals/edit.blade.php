@@ -165,7 +165,7 @@
                                 <label class="form-label small">صورة الوحدة</label>
                                 <input type="file" name="base_unit_image" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'base_preview')">
                                 <div class="mt-2 text-center">
-                                    <img id="base_preview" src="{{ $base->image_url ?? '#' }}" alt="معاينة الصورة" class="img-thumbnail {{ $base->image_url ? '' : 'd-none' }}" style="max-height: 80px;">
+                                    <img id="base_preview" src="{{ $meal->image_url }}" alt="معاينة الصورة" class="img-thumbnail" style="max-height: 80px;">
                                 </div>
                             </div>
                                 <div class="col-md-3 d-flex align-items-end justify-content-start gap-3 pb-1" id="trade_checkboxes">
@@ -461,8 +461,11 @@
             let reader = new FileReader();
             reader.onload = function(e) {
                 let img = document.getElementById(imgId);
-                img.src = e.target.result;
-                img.classList.remove('d-none');
+                if (img) {
+                    img.src = e.target.result;
+                    img.classList.remove('d-none');
+                    img.style.display = 'inline-block'; // Force display
+                }
             }
             reader.readAsDataURL(input.files[0]);
         }
@@ -598,6 +601,7 @@
     }
 
     function initIngredientSelect2(selectObj) {
+        let tr = selectObj.closest('tr');
         selectObj.select2({
             theme: 'bootstrap-5',
             dir: 'rtl',
@@ -609,16 +613,26 @@
                 dataType: 'json',
                 delay: 250,
                 data: function (params) { return { q: params.term }; },
-                processResults: function (data) {
-                    return {
-                        results: data.map(ing => {
-                            return {
-                                id: ing.id,
-                                text: ing.name_ar + (ing.barcode ? ` [${ing.barcode}]` : ''),
-                                units: ing.units
-                            };
-                        })
-                    };
+                processResults: function (data, params) {
+                    let results = data.map(ing => {
+                        return { id: ing.id, text: ing.name_ar + (ing.barcode ? ` [${ing.barcode}]` : ''), units: ing.units };
+                    });
+
+                    // Auto-select if exactly 1 result
+                    if (results.length === 1 && params.term) {
+                        setTimeout(() => {
+                            if ($('.select2-search__field').val()) {
+                                let item = results[0];
+                                let newOption = new Option(item.text, item.id, true, true);
+                                $(newOption).attr('data-units', encodeURIComponent(JSON.stringify(item.units)));
+                                selectObj.empty().append(newOption).trigger('change');
+                                selectObj.select2('close');
+                                populateRecipeUnits(selectObj[0]);
+                                setTimeout(() => tr.find('.qty').focus().select(), 50);
+                            }
+                        }, 100);
+                    }
+                    return { results: results };
                 },
                 cache: true
             },
@@ -632,43 +646,15 @@
         selectObj.on('select2:select', function(e) {
             let data = e.params.data;
             if (data.units) {
-                let unitsJson = encodeURIComponent(JSON.stringify(data.units));
-                $(this).find(':selected').attr('data-units', unitsJson);
+                $(this).find(':selected').attr('data-units', encodeURIComponent(JSON.stringify(data.units)));
             }
             populateRecipeUnits(this);
-            
-            let row = $(this).closest('tr');
-            setTimeout(() => row.find('.qty').focus().select(), 50);
+            setTimeout(() => tr.find('.qty').focus().select(), 50);
         });
 
-        // Auto open if it's a new row
-        if (selectObj.closest('tr').find('.qty').val() == 1 && !selectObj.val()) {
-            selectObj.select2('open');
+        if (!selectObj.val()) {
+            setTimeout(() => selectObj.select2('open'), 50);
         }
-    }
-
-                $(searchField).on('keydown', function(e) {
-                    if (e.which === 13) {
-                        setTimeout(() => {
-                            let results = document.querySelectorAll('.select2-results__option--selectable');
-                            if (results.length > 0) {
-                                let firstResultId = $(results[0]).data('data')?.id;
-                                if (firstResultId) {
-                                    selectEl.val(firstResultId).trigger('change');
-                                    selectEl.select2('close');
-                                    let nextInput = document.getElementById(rowId).querySelector('.qty');
-                                    if (nextInput) {
-                                        setTimeout(() => nextInput.focus().select(), 100);
-                                    }
-                                }
-                            }
-                        }, 50);
-                    }
-                });
-            }
-        });
-
-        recipeIndex++;
     }
 
 
