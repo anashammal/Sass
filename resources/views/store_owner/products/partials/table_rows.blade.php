@@ -102,7 +102,7 @@
                         @foreach($product->units->where('is_base_unit', false) as $unit)
                         <tr>
                             <td class="text-center">
-                                <img src="{{ $unit->getImageAttribute() }}" width="40" height="40" class="rounded product-img-fit">
+                                <img src="{{ $unit->image }}" width="40" height="40" class="rounded product-img-fit">
                             </td>
                             <td class="fw-bold">{{ $unit->unit_name }}</td>
                             <td>{{ (float)$unit->conversion_factor }}</td>

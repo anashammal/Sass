@@ -33,13 +33,11 @@ class ProductUnit extends Model implements HasMedia
     {
         $url = $this->getFirstMediaUrl('unit_images', 'thumb') ?: asset('images/default-product.png');
         
-        // Extract relative path
-        if (strpos($url, '/storage/') !== false) {
-            $path = explode('/storage/', $url, 2)[1];
+        // Extract relative path after storage/
+        if (strpos($url, 'storage/') !== false) {
+            $path = explode('storage/', $url, 2)[1];
+            $path = explode('?', $path)[0]; // Strip query strings
             return route('serve.media.workaround', ['path' => $path]);
-        } elseif (strpos($url, '/images/') !== false) {
-             $path = explode('/images/', $url, 2)[1];
-             return asset('images/' . $path);
         }
 
         return $url;

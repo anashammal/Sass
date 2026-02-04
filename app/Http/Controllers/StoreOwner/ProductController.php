@@ -17,6 +17,12 @@ class ProductController extends Controller
     // دالة بديلة لعرض الصور في حال فشل الروابط الرمزية (storage:link) أونلاين
     public function serveMedia($path)
     {
+        // Decode path in case it was double encoded
+        $path = urldecode($path);
+        
+        // Strip query strings if they somehow got into the path parameter
+        $path = explode('?', $path)[0];
+        
         $fullPath = storage_path('app/public/' . $path);
         
         if (!file_exists($fullPath)) {
@@ -24,10 +30,7 @@ class ProductController extends Controller
             abort(404);
         }
 
-        $file = file_get_contents($fullPath);
-        $type = mime_content_type($fullPath);
-
-        return response($file, 200)->header('Content-Type', $type);
+        return response()->file($fullPath);
     }
 
     public function index(Request $request)
