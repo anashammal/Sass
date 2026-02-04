@@ -38,8 +38,16 @@
             $price = $product->baseUnit->selling_price ?? 0;
             $tax = $product->tax_percent ?? 0;
             $priceWithTax = $price * (1 + $tax / 100);
+            $cost = $product->baseUnit ? (float)$product->baseUnit->cost_price : 0;
+            $profit = $price - $cost;
         @endphp
         <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }}</span>
+    </td>
+
+    <td class="text-primary fw-bold">
+        @php $profitPercent = $cost > 0 ? ($profit / $cost) * 100 : 0; @endphp
+        {{ (float)number_format($profit, 2) }} 
+        <small class="text-muted">({{ (float)number_format($profitPercent, 1) }}%)</small>
     </td>
     
     <td>
@@ -47,6 +55,14 @@
         <span class="badge {{ $stock <= $product->alert_quantity ? 'bg-danger' : 'bg-success' }}">
             {{ $stock }}
         </span>
+    </td>
+
+    <td>
+        @if($product->is_active)
+            <span class="badge bg-success">فعال</span>
+        @else
+            <span class="badge bg-danger">معطل</span>
+        @endif
     </td>
     
     <td class="no-print">
@@ -61,7 +77,7 @@
 {{-- أحجام التقديم الإضافية --}}
 @if($product->units->where('is_base_unit', false)->count() > 0)
 <tr class="collapse bg-light" id="units_{{ $product->id }}">
-    <td colspan="9" class="p-3">
+    <td colspan="11" class="p-3">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-0">
                 <table class="table table-sm table-bordered mb-0 bg-white text-center">
@@ -71,6 +87,7 @@
                             <th>التحويل</th>
                             <th class="text-danger">التكلفة</th>
                             <th class="text-success">سعر البيع</th>
+                            <th class="text-info">الربح</th>
                             <th class="text-primary">المخزون</th>
                         </tr>
                     </thead>
@@ -81,8 +98,16 @@
                             <td>{{ (float)$unit->conversion_factor }}</td>
                             <td class="text-danger fw-bold">{{ (float)$unit->cost_price }}</td>
                             <td class="text-success fw-bold">
-                                @php $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); @endphp
+                                @php 
+                                    $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); 
+                                    $uProfit = $unit->selling_price - $unit->cost_price;
+                                @endphp
                                 {{ number_format($uPriceTax, 2) }}
+                            </td>
+                            <td class="text-info fw-bold">
+                                @php $uProfitPercent = $unit->cost_price > 0 ? ($uProfit / $unit->cost_price) * 100 : 0; @endphp
+                                {{ number_format($uProfit, 2) }}
+                                <small class="text-muted">({{ number_format($uProfitPercent, 1) }}%)</small>
                             </td>
                             <td class="text-primary fw-bold">{{ $product->getStockByUnit($unit->id) }}</td>
                         </tr>
@@ -96,7 +121,7 @@
 @endif
 
 @empty
-<tr><td colspan="9" class="text-center py-4 text-muted">لا يوجد وجبات أو مكونات مضافة</td></tr>
+<tr><td colspan="11" class="text-center py-4 text-muted">لا يوجد وجبات أو مكونات مضافة</td></tr>
 @endforelse
 
-<tr><td colspan="9" class="p-0"><div class="d-flex justify-content-center py-2">{{ $products->links() }}</div></td></tr>
+<tr><td colspan="11" class="p-0"><div class="d-flex justify-content-center py-2">{{ $products->links() }}</div></td></tr>

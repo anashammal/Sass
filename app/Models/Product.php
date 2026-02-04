@@ -106,24 +106,33 @@ class Product extends Model implements HasMedia
      */
     public function recalculateMealCost()
     {
-        if ($this->product_type !== 'meal') return;
+        if ($this->product_type !== 'meal' && $this->product_type !== 'compound') return 0;
 
+        // Force reload relations to ensure we have latest saved recipe data from DB
+        $this->load(['recipes.ingredient.units', 'recipes.unit']);
+        
         $totalCost = 0;
-        $this->load('recipes.ingredient.units');
-
         foreach ($this->recipes as $recipe) {
             $ingredient = $recipe->ingredient;
-            if ($ingredient && $ingredient->baseUnit) {
-                // نستخدم تكلفة الوحدة الأساسية للمكون (خامة)
-                $totalCost += ($recipe->quantity * $ingredient->baseUnit->cost_price);
+            if (!$ingredient) continue;
+
+            $unitCost = 0;
+            // Priority 1: Use specific unit selected in recipe
+            if ($recipe->unit) {
+                $unitCost = (float)$recipe->unit->cost_price;
+            } 
+            // Priority 2: Fallback to base unit of the ingredient
+            elseif ($ingredient->baseUnit) {
+                $unitCost = (float)$ingredient->baseUnit->cost_price;
             }
+
+            $totalCost += ($recipe->quantity * $unitCost);
         }
 
-        // تحديث سعر التكلفة والربح للوحدة الأساسية لهذه الوجبة
+        // Update the basic unit assigned to this meal
         if ($this->baseUnit) {
             $sellingPrice = (float)$this->baseUnit->selling_price;
             $newProfitPercent = 0;
-            
             if ($totalCost > 0) {
                 $newProfitPercent = (($sellingPrice - $totalCost) / $totalCost) * 100;
             }
@@ -133,12 +142,24 @@ class Product extends Model implements HasMedia
                 'cost_price'     => $totalCost,
                 'profit_percent' => $newProfitPercent,
             ]);
-            
-            // تحديث تكلفة المنتج نفسه (إذا كان مخزناً في حقل مستقل)
-            $this->update(['base_cost_price' => $totalCost]);
         }
         
+        // Update product table shortcut field
+        $this->update(['base_cost_price' => $totalCost]);
+        
         return $totalCost;
+    }
+
+    /**
+     * 🔥 تحديث تكاليف جميع الوجبات والمكونات المركبة
+     */
+    public static function recalculateAllMeals()
+    {
+        $products = self::whereIn('product_type', ['meal', 'compound'])->get();
+        foreach ($products as $product) {
+            $product->recalculateMealCost();
+        }
+        return $products->count();
     }
 
     // =========================================================

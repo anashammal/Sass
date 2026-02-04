@@ -5,9 +5,17 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
         <h3 class="text-primary fw-bold"><i class="fas fa-utensils me-2"></i> إدارة المنيو (الوجبات والمكونات)</h3>
-        <a href="{{ route('store.meals.create') }}" class="btn btn-success shadow-sm">
-            <i class="fas fa-plus me-1"></i> إضافة وجبة أو مكون خام
-        </a>
+        <div class="d-flex gap-2">
+            <form action="{{ route('store.meals.recalculate_all') }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-outline-primary shadow-sm">
+                    <i class="fas fa-sync-alt me-1"></i> تحديث التكاليف
+                </button>
+            </form>
+            <a href="{{ route('store.meals.create') }}" class="btn btn-success shadow-sm">
+                <i class="fas fa-plus me-1"></i> إضافة وجبة أو مكون خام
+            </a>
+        </div>
     </div>
 
     <div class="row g-3 mb-4 no-print">
@@ -24,6 +32,14 @@
                 <div class="card-body d-flex align-items-center">
                     <div class="kpi-icon-container me-3"><i class="fas fa-hamburger"></i></div>
                     <div><div class="kpi-label">وجبات جاهزة</div><div class="kpi-value english-num">{{ $prodStats['meals'] ?? 0 }}</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card kpi-card kpi-primary h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-container me-3"><i class="fas fa-box"></i></div>
+                    <div><div class="kpi-label">منتجات جاهزة</div><div class="kpi-value english-num">{{ $prodStats['standards'] ?? 0 }}</div></div>
                 </div>
             </div>
         </div>
@@ -133,7 +149,9 @@
                             <th>وحدة التقديم</th>
                             <th>التكلفة</th>
                             <th>سعر البيع</th>
+                            <th>الربح</th>
                             <th>المخزون</th>
+                            <th>الحالة</th>
                             <th class="no-print">إجراءات</th>
                         </tr>
                     </thead>

@@ -56,7 +56,8 @@ class MealController extends Controller
 
         $prodStats = [
             'total' => Product::where('store_id', $storeId)->whereIn('product_type', ['meal', 'ingredient', 'compound', 'standard'])->count(),
-            'meals' => Product::where('store_id', $storeId)->whereIn('product_type', ['meal', 'standard'])->count(),
+            'meals' => Product::where('store_id', $storeId)->where('product_type', 'meal')->count(),
+            'standards' => Product::where('store_id', $storeId)->where('product_type', 'standard')->count(),
             'ingredients' => Product::where('store_id', $storeId)->where('product_type', 'ingredient')->count(),
             'compounds' => Product::where('store_id', $storeId)->where('product_type', 'compound')->count(),
             'low_stock' => Product::where('store_id', $storeId)
@@ -615,6 +616,12 @@ class MealController extends Controller
             DB::rollBack();
             return back()->withInput()->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
+    }
+
+    public function recalculateAll() {
+        if (Auth::user()->store_id !== Auth::user()->store->id) abort(403);
+        $count = Product::recalculateAllMeals();
+        return back()->with('success', "تم تحديث تكاليف $count أصناف بنجاح.");
     }
 
     public function destroy(Product $meal) { $meal->delete(); return back()->with('success', 'تم الحذف'); }

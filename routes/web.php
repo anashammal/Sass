@@ -140,6 +140,7 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('products', ProductController::class)->except(['show']);
         Route::get('meals/ingredients-json', [\App\Http\Controllers\StoreOwner\MealController::class, 'getIngredientsJson'])->name('meals.ingredients_json');
         Route::resource('meals', \App\Http\Controllers\StoreOwner\MealController::class)->except(['show']);
+        Route::post('meals/recalculate-all', [\App\Http\Controllers\StoreOwner\MealController::class, 'recalculateAll'])->name('meals.recalculate_all');
         
         
 

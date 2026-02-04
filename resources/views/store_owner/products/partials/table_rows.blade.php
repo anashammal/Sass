@@ -39,6 +39,16 @@
             @endif
         </div>
     </td>
+
+    <td class="text-primary fw-bold">
+        @php 
+            $cost = $product->baseUnit ? (float)$product->baseUnit->cost_price : 0;
+            $profit = $price - $cost;
+            $profitPercent = $cost > 0 ? ($profit / $cost) * 100 : 0;
+        @endphp
+        {{ (float)number_format($profit, 2) }}
+        <small class="text-muted">({{ (float)number_format($profitPercent, 1) }}%)</small>
+    </td>
     
     {{-- المخزون الكلي (للوحدة الأساسية) --}}
     <td>
@@ -56,15 +66,6 @@
         @endif
     </td>
 
-    <td>
-        @if($product->product_type == 'meal')
-            <span class="badge bg-danger">وجبة</span>
-        @elseif($product->product_type == 'ingredient')
-            <span class="badge bg-success">مكون</span>
-        @else
-            <span class="badge bg-secondary">عادي</span>
-        @endif
-    </td>
     
     <td class="no-print">
         <a href="{{ route('store.products.edit', $product->id) }}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
@@ -78,7 +79,7 @@
 {{-- جدول الوحدات الإضافية --}}
 @if($product->units->where('is_base_unit', false)->count() > 0)
 <tr class="collapse bg-light" id="units_{{ $product->id }}">
-    <td colspan="10" class="p-3">
+    <td colspan="11" class="p-3">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-1 border-bottom">
                 <small class="fw-bold text-primary">تفاصيل الوحدات الإضافية</small>
@@ -93,6 +94,7 @@
                             <th>الباركود</th>
                             <th class="text-danger">التكلفة</th> {{-- عمود جديد --}}
                             <th>سعر البيع (شامل الضريبة)</th>
+                            <th class="text-info">الربح</th>
                             <th class="text-primary">المخزون المتوفر</th> {{-- عمود جديد --}}
                         </tr>
                     </thead>
@@ -114,6 +116,15 @@
     {{ number_format($uPriceTax, 2) }}
 </td>
 
+<td class="text-info fw-bold">
+    @php 
+        $uProfit = $unit->selling_price - $unit->cost_price;
+        $uProfitPercent = $unit->cost_price > 0 ? ($uProfit / $unit->cost_price) * 100 : 0;
+    @endphp
+    {{ number_format($uProfit, 2) }}
+    <small class="text-muted">({{ number_format($uProfitPercent, 1) }}%)</small>
+</td>
+
                             {{-- عرض المخزون بهذه الوحدة --}}
                             <td class="text-primary fw-bold">
                                 {{ $product->getStockByUnit($unit->id) }}
@@ -129,7 +140,7 @@
 @endif
 
 @empty
-<tr><td colspan="10" class="text-center py-4 text-muted">لا توجد بيانات</td></tr>
+<tr><td colspan="11" class="text-center py-4 text-muted">لا توجد بيانات</td></tr>
 @endforelse
 
-<tr><td colspan="10" class="p-0"><div class="d-flex justify-content-center py-2">{{ $products->links() }}</div></td></tr>
+<tr><td colspan="11" class="p-0"><div class="d-flex justify-content-center py-2">{{ $products->links() }}</div></td></tr>
