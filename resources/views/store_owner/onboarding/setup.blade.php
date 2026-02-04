@@ -112,9 +112,15 @@
                             </div>
                             
                             <label class="form-label fw-bold">العنوان التفصيلي <small class="text-muted">(ابدأ بالكتابة للاقتراحات)</small></label>
-                            <input type="text" id="address_autocomplete" class="form-control" 
-                                   placeholder="ابدأ بكتابة العنوان وستظهر لك اقتراحات من خرائط جوجل..."
-                                   autocomplete="off">
+                            <div class="input-group">
+                                <span class="input-group-text p-0 border-0 bg-transparent" id="address_context_badges">
+                                    <span class="badge bg-primary rounded-end-0 d-none" id="context_country_badge" style="font-size: 12px; padding: 10px 8px;"></span>
+                                    <span class="badge bg-success rounded-0 d-none" id="context_city_badge" style="font-size: 12px; padding: 10px 8px;"></span>
+                                </span>
+                                <input type="text" id="address_autocomplete" class="form-control" 
+                                       placeholder="ابدأ بكتابة العنوان وستظهر لك اقتراحات من خرائط جوجل..."
+                                       autocomplete="off" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
+                            </div>
                             <input type="hidden" name="address" id="full_address" value="{{ old('address', $store->address ?? '') }}">
                             <input type="hidden" name="latitude" id="latitude">
                             <input type="hidden" name="longitude" id="longitude">
@@ -267,19 +273,37 @@ window.initMap = function() {
             // Restrict to selected country
             autocomplete.setComponentRestrictions({ country: countryCode });
             
-            // If city is selected, update placeholder to hint at city
-            if (cityName && cityName !== '__manual__') {
-                $('#address_autocomplete').attr('placeholder', 'ابحث عن عنوان في ' + cityName + '...');
+            // If city bounds exist, apply strict bounds
+            if (window.currentCityBounds) {
+                autocomplete.setBounds(window.currentCityBounds);
+                autocomplete.setOptions({ strictBounds: true });
             } else {
-                // Find country name
-                var countryData = COUNTRIES.find(c => c.code === countryCode);
-                var countryName = countryData ? countryData.ar : countryCode.toUpperCase();
-                $('#address_autocomplete').attr('placeholder', 'ابحث عن عنوان في ' + countryName + '...');
+                autocomplete.setOptions({ strictBounds: false });
+            }
+            
+            // Update context badges
+            var countryData = COUNTRIES.find(c => c.code === countryCode);
+            var countryName = countryData ? countryData.ar : countryCode.toUpperCase();
+            
+            $('#context_country_badge').text(countryName).removeClass('d-none');
+            
+            if (cityName && cityName !== '__manual__') {
+                $('#context_city_badge').text(cityName).removeClass('d-none');
+                $('#address_autocomplete').attr('placeholder', 'اكتب اسم الشارع أو الحي...');
+            } else {
+                $('#context_city_badge').addClass('d-none').text('');
+                $('#address_autocomplete').attr('placeholder', 'اختر المدينة أولاً أو اكتب العنوان...');
             }
         } else {
             // No country selected - global search
             autocomplete.setComponentRestrictions(null);
-            $('#address_autocomplete').attr('placeholder', 'ابدأ بكتابة العنوان وستظهر لك اقتراحات من خرائط جوجل...');
+            autocomplete.setOptions({ strictBounds: false });
+            window.currentCityBounds = null;
+            
+            // Hide context badges
+            $('#context_country_badge').addClass('d-none').text('');
+            $('#context_city_badge').addClass('d-none').text('');
+            $('#address_autocomplete').attr('placeholder', 'اختر الدولة والمدينة أولاً...');
         }
     };
 
@@ -488,6 +512,8 @@ function moveMapToCity(countryName, cityName) {
     geocoder.geocode({ address: address }, function(results, status) {
         if (status === 'OK' && results[0]) {
             var location = results[0].geometry.location;
+            var bounds = results[0].geometry.bounds || results[0].geometry.viewport;
+            
             map.setCenter(location);
             map.setZoom(13);
             marker.setPosition(location);
@@ -495,10 +521,18 @@ function moveMapToCity(countryName, cityName) {
             $('#latitude').val(location.lat());
             $('#longitude').val(location.lng());
             
-            // Restrict autocomplete to this country
+            // Restrict autocomplete to this country and city bounds
             var countryCode = $('#country_select').val();
             if (countryCode) {
                 autocomplete.setComponentRestrictions({ country: countryCode });
+            }
+            
+            // Set bounds to restrict autocomplete to city area
+            if (bounds) {
+                autocomplete.setBounds(bounds);
+                // Store bounds globally for strictBounds option
+                window.currentCityBounds = bounds;
+                console.log('Autocomplete bounds set to:', cityName);
             }
         }
     });
@@ -692,9 +726,9 @@ $(function() {
         // Update location display
         $('#location_display').text(arName);
         
-        // Restrict autocomplete to selected country
-        if (autocomplete) {
-            autocomplete.setComponentRestrictions({ country: code });
+        // Update autocomplete restriction to selected country
+        if (typeof updateAutocompleteRestriction === 'function') {
+            updateAutocompleteRestriction();
         }
     });
 
@@ -707,6 +741,12 @@ $(function() {
         if (cityName && countryEn && typeof moveMapToCity === 'function') {
             moveMapToCity(countryEn, cityName);
             $('#location_display').text(cityName + '، ' + countryAr);
+        }
+        
+        // Update context city badge and placeholder
+        if (cityName && cityName !== '__manual__') {
+            $('#context_city_badge').text(cityName).removeClass('d-none');
+            $('#address_autocomplete').attr('placeholder', 'اكتب اسم الشارع أو الحي...');
         }
     });
 
