@@ -104,7 +104,7 @@ class OnboardingController extends Controller
     }
 
     /**
-     * التحقق من رمز OTP
+     * التحقق من رمز OTP وحفظ الرقم المتحقق مباشرة
      */
     public function verifyOtp(Request $request)
     {
@@ -118,8 +118,24 @@ class OnboardingController extends Controller
         
         if ($cached && $cached == $request->otp) {
             Cache::forget('phone_otp_' . $phone);
+            
+            // حفظ الرقم المتحقق مباشرة في قاعدة البيانات
+            $store = Auth::user()->store;
+            if ($store) {
+                $store->phone_number = $request->phone; // مع الكود
+                $store->phone_verified = true;
+                $store->phone_verified_at = now();
+                $store->save();
+                
+                \Log::info("Phone verified and saved: Store #{$store->id}, Phone: {$request->phone}");
+            }
+            
             session()->put('verified_phone', $phone);
-            return response()->json(['success' => true, 'message' => 'تم التحقق بنجاح ✅']);
+            return response()->json([
+                'success' => true, 
+                'message' => 'تم التحقق وحفظ الرقم بنجاح ✅',
+                'phone' => $request->phone
+            ]);
         }
         
         return response()->json(['success' => false, 'message' => 'رمز التحقق غير صحيح']);

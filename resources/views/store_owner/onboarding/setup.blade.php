@@ -126,15 +126,22 @@
                             <label class="form-label fw-bold">رقم الهاتف <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
                                 <div class="flex-grow-1">
-                                    <input type="tel" class="form-control" id="phone_input" value="{{ old('phone_number', $store->phone_number ?? '') }}">
+                                    <input type="tel" class="form-control" id="phone_input" 
+                                           value="{{ old('phone_number', $store->phone_number ?? '') }}"
+                                           {{ ($store->phone_verified ?? false) ? 'readonly' : '' }}>
                                 </div>
-                                <button type="button" class="btn btn-success px-4" id="send_otp_btn" style="height: 50px; white-space: nowrap;">
+                                @if($store->phone_verified ?? false)
+                                    <button type="button" class="btn btn-outline-secondary px-3" id="change_phone_btn" style="height: 50px; white-space: nowrap;">
+                                        <i class="fas fa-edit me-1"></i> تغيير
+                                    </button>
+                                @endif
+                                <button type="button" class="btn btn-success px-4 {{ ($store->phone_verified ?? false) ? 'd-none' : '' }}" id="send_otp_btn" style="height: 50px; white-space: nowrap;">
                                     <i class="fab fa-whatsapp me-1"></i> تحقق
                                 </button>
                             </div>
-                            <input type="hidden" name="phone_number" id="full_phone">
+                            <input type="hidden" name="phone_number" id="full_phone" value="{{ $store->phone_number ?? '' }}">
                             <input type="hidden" name="phone_country_code" id="phone_country_code">
-                            <input type="hidden" name="phone_verified" id="phone_verified" value="">
+                            <input type="hidden" name="phone_verified" id="phone_verified" value="{{ ($store->phone_verified ?? false) ? '1' : '' }}">
                             
                             {{-- OTP Input (Hidden initially) --}}
                             <div id="otp_section" class="mt-3 d-none">
@@ -152,23 +159,47 @@
                             </div>
                             
                             {{-- Verified Badge --}}
-                            <div id="verified_badge" class="mt-2 d-none">
+                            <div id="verified_badge" class="mt-2 {{ ($store->phone_verified ?? false) ? '' : 'd-none' }}">
                                 <span class="badge bg-success fs-6 py-2 px-3">
                                     <i class="fas fa-check-circle me-1"></i> تم التحقق من الرقم ✅
                                 </span>
+                                @if($store->phone_verified_at ?? false)
+                                <small class="text-muted ms-2">
+                                    ({{ \Carbon\Carbon::parse($store->phone_verified_at)->diffForHumans() }})
+                                </small>
+                                @endif
                             </div>
                         </div>
 
                         <hr class="my-4" style="opacity: 0.1;">
 
                         <div class="row mb-4">
-                            <div class="col-md-7 mb-3 mb-md-0">
-                                <label class="form-label fw-bold">رقم الآيبان (IBAN)</label>
-                                <input type="text" name="iban" class="form-control text-center fw-bold" value="{{ old('iban', $store->iban ?? '') }}">
-                            </div>
-                            <div class="col-md-5">
+                            <div class="col-md-5 mb-3 mb-md-0">
                                 <label class="form-label fw-bold">دولة البنك</label>
-                                <input type="text" name="bank_country" class="form-control" value="{{ old('bank_country', $store->bank_country ?? '') }}">
+                                <select name="bank_country" id="bank_country_select" class="form-select"></select>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold">اسم البنك</label>
+                                <select name="bank_name" id="bank_name_select" class="form-select">
+                                    <option value="">اختر دولة البنك أولاً...</option>
+                                </select>
+                                <input type="text" name="bank_name_manual" id="bank_name_manual" class="form-control d-none mt-2" placeholder="اكتب اسم البنك يدوياً">
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <label class="form-label fw-bold">رقم الآيبان (IBAN)</label>
+                                <div class="input-group" dir="ltr">
+                                    <span class="input-group-text fw-bold" id="iban_prefix" style="min-width: 50px; justify-content: center; background: #e9ecef; font-family: monospace; font-size: 16px;">--</span>
+                                    <input type="text" name="iban" id="iban_input" class="form-control fw-bold" 
+                                           value="{{ old('iban', $store->iban ?? '') }}"
+                                           placeholder="Enter IBAN number"
+                                           dir="ltr"
+                                           style="letter-spacing: 2px; font-size: 15px; font-family: monospace;">
+                                </div>
+                                <div class="form-text" id="iban_hint">اختر دولة البنك لمعرفة صيغة الآيبان الصحيحة</div>
+                                <div class="invalid-feedback" id="iban_error"></div>
                             </div>
                         </div>
 
@@ -210,12 +241,47 @@ window.initMap = function() {
 
     // ===== PLACES AUTOCOMPLETE =====
     var input = document.getElementById('address_autocomplete');
-    autocomplete = new google.maps.places.Autocomplete(input, {
+    
+    // Get initial country code if selected
+    var initialCountry = $('#country_select').val();
+    var autocompleteOptions = {
         types: ['address']
-    });
+    };
+    
+    // Set initial country restriction if available
+    if (initialCountry) {
+        autocompleteOptions.componentRestrictions = { country: initialCountry };
+    }
+    
+    autocomplete = new google.maps.places.Autocomplete(input, autocompleteOptions);
 
     // Bias autocomplete to current map bounds
     autocomplete.bindTo('bounds', map);
+    
+    // ===== UPDATE AUTOCOMPLETE RESTRICTION ON COUNTRY/CITY CHANGE =====
+    window.updateAutocompleteRestriction = function() {
+        var countryCode = $('#country_select').val();
+        var cityName = $('#city_select').val() || $('#city_manual').val();
+        
+        if (countryCode) {
+            // Restrict to selected country
+            autocomplete.setComponentRestrictions({ country: countryCode });
+            
+            // If city is selected, update placeholder to hint at city
+            if (cityName && cityName !== '__manual__') {
+                $('#address_autocomplete').attr('placeholder', 'ابحث عن عنوان في ' + cityName + '...');
+            } else {
+                // Find country name
+                var countryData = COUNTRIES.find(c => c.code === countryCode);
+                var countryName = countryData ? countryData.ar : countryCode.toUpperCase();
+                $('#address_autocomplete').attr('placeholder', 'ابحث عن عنوان في ' + countryName + '...');
+            }
+        } else {
+            // No country selected - global search
+            autocomplete.setComponentRestrictions(null);
+            $('#address_autocomplete').attr('placeholder', 'ابدأ بكتابة العنوان وستظهر لك اقتراحات من خرائط جوجل...');
+        }
+    };
 
     autocomplete.addListener('place_changed', function() {
         var place = autocomplete.getPlace();
@@ -329,25 +395,88 @@ function reverseGeocode(lat, lng) {
                 }
             });
 
-            // Sync country dropdown
+            // Sync country dropdown and load cities
             if (countryCode) {
                 var $opt = $('#country_select option[value="' + countryCode + '"]');
                 if ($opt.length) {
+                    // Set country value
                     $('#country_select').val(countryCode).trigger('change.select2');
                     countryAr = $opt.data('ar') || country;
+                    var countryEn = $opt.data('en') || country;
                     
-                    // After cities load, try to select the city
-                    setTimeout(function() {
-                        if (city && $('#city_select option').filter(function() { 
-                            return $(this).text().toLowerCase() === city.toLowerCase(); 
-                        }).length) {
-                            $('#city_select').val(city).trigger('change.select2');
-                        }
-                    }, 1500);
+                    // Update phone country
+                    if (typeof iti !== 'undefined') iti.setCountry(countryCode);
+                    
+                    // Restrict autocomplete to country
+                    if (typeof autocomplete !== 'undefined' && autocomplete) {
+                        autocomplete.setComponentRestrictions({ country: countryCode });
+                    }
+                    
+                    // Load cities and auto-select detected city
+                    loadCitiesAndSelect(countryEn, city);
                 }
             }
 
             $('#location_display').text((city || '') + '، ' + (countryAr || country));
+        }
+    });
+}
+
+// Helper function to load cities and select one
+function loadCitiesAndSelect(countryName, cityToSelect) {
+    var $city = $('#city_select');
+    $city.prop('disabled', true).empty().append('<option value="">⏳ جاري تحميل المدن...</option>');
+    $('#city_manual').addClass('d-none').prop('required', false);
+
+    $.ajax({
+        url: 'https://countriesnow.space/api/v0.1/countries/cities',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ country: countryName }),
+        success: function(response) {
+            $city.empty();
+            if (!response.error && response.data && response.data.length > 0) {
+                $city.append('<option value="">اختر المدينة...</option>');
+                response.data.forEach(function(city) {
+                    $city.append(new Option(city, city));
+                });
+                $city.prop('disabled', false);
+                
+                // Try to select the detected city
+                if (cityToSelect) {
+                    var $matchOption = $city.find('option').filter(function() {
+                        return $(this).text().toLowerCase() === cityToSelect.toLowerCase();
+                    });
+                    
+                    if ($matchOption.length) {
+                        $city.val($matchOption.val()).trigger('change.select2');
+                        console.log('Auto-selected city: ' + $matchOption.val());
+                    } else {
+                        // Try partial match
+                        $matchOption = $city.find('option').filter(function() {
+                            return $(this).text().toLowerCase().includes(cityToSelect.toLowerCase()) ||
+                                   cityToSelect.toLowerCase().includes($(this).text().toLowerCase());
+                        });
+                        if ($matchOption.length) {
+                            $city.val($matchOption.first().val()).trigger('change.select2');
+                            console.log('Auto-selected city (partial): ' + $matchOption.first().val());
+                        }
+                    }
+                }
+            } else {
+                $city.empty().append('<option value="">لا توجد مدن - أدخل يدوياً</option>');
+                $('#city_manual').removeClass('d-none').prop('required', true);
+                if (cityToSelect) {
+                    $('#city_manual').val(cityToSelect);
+                }
+            }
+        },
+        error: function() {
+            $city.empty().append('<option value="">لا توجد مدن - أدخل يدوياً</option>');
+            $('#city_manual').removeClass('d-none').prop('required', true);
+            if (cityToSelect) {
+                $('#city_manual').val(cityToSelect);
+            }
         }
     });
 }
@@ -731,6 +860,36 @@ $(function() {
         this.value = this.value.replace(/[^0-9]/g, '');
     });
 
+    // ===== CHANGE PHONE NUMBER =====
+    $('#change_phone_btn').on('click', function() {
+        Swal.fire({
+            title: 'تغيير رقم الهاتف',
+            text: 'هل تريد تغيير الرقم المتحقق منه؟ سيتطلب ذلك التحقق من الرقم الجديد.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، تغيير',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#3085d6'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Enable phone input for editing
+                $('#phone_input').prop('readonly', false).focus().select();
+                
+                // Hide verified badge
+                $('#verified_badge').addClass('d-none');
+                
+                // Show verify button
+                $('#send_otp_btn').removeClass('d-none');
+                
+                // Clear verification status
+                $('#phone_verified').val('');
+                
+                // Hide change button
+                $(this).addClass('d-none');
+            }
+        });
+    });
+
     // ===== FORM VALIDATION =====
     $('#settingsForm').on('submit', function(e) {
         var isValid = true;
@@ -818,6 +977,583 @@ $(function() {
     $('#city_manual, #phone_input').on('input', function() {
         $(this).removeClass('is-invalid');
     });
+
+    // ===== BANK COUNTRY, BANKS & IBAN SYSTEM =====
+    const BANK_DATA = {
+        'SA': {
+            name: 'السعودية',
+            code: 'SA',
+            ibanLength: 24,
+            ibanFormat: 'SA00 0000 0000 0000 0000 0000',
+            banks: [
+                'البنك الأهلي السعودي', 'مصرف الراجحي', 'بنك الرياض', 'البنك السعودي الفرنسي',
+                'البنك السعودي البريطاني (ساب)', 'بنك البلاد', 'بنك الجزيرة', 'بنك الإنماء',
+                'البنك العربي الوطني', 'مصرف الإنماء', 'بنك ساب', 'STC Pay'
+            ]
+        },
+        'AE': {
+            name: 'الإمارات',
+            code: 'AE',
+            ibanLength: 23,
+            ibanFormat: 'AE00 0000 0000 0000 0000 000',
+            banks: [
+                'بنك أبوظبي الأول', 'بنك الإمارات دبي الوطني', 'بنك دبي الإسلامي', 'مصرف أبوظبي الإسلامي',
+                'بنك المشرق', 'بنك رأس الخيمة الوطني', 'بنك الفجيرة الوطني', 'بنك الشارقة'
+            ]
+        },
+        'TR': {
+            name: 'تركيا',
+            code: 'TR',
+            ibanLength: 26,
+            ibanFormat: 'TR00 0000 0000 0000 0000 0000 00',
+            banks: [
+                'Ziraat Bankası', 'İş Bankası', 'Garanti BBVA', 'Yapı Kredi', 'Akbank',
+                'Halkbank', 'VakıfBank', 'QNB Finansbank', 'Denizbank', 'TEB',
+                'ING Bank', 'HSBC', 'Kuveyt Türk', 'Albaraka Türk', 'PTT Bank'
+            ]
+        },
+        'EG': {
+            name: 'مصر',
+            code: 'EG',
+            ibanLength: 29,
+            ibanFormat: 'EG00 0000 0000 0000 0000 0000 000',
+            banks: [
+                'البنك الأهلي المصري', 'بنك مصر', 'بنك القاهرة', 'البنك التجاري الدولي CIB',
+                'بنك الإسكندرية', 'البنك العربي الأفريقي', 'بنك QNB الأهلي', 'بنك HSBC مصر'
+            ]
+        },
+        'JO': {
+            name: 'الأردن',
+            code: 'JO',
+            ibanLength: 30,
+            ibanFormat: 'JO00 AAAA 0000 0000 0000 0000 0000 00',
+            banks: [
+                'البنك العربي', 'بنك الإسكان', 'البنك الأهلي الأردني', 'بنك الأردن',
+                'البنك الإسلامي الأردني', 'بنك القاهرة عمان', 'بنك المال الأردني'
+            ]
+        },
+        'KW': {
+            name: 'الكويت',
+            code: 'KW',
+            ibanLength: 30,
+            ibanFormat: 'KW00 AAAA 0000 0000 0000 0000 0000 00',
+            banks: [
+                'بنك الكويت الوطني', 'بيت التمويل الكويتي', 'بنك برقان', 'البنك التجاري الكويتي',
+                'بنك الخليج', 'بنك بوبيان', 'البنك الأهلي المتحد'
+            ]
+        },
+        'QA': {
+            name: 'قطر',
+            code: 'QA',
+            ibanLength: 29,
+            ibanFormat: 'QA00 AAAA 0000 0000 0000 0000 000',
+            banks: [
+                'بنك قطر الوطني', 'البنك التجاري', 'مصرف قطر الإسلامي', 'بنك الدوحة',
+                'بنك قطر الدولي', 'مصرف الريان', 'بنك أبوظبي الإسلامي'
+            ]
+        },
+        'BH': {
+            name: 'البحرين',
+            code: 'BH',
+            ibanLength: 22,
+            ibanFormat: 'BH00 AAAA 0000 0000 0000 00',
+            banks: [
+                'بنك البحرين الوطني', 'بنك البحرين والكويت', 'بيت التمويل الكويتي البحرين',
+                'البنك الأهلي المتحد', 'مصرف السلام', 'بنك ABC'
+            ]
+        },
+        'OM': {
+            name: 'عُمان',
+            code: 'OM',
+            ibanLength: 23,
+            ibanFormat: 'OM00 000 0000 0000 0000 000',
+            banks: [
+                'بنك مسقط', 'بنك عُمان العربي', 'البنك الوطني العُماني', 'بنك صحار الدولي',
+                'بنك نزوى', 'بنك العز الإسلامي', 'بنك ظفار'
+            ]
+        },
+        'SY': {
+            name: 'سوريا',
+            code: 'SY',
+            ibanLength: 24,
+            ibanFormat: 'SY00 0000 0000 0000 0000 0000',
+            banks: [
+                'مصرف سورية المركزي', 'المصرف التجاري السوري', 'المصرف الصناعي', 'المصرف العقاري',
+                'بنك البركة سوريا', 'بنك سورية والخليج', 'بنك عودة سورية', 'بنك بيمو السعودي الفرنسي'
+            ]
+        },
+        'LB': {
+            name: 'لبنان',
+            code: 'LB',
+            ibanLength: 28,
+            ibanFormat: 'LB00 0000 0000 0000 0000 0000 0000',
+            banks: [
+                'بنك لبنان والمهجر BLOM', 'بنك عودة', 'بنك بيبلوس', 'بنك البحر المتوسط',
+                'فرنسبنك', 'بنك الاعتماد اللبناني', 'البنك اللبناني للتجارة'
+            ]
+        },
+        // Americas
+        'US': {
+            name: 'أمريكا',
+            code: 'US',
+            ibanLength: 0, // US doesn't use IBAN
+            banks: [
+                'Bank of America', 'JPMorgan Chase', 'Wells Fargo', 'Citibank', 'U.S. Bank',
+                'PNC Bank', 'Capital One', 'TD Bank', 'Goldman Sachs', 'Morgan Stanley',
+                'Charles Schwab', 'American Express', 'Discover Bank', 'HSBC USA', 'BMO Harris'
+            ]
+        },
+        'CA': {
+            name: 'كندا',
+            code: 'CA',
+            ibanLength: 0,
+            banks: [
+                'Royal Bank of Canada (RBC)', 'Toronto-Dominion Bank (TD)', 'Bank of Nova Scotia (Scotiabank)',
+                'Bank of Montreal (BMO)', 'Canadian Imperial Bank (CIBC)', 'National Bank of Canada',
+                'Desjardins', 'HSBC Canada', 'Tangerine', 'Simplii Financial'
+            ]
+        },
+        'MX': {
+            name: 'المكسيك',
+            code: 'MX',
+            ibanLength: 18,
+            banks: [
+                'BBVA México', 'Santander México', 'Citibanamex', 'Banorte', 'HSBC México',
+                'Scotiabank México', 'Inbursa', 'Banco Azteca', 'BanCoppel', 'Banco del Bajío'
+            ]
+        },
+        'BR': {
+            name: 'البرازيل',
+            code: 'BR',
+            ibanLength: 29,
+            banks: [
+                'Banco do Brasil', 'Itaú Unibanco', 'Bradesco', 'Santander Brasil', 'Caixa Econômica',
+                'BTG Pactual', 'Banco Safra', 'Nubank', 'Banco Inter', 'C6 Bank'
+            ]
+        },
+        // Europe
+        'GB': {
+            name: 'بريطانيا',
+            code: 'GB',
+            ibanLength: 22,
+            banks: [
+                'HSBC', 'Barclays', 'Lloyds Bank', 'NatWest', 'Santander UK',
+                'Royal Bank of Scotland', 'Halifax', 'TSB', 'Metro Bank', 'Monzo',
+                'Revolut', 'Starling Bank', 'Virgin Money', 'Co-operative Bank'
+            ]
+        },
+        'DE': {
+            name: 'ألمانيا',
+            code: 'DE',
+            ibanLength: 22,
+            banks: [
+                'Deutsche Bank', 'Commerzbank', 'DZ Bank', 'KfW', 'UniCredit Bank AG',
+                'Postbank', 'ING-DiBa', 'Targobank', 'N26', 'Sparda-Bank',
+                'Sparkasse', 'Volksbank', 'Comdirect', 'DKB'
+            ]
+        },
+        'FR': {
+            name: 'فرنسا',
+            code: 'FR',
+            ibanLength: 27,
+            banks: [
+                'BNP Paribas', 'Crédit Agricole', 'Société Générale', 'Groupe BPCE',
+                'Crédit Mutuel', 'La Banque Postale', 'HSBC France', 'CIC',
+                'Boursorama', 'Hello Bank', 'Orange Bank', 'N26 France'
+            ]
+        },
+        'IT': {
+            name: 'إيطاليا',
+            code: 'IT',
+            ibanLength: 27,
+            banks: [
+                'Intesa Sanpaolo', 'UniCredit', 'Banco BPM', 'Monte dei Paschi di Siena',
+                'UBI Banca', 'BPER Banca', 'Mediobanca', 'Credem', 'FinecoBank',
+                'ING Italia', 'N26 Italia', 'Poste Italiane'
+            ]
+        },
+        'ES': {
+            name: 'إسبانيا',
+            code: 'ES',
+            ibanLength: 24,
+            banks: [
+                'Santander', 'BBVA', 'CaixaBank', 'Sabadell', 'Bankinter',
+                'Ibercaja', 'Unicaja', 'Kutxabank', 'Abanca', 'ING España',
+                'Openbank', 'N26 España', 'Revolut España'
+            ]
+        },
+        'NL': {
+            name: 'هولندا',
+            code: 'NL',
+            ibanLength: 18,
+            banks: [
+                'ING Bank', 'Rabobank', 'ABN AMRO', 'De Volksbank', 'Triodos Bank',
+                'Bunq', 'Knab', 'ASN Bank', 'SNS Bank', 'N26 Netherlands'
+            ]
+        },
+        'CH': {
+            name: 'سويسرا',
+            code: 'CH',
+            ibanLength: 21,
+            banks: [
+                'UBS', 'Credit Suisse', 'Julius Baer', 'Raiffeisen Switzerland', 'PostFinance',
+                'Zürcher Kantonalbank', 'Migros Bank', 'Coop Bank', 'Vontobel', 'Lombard Odier'
+            ]
+        },
+        'AT': {
+            name: 'النمسا',
+            code: 'AT',
+            ibanLength: 20,
+            banks: [
+                'Erste Group', 'Raiffeisen Bank', 'UniCredit Bank Austria', 'BAWAG',
+                'Oberbank', 'Hypo Vorarlberg', 'Bank Austria', 'N26 Austria'
+            ]
+        },
+        'PL': {
+            name: 'بولندا',
+            code: 'PL',
+            ibanLength: 28,
+            banks: [
+                'PKO Bank Polski', 'Bank Pekao', 'Santander Bank Polska', 'mBank',
+                'ING Bank Śląski', 'BNP Paribas Polska', 'Millennium Bank', 'Alior Bank'
+            ]
+        },
+        'SE': {
+            name: 'السويد',
+            code: 'SE',
+            ibanLength: 24,
+            banks: [
+                'Swedbank', 'SEB', 'Handelsbanken', 'Nordea Sweden', 'Danske Bank Sweden',
+                'Länsförsäkringar', 'ICA Banken', 'Klarna', 'Avanza'
+            ]
+        },
+        'NO': {
+            name: 'النرويج',
+            code: 'NO',
+            ibanLength: 15,
+            banks: [
+                'DNB', 'Nordea Norway', 'SpareBank 1', 'Danske Bank Norway',
+                'Handelsbanken Norway', 'Sbanken', 'KLP Banken'
+            ]
+        },
+        'DK': {
+            name: 'الدانمرك',
+            code: 'DK',
+            ibanLength: 18,
+            banks: [
+                'Danske Bank', 'Nordea Denmark', 'Jyske Bank', 'Nykredit',
+                'Sydbank', 'Spar Nord', 'Arbejdernes Landsbank', 'Lunar'
+            ]
+        },
+        'RU': {
+            name: 'روسيا',
+            code: 'RU',
+            ibanLength: 0,
+            banks: [
+                'Sberbank', 'VTB Bank', 'Gazprombank', 'Alfa-Bank', 'Rosbank',
+                'Otkritie Bank', 'Raiffeisenbank Russia', 'Tinkoff Bank', 'Sovcombank'
+            ]
+        },
+        // Asia
+        'CN': {
+            name: 'الصين',
+            code: 'CN',
+            ibanLength: 0,
+            banks: [
+                'Industrial and Commercial Bank of China (ICBC)', 'China Construction Bank',
+                'Agricultural Bank of China', 'Bank of China', 'Bank of Communications',
+                'China Merchants Bank', 'Ping An Bank', 'CITIC Bank', 'Minsheng Bank',
+                'Shanghai Pudong Development Bank', 'WeBank', 'MYbank'
+            ]
+        },
+        'JP': {
+            name: 'اليابان',
+            code: 'JP',
+            ibanLength: 0,
+            banks: [
+                'MUFG Bank', 'Sumitomo Mitsui Banking Corporation (SMBC)', 'Mizuho Bank',
+                'Japan Post Bank', 'Resona Bank', 'Saitama Resona Bank',
+                'Shinsei Bank', 'Aozora Bank', 'SBI Sumishin Net Bank', 'Sony Bank', 'Rakuten Bank'
+            ]
+        },
+        'KR': {
+            name: 'كوريا الجنوبية',
+            code: 'KR',
+            ibanLength: 0,
+            banks: [
+                'KB Kookmin Bank', 'Shinhan Bank', 'Woori Bank', 'Hana Bank',
+                'NH Bank (Nonghyup)', 'IBK Industrial Bank', 'Standard Chartered Korea',
+                'Citibank Korea', 'KakaoBank', 'K Bank', 'Toss Bank'
+            ]
+        },
+        'IN': {
+            name: 'الهند',
+            code: 'IN',
+            ibanLength: 0,
+            banks: [
+                'State Bank of India (SBI)', 'HDFC Bank', 'ICICI Bank', 'Axis Bank',
+                'Kotak Mahindra Bank', 'Punjab National Bank', 'Bank of Baroda',
+                'Canara Bank', 'IndusInd Bank', 'Yes Bank', 'IDFC First Bank', 'Paytm Payments Bank'
+            ]
+        },
+        'ID': {
+            name: 'إندونيسيا',
+            code: 'ID',
+            ibanLength: 0,
+            banks: [
+                'Bank Central Asia (BCA)', 'Bank Mandiri', 'Bank Rakyat Indonesia (BRI)',
+                'Bank Negara Indonesia (BNI)', 'CIMB Niaga', 'Bank Danamon',
+                'Panin Bank', 'Permata Bank', 'OCBC NISP', 'Bank Jago', 'Jenius'
+            ]
+        },
+        'MY': {
+            name: 'ماليزيا',
+            code: 'MY',
+            ibanLength: 0,
+            banks: [
+                'Maybank', 'CIMB Bank', 'Public Bank', 'RHB Bank', 'Hong Leong Bank',
+                'AmBank', 'Alliance Bank', 'OCBC Malaysia', 'HSBC Malaysia',
+                'Standard Chartered Malaysia', 'UOB Malaysia', 'Touch n Go eWallet'
+            ]
+        },
+        'SG': {
+            name: 'سنغافورة',
+            code: 'SG',
+            ibanLength: 0,
+            banks: [
+                'DBS Bank', 'OCBC Bank', 'UOB', 'Standard Chartered Singapore',
+                'Citibank Singapore', 'HSBC Singapore', 'Maybank Singapore',
+                'Bank of China Singapore', 'GXS Bank', 'Trust Bank'
+            ]
+        },
+        'TH': {
+            name: 'تايلاند',
+            code: 'TH',
+            ibanLength: 0,
+            banks: [
+                'Bangkok Bank', 'Kasikornbank', 'Siam Commercial Bank', 'Krung Thai Bank',
+                'Bank of Ayudhya (Krungsri)', 'TMBThanachart Bank', 'CIMB Thai',
+                'UOB Thailand', 'Krungthai Card'
+            ]
+        },
+        'PH': {
+            name: 'الفلبين',
+            code: 'PH',
+            ibanLength: 0,
+            banks: [
+                'BDO Unibank', 'Metrobank', 'Bank of the Philippine Islands (BPI)',
+                'Land Bank', 'Philippine National Bank (PNB)', 'Security Bank',
+                'UnionBank', 'China Bank', 'RCBC', 'GCash', 'Maya'
+            ]
+        },
+        'PK': {
+            name: 'باكستان',
+            code: 'PK',
+            ibanLength: 24,
+            banks: [
+                'Habib Bank (HBL)', 'United Bank (UBL)', 'MCB Bank', 'Allied Bank',
+                'Bank Alfalah', 'Meezan Bank', 'Faysal Bank', 'JS Bank',
+                'Standard Chartered Pakistan', 'Bank Al Habib', 'JazzCash', 'Easypaisa'
+            ]
+        },
+        'IQ': {
+            name: 'العراق',
+            code: 'IQ',
+            ibanLength: 23,
+            banks: [
+                'مصرف الرافدين', 'مصرف الرشيد', 'البنك التجاري العراقي', 'البنك الأهلي العراقي',
+                'مصرف بغداد', 'مصرف الشرق الأوسط', 'بنك كردستان الدولي', 'مصرف آسيا العراق'
+            ]
+        },
+        'DZ': {
+            name: 'الجزائر',
+            code: 'DZ',
+            ibanLength: 26,
+            banks: [
+                'البنك الوطني الجزائري', 'القرض الشعبي الجزائري', 'بنك الجزائر الخارجي',
+                'البنك الجزائري للتنمية الريفية', 'بنك البركة الجزائر', 'الشركة العامة الجزائرية',
+                'بنك السلام الجزائر', 'BNP Paribas El Djazair'
+            ]
+        },
+        'MA': {
+            name: 'المغرب',
+            code: 'MA',
+            ibanLength: 28,
+            banks: [
+                'التجاري وفا بنك', 'البنك الشعبي', 'BMCE Bank', 'البنك المغربي للتجارة الخارجية',
+                'القرض الفلاحي', 'بنك CIH', 'الشركة العامة المغربية', 'بريد بنك',
+                'CFG Bank', 'بنك الصفاء'
+            ]
+        },
+        'TN': {
+            name: 'تونس',
+            code: 'TN',
+            ibanLength: 24,
+            banks: [
+                'البنك الوطني الفلاحي', 'بنك الإسكان', 'الشركة التونسية للبنك',
+                'بنك تونس العربي الدولي', 'البنك العربي لتونس', 'الاتحاد البنكي للتجارة',
+                'بنك الأمان', 'بنك قطر الوطني تونس'
+            ]
+        },
+        // Oceania
+        'AU': {
+            name: 'أستراليا',
+            code: 'AU',
+            ibanLength: 0,
+            banks: [
+                'Commonwealth Bank', 'Westpac', 'ANZ Bank', 'National Australia Bank (NAB)',
+                'Macquarie Bank', 'Bendigo Bank', 'Bank of Queensland', 'Suncorp',
+                'ING Australia', 'Up Bank', 'Judo Bank'
+            ]
+        },
+        'NZ': {
+            name: 'نيوزيلندا',
+            code: 'NZ',
+            ibanLength: 0,
+            banks: [
+                'ANZ New Zealand', 'BNZ (Bank of New Zealand)', 'Westpac New Zealand',
+                'ASB Bank', 'Kiwibank', 'TSB Bank', 'Heartland Bank', 'Co-operative Bank'
+            ]
+        }
+    };
+    
+    // IBAN Length data for all countries (standard lengths)
+    const IBAN_LENGTHS = {
+        'AL':28,'AD':24,'AT':20,'AZ':28,'BH':22,'BY':28,'BE':16,'BA':20,'BR':29,'BG':22,
+        'CR':22,'HR':21,'CY':28,'CZ':24,'DK':18,'DO':28,'TL':23,'EE':20,'FO':18,'FI':18,
+        'FR':27,'GE':22,'DE':22,'GI':23,'GR':27,'GL':18,'GT':28,'HU':28,'IS':26,'IQ':23,
+        'IE':22,'IL':23,'IT':27,'JO':30,'KZ':20,'XK':20,'KW':30,'LV':21,'LB':28,'LI':21,
+        'LT':20,'LU':20,'MK':19,'MT':31,'MR':27,'MU':30,'MC':27,'MD':24,'ME':22,'NL':18,
+        'NO':15,'PK':24,'PS':29,'PL':28,'PT':25,'QA':29,'RO':24,'LC':32,'SM':27,'ST':25,
+        'SA':24,'RS':22,'SC':31,'SK':24,'SI':19,'ES':24,'SD':18,'SE':24,'CH':21,'TN':24,
+        'TR':26,'UA':29,'AE':23,'GB':22,'VA':22,'VG':24,'EG':29,'OM':23,'SY':24
+    };
+    
+    // Populate bank country dropdown using same COUNTRIES array
+    var $bankCountry = $('#bank_country_select');
+    var $bankName = $('#bank_name_select');
+    
+    $bankCountry.empty().append('<option value="">اختر دولة البنك...</option>');
+    COUNTRIES.forEach(function(c) {
+        var code = c.code.toUpperCase();
+        var ibanLen = IBAN_LENGTHS[code] || 24; // Default 24 if not found
+        $bankCountry.append('<option value="' + code + '" data-ar="' + c.ar + '" data-en="' + c.en + '" data-iban-len="' + ibanLen + '">' + 
+            c.ar + ' - ' + c.en + ' (' + code + ')</option>');
+    });
+    
+    $bankCountry.select2({
+        theme: 'bootstrap-5',
+        dir: 'rtl',
+        placeholder: 'اختر دولة البنك...',
+        allowClear: true
+    });
+    
+    $bankName.select2({
+        theme: 'bootstrap-5',
+        dir: 'rtl',
+        placeholder: 'اختر البنك...'
+    });
+    
+    // When bank country changes
+    $bankCountry.on('select2:select change', function() {
+        var code = $(this).val();
+        var $selectedOpt = $(this).find('option:selected');
+        var ibanLength = parseInt($selectedOpt.data('iban-len')) || IBAN_LENGTHS[code] || 24;
+        var countryAr = $selectedOpt.data('ar') || '';
+        var bankData = BANK_DATA[code]; // May be undefined for countries without bank list
+        
+        if (code) {
+            // Update IBAN prefix
+            $('#iban_prefix').text(code);
+            
+            // Show IBAN format info
+            var formatHint = code + ' + ' + (ibanLength - 2) + ' حرف/رقم = ' + ibanLength + ' حرف';
+            $('#iban_hint').html('صيغة الآيبان: <code dir="ltr">' + formatHint + '</code>');
+            
+            // Load banks if available for this country
+            $bankName.empty();
+            if (bankData && bankData.banks && bankData.banks.length > 0) {
+                $bankName.append('<option value="">اختر البنك...</option>');
+                bankData.banks.forEach(function(bank) {
+                    $bankName.append(new Option(bank, bank));
+                });
+                $bankName.append('<option value="__other__">🏦 بنك آخر (أدخل يدوياً)</option>');
+                $bankName.prop('disabled', false);
+                $('#bank_name_manual').addClass('d-none').val('');
+            } else {
+                // No bank list for this country - show manual input
+                $bankName.append('<option value="">أدخل اسم البنك يدوياً...</option>');
+                $bankName.prop('disabled', true);
+                $('#bank_name_manual').removeClass('d-none').attr('placeholder', 'اكتب اسم البنك في ' + countryAr);
+            }
+        } else {
+            $('#iban_prefix').text('--');
+            $('#iban_hint').text('اختر دولة البنك لمعرفة صيغة الآيبان الصحيحة');
+            $bankName.empty().append('<option value="">اختر دولة البنك أولاً...</option>');
+            $bankName.prop('disabled', true);
+            $('#bank_name_manual').addClass('d-none').val('');
+        }
+    });
+    
+    // Show manual input for "other" bank
+    $bankName.on('select2:select change', function() {
+        if ($(this).val() === '__other__') {
+            $('#bank_name_manual').removeClass('d-none').focus();
+        } else {
+            $('#bank_name_manual').addClass('d-none').val('');
+        }
+    });
+    
+    // IBAN Validation on input
+    $('#iban_input').on('input', function() {
+        var iban = $(this).val().replace(/\s/g, '').toUpperCase();
+        var countryCode = $('#bank_country_select').val();
+        var $selectedOpt = $('#bank_country_select').find('option:selected');
+        var expectedLength = parseInt($selectedOpt.data('iban-len')) || IBAN_LENGTHS[countryCode] || 24;
+        
+        // Remove old country code if user pasted full IBAN
+        if (countryCode && iban.startsWith(countryCode)) {
+            iban = iban.substring(2);
+            $(this).val(iban);
+        }
+        
+        // Remove any non-alphanumeric
+        iban = iban.replace(/[^A-Z0-9]/g, '');
+        $(this).val(iban);
+        
+        // Validate if country selected
+        if (countryCode) {
+            var fullIban = countryCode + iban;
+            
+            if (iban.length > 0) {
+                if (fullIban.length < expectedLength) {
+                    $('#iban_hint').html('<span class="text-warning">⚠️ الآيبان قصير (' + fullIban.length + '/' + expectedLength + ' حرف)</span>');
+                } else if (fullIban.length > expectedLength) {
+                    $('#iban_hint').html('<span class="text-danger">❌ الآيبان طويل جداً (' + fullIban.length + '/' + expectedLength + ' حرف)</span>');
+                } else {
+                    $('#iban_hint').html('<span class="text-success">✅ طول الآيبان صحيح (' + expectedLength + ' حرف)</span>');
+                }
+            } else {
+                var formatHint = countryCode + ' + ' + (expectedLength - 2) + ' حرف/رقم = ' + expectedLength + ' حرف';
+                $('#iban_hint').html('صيغة الآيبان: <code dir="ltr">' + formatHint + '</code>');
+            }
+        }
+    });
+    
+    // Set initial bank country if exists
+    var oldBankCountry = "{{ old('bank_country', $store->bank_country ?? '') }}";
+    if (oldBankCountry && BANK_DATA[oldBankCountry]) {
+        $bankCountry.val(oldBankCountry).trigger('change');
+    }
+    
+    var oldBankName = "{{ old('bank_name', $store->bank_name ?? '') }}";
+    if (oldBankName) {
+        setTimeout(function() {
+            if ($bankName.find('option[value="' + oldBankName + '"]').length) {
+                $bankName.val(oldBankName).trigger('change');
+            }
+        }, 300);
+    }
 });
 </script>
 
