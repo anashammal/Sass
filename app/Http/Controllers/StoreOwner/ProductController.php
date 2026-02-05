@@ -48,6 +48,23 @@ class ProductController extends Controller
             }
         }
 
+        // 🔥 محاولة أخيرة: البحث غير الحساس لحالة الأحرف (Case Insensitive)
+        // لأن سيرفرات Linux تميز بين image.jpg و Image.JPG بينما Windows لا يفعل ذلك
+        if (!file_exists($fullPath)) {
+            $dir = dirname($fullPath);
+            $filename = basename($fullPath);
+            
+            if (is_dir($dir)) {
+                $files = scandir($dir);
+                foreach ($files as $file) {
+                    if (strtolower($file) === strtolower($filename)) {
+                        $fullPath = $dir . '/' . $file;
+                        break;
+                    }
+                }
+            }
+        }
+
         // تسجيل خطأ في حال فقدان الملف تماماً للمساعدة في التتبع
         if (!file_exists($fullPath)) {
             Log::warning("serveMedia: File NOT FOUND", [
