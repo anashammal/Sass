@@ -17,130 +17,80 @@ class ProductController extends Controller
     public function serveMedia($path)
     {
         $originalPath = $path;
-        // فك التشفير لضمان قراءة الأسماء العربية والرموز
         $path = urldecode($path);
-        $path = explode('?', $path)[0];
         
-        $fullPath = storage_path('app/public/' . $path);
+        // تنظيف المسار من المدخلات الخطرة أو المتكررة
+        $path = str_replace(array('/', ''), '/', $path);
+        $path = ltrim($path, '/');
         
-        // محاولة البحث في مسارات بديلة (قديمة أو مباشرة)
-        if (!file_exists($fullPath)) {
-            $altPath = str_replace(['public/', 'storage/', 'stores/'], '', $path);
-            $tryPaths = [
-                storage_path('app/public/' . $altPath),
-                public_path($path),
-                public_path($altPath),
-                storage_path('app/' . $path),
-            ];
-            
-            // 🔥 محاولة ذكية للبحث عن مسارات Spatie القديمة (ID/File)
-            // إذا كان المسار يحتوي على store_X/media/ID/file، نلتقط الجزء ID/file فقط
-            if (preg_match('/media\/(\d+\/.+)$/', $path, $matches)) {
-                $legacySpatiePath = $matches[1];
-                $tryPaths[] = storage_path('app/public/' . $legacySpatiePath);
-            }
-            
-            foreach ($tryPaths as $tp) {
-                if (file_exists($tp)) {
-                    $fullPath = $tp;
-                    break;
-                }
-            }
+        // قائمة بجميع المسارات المحتملة للملف
+        $possiblePaths = [];
+        
+        // 1. المسار كما جاء بالضبط (داخل storage/app/public)
+        $possiblePaths[] = storage_path('app/public/' . $path);
+        
+        // 2. المسار في public/storage (قد يكون symlink أو مباشر)
+        $possiblePaths[] = public_path('storage/' . $path);
+        
+        // 3. مسار Spatie القديم (Legacy Spatie)
+        // إذا كان الطلب: store_7/media/129/2.jpg -> نبحث عن 129/2.jpg
+        if (preg_match('/media\/(\d+\/.+)$/', $path, $matches)) {
+            $legacyPath = $matches[1];
+            $possiblePaths[] = storage_path('app/public/' . $legacyPath);
+            $possiblePaths[] = public_path('storage/' . $legacyPath);
         }
+        
+        // 4. مسار مباشر في public (لبعض الحالات النادرة)
+        $possiblePaths[] = public_path($path);
 
-        // 🔥 محاولة أخيرة: البحث غير الحساس لحالة الأحرف (Case Insensitive)
-        // لأن سيرفرات Linux تميز بين image.jpg و Image.JPG بينما Windows لا يفعل ذلك
-        if (!file_exists($fullPath)) {
-            $dir = dirname($fullPath);
-            $filename = basename($fullPath);
+        $foundPath = null;
+
+        // 🔥 عملية البحث الشامل (Deep Scan)
+        foreach ($possiblePaths as $tryPath) {
+            // أ. فحص الوجود الدقيق
+            if (file_exists($tryPath)) {
+                $foundPath = $tryPath;
+                break;
+            }
+            
+            // ب. فحص غير حساس لحالة الأحرف (Case Insensitive)
+            // مفيد جداً في Linux عند طلب image.jpg والملف Image.JPG
+            $dir = dirname($tryPath);
+            $filename = basename($tryPath);
             
             if (is_dir($dir)) {
                 $files = scandir($dir);
-                foreach ($files as $file) {
-                    if (strtolower($file) === strtolower($filename)) {
-                        $fullPath = $dir . '/' . $file;
-                        break;
+                if ($files) {
+                    foreach ($files as $file) {
+                        if (strtolower($file) === strtolower($filename)) {
+                            $foundPath = $dir . '/' . $file;
+                            break 2; // وجدنا الملف، نخرج من الحلقتين
+                        }
                     }
                 }
             }
         }
 
-        // تسجيل خطأ في حال فقدان الملف تماماً للمساعدة في التتبع
-        if (!file_exists($fullPath)) {
-            Log::warning("serveMedia: File NOT FOUND", [
-                'provided_path' => $originalPath,
-                'decoded_path' => $path,
-                'target_full_path' => $fullPath
-            ]);
+        if (!$foundPath || !file_exists($foundPath)) {
+            Log::warning("serveMedia: Failed to find file", ['path' => $path, 'tried' => $possiblePaths]);
             abort(404);
         }
 
-        $extension = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
-        
-        // قائمة شاملة لكافة الامتدادات (الصور، الفيديو، المستندات، والملفات الغريبة)
+        // تحديد نوع الملف وخدمته
+        $extension = strtolower(pathinfo($foundPath, PATHINFO_EXTENSION));
         $mimeTypes = [
-            // الصور الشائعة
-            'jpg'  => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'png'  => 'image/png',
-            'gif'  => 'image/gif',
-            'webp' => 'image/webp',
-            'svg'  => 'image/svg+xml',
-            
-            // صور غريبة وحديثة
-            'jfif' => 'image/jpeg', // ✅ الامتداد الذي اشتكى منه المستخدم
-            'pjpeg'=> 'image/jpeg',
-            'pjp'  => 'image/jpeg',
-            'avif' => 'image/avif',
-            'apng' => 'image/apng',
-            'bmp'  => 'image/bmp',
-            'ico'  => 'image/x-icon',
-            'cur'  => 'image/x-icon',
-            'tif'  => 'image/tiff',
-            'tiff' => 'image/tiff',
-            'heic' => 'image/heic',
-            'heif' => 'image/heif',
-            
-            // مستندات
-            'pdf'  => 'application/pdf',
-            'doc'  => 'application/msword',
-            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'xls'  => 'application/vnd.ms-excel',
-            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'ppt'  => 'application/vnd.ms-powerpoint',
-            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            
-            // وسائط
-            'mp4'  => 'video/mp4',
-            'mp3'  => 'audio/mpeg',
-            'wav'  => 'audio/wav',
-            'ogg'  => 'audio/ogg',
-            'webm' => 'video/webm',
+            'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 
+            'webp' => 'image/webp', 'svg' => 'image/svg+xml', 'jfif' => 'image/jpeg', 'heic' => 'image/heic', 
+            'avif' => 'image/avif', 'pdf' => 'application/pdf', 'mp4' => 'video/mp4'
         ];
 
-        // 1. محاولة معرفة النوع من الامتداد
-        $contentType = $mimeTypes[$extension] ?? null;
-
-        // 2. إذا لم نعرفه، نستخدم دالة PHP الذكية لفحص محتوى الملف
-        if (!$contentType && function_exists('mime_content_type')) {
-            $contentType = mime_content_type($fullPath);
-        }
-
-        // 3. إذا فشل كل شيء، نستخدم النوع الافتراضي الثنائي
-        if (!$contentType) {
-            $contentType = 'application/octet-stream';
-        }
-
-        // للمستندات غير الصور والـ PDF، نفضل التحميل بدلاً من العرض
-        $disposition = in_array($extension, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mp3', 'svg']) 
-            ? 'inline' 
-            : 'attachment';
-
-        return response()->file($fullPath, [
+        // كشف تلقائي احتياطي
+        $contentType = $mimeTypes[$extension] ?? (function_exists('mime_content_type') ? mime_content_type($foundPath) : 'application/octet-stream');
+        
+        return response()->file($foundPath, [
             'Content-Type' => $contentType,
-            'Content-Disposition' => $disposition . '; filename="' . basename($fullPath) . '"',
             'Access-Control-Allow-Origin' => '*',
-            'Cache-Control' => 'public, max-age=86400',
+            'Cache-Control' => 'public, max-age=31536000',
         ]);
     }
 
