@@ -179,15 +179,10 @@ class Product extends Model implements HasMedia
     {
         $url = $this->getFirstMediaUrl('products', 'thumb') ?: asset('images/default-product.png');
         
-        // If it's already using the workaround or a full external URL, return it
-        if (strpos($url, 'storage-files/') !== false || (strpos($url, 'http') === 0 && strpos($url, asset('')) === false)) {
-            return $url;
-        }
-        
-        // Extract relative path after storage/
+        // إذا كان الرابط الرامي للميديا يحتوي على storage/، سنقوم بتحويله فوراً للمسار البديل
         if (strpos($url, 'storage/') !== false) {
             $path = explode('storage/', $url, 2)[1];
-            $path = explode('?', $path)[0]; // Strip query strings
+            $path = explode('?', $path)[0]; // حذف أي متغيرات استعلام
             return route('serve.media.workaround', ['path' => $path]);
         }
 

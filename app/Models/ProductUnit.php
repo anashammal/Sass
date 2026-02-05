@@ -28,15 +28,14 @@ class ProductUnit extends Model implements HasMedia
               ->sharpen(10);
     }
 
-    // لتسهيل استدعاء الصورة لاحقاً
     public function getImageAttribute()
     {
         $url = $this->getFirstMediaUrl('unit_images', 'thumb') ?: asset('images/default-product.png');
         
-        // Extract relative path after storage/
+        // إذا كان الرابط الرامي للميديا يحتوي على storage/، سنقوم بتحويله فوراً للمسار البديل
         if (strpos($url, 'storage/') !== false) {
             $path = explode('storage/', $url, 2)[1];
-            $path = explode('?', $path)[0]; // Strip query strings
+            $path = explode('?', $path)[0]; // حذف أي متغيرات استعلام
             return route('serve.media.workaround', ['path' => $path]);
         }
 
