@@ -44,8 +44,10 @@ class ProductUnit extends Model implements HasMedia
             // 2. حذف أي متغيرات (مثل ?v=...)
             $path = explode('?', $path)[0];
             
-            // ✅ استخدام رابط نسبي لحل مشاكل الصب دومين والمجلدات الفرعية
-            return route('serve.media.workaround', ['path' => $path], false);
+            // ✅ الحل النهائي لمشكلة Missing Subdirectory
+            // دمج Base URL يدوياً لضمان صحة المسار النسبي
+            $baseUrl = request()->getBaseUrl();
+            return $baseUrl . '/storage-files/' . $path;
         }
 
         return $url;
