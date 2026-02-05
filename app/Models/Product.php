@@ -191,7 +191,10 @@ class Product extends Model implements HasMedia
             // 2. حذف أي متغيرات (مثل ?v=...)
             $path = explode('?', $path)[0];
             
-            return route('serve.media.workaround', ['path' => $path]);
+            // ✅ نستخدم false لإرجاع مسار نسبي (Relative) بدلاً من Absolute
+            // هذا يحل مشكلة إذا كان الـ APP_URL في الأونلاين (tech-sys.online)
+            // بينما الموقع فعلياً في صب دومين أو مجلد فرعي (tech-sys.online/system)
+            return route('serve.media.workaround', ['path' => $path], false);
         }
 
         return $url;

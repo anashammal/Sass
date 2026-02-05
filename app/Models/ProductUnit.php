@@ -44,7 +44,8 @@ class ProductUnit extends Model implements HasMedia
             // 2. حذف أي متغيرات (مثل ?v=...)
             $path = explode('?', $path)[0];
             
-            return route('serve.media.workaround', ['path' => $path]);
+            // ✅ استخدام رابط نسبي لحل مشاكل الصب دومين والمجلدات الفرعية
+            return route('serve.media.workaround', ['path' => $path], false);
         }
 
         return $url;
