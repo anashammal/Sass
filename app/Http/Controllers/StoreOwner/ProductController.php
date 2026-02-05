@@ -33,6 +33,13 @@ class ProductController extends Controller
                 storage_path('app/' . $path),
             ];
             
+            // 🔥 محاولة ذكية للبحث عن مسارات Spatie القديمة (ID/File)
+            // إذا كان المسار يحتوي على store_X/media/ID/file، نلتقط الجزء ID/file فقط
+            if (preg_match('/media\/(\d+\/.+)$/', $path, $matches)) {
+                $legacySpatiePath = $matches[1];
+                $tryPaths[] = storage_path('app/public/' . $legacySpatiePath);
+            }
+            
             foreach ($tryPaths as $tp) {
                 if (file_exists($tp)) {
                     $fullPath = $tp;
@@ -52,7 +59,32 @@ class ProductController extends Controller
         }
 
         $extension = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        
+        // قائمة شاملة لكافة الامتدادات (الصور، الفيديو، المستندات، والملفات الغريبة)
         $mimeTypes = [
+            // الصور الشائعة
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+            'gif'  => 'image/gif',
+            'webp' => 'image/webp',
+            'svg'  => 'image/svg+xml',
+            
+            // صور غريبة وحديثة
+            'jfif' => 'image/jpeg', // ✅ الامتداد الذي اشتكى منه المستخدم
+            'pjpeg'=> 'image/jpeg',
+            'pjp'  => 'image/jpeg',
+            'avif' => 'image/avif',
+            'apng' => 'image/apng',
+            'bmp'  => 'image/bmp',
+            'ico'  => 'image/x-icon',
+            'cur'  => 'image/x-icon',
+            'tif'  => 'image/tiff',
+            'tiff' => 'image/tiff',
+            'heic' => 'image/heic',
+            'heif' => 'image/heif',
+            
+            // مستندات
             'pdf'  => 'application/pdf',
             'doc'  => 'application/msword',
             'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -60,17 +92,27 @@ class ProductController extends Controller
             'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'ppt'  => 'application/vnd.ms-powerpoint',
             'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            
+            // وسائط
             'mp4'  => 'video/mp4',
             'mp3'  => 'audio/mpeg',
-            'webp' => 'image/webp',
-            'png'  => 'image/png',
-            'jpg'  => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'gif'  => 'image/gif',
-            'svg'  => 'image/svg+xml',
+            'wav'  => 'audio/wav',
+            'ogg'  => 'audio/ogg',
+            'webm' => 'video/webm',
         ];
 
-        $contentType = $mimeTypes[$extension] ?? 'application/octet-stream';
+        // 1. محاولة معرفة النوع من الامتداد
+        $contentType = $mimeTypes[$extension] ?? null;
+
+        // 2. إذا لم نعرفه، نستخدم دالة PHP الذكية لفحص محتوى الملف
+        if (!$contentType && function_exists('mime_content_type')) {
+            $contentType = mime_content_type($fullPath);
+        }
+
+        // 3. إذا فشل كل شيء، نستخدم النوع الافتراضي الثنائي
+        if (!$contentType) {
+            $contentType = 'application/octet-stream';
+        }
 
         // للمستندات غير الصور والـ PDF، نفضل التحميل بدلاً من العرض
         $disposition = in_array($extension, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mp3', 'svg']) 
