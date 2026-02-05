@@ -44,10 +44,14 @@ class ProductUnit extends Model implements HasMedia
             // 2. حذف أي متغيرات (مثل ?v=...)
             $path = explode('?', $path)[0];
             
-            // ✅ الحل النهائي لمشكلة Missing Subdirectory
-            // دمج Base URL يدوياً لضمان صحة المسار النسبي
-            $baseUrl = request()->getBaseUrl();
-            return $baseUrl . '/storage-files/' . $path;
+            // ✅ الحل الطارئ والنهائي
+            $finalUrl = url('storage-files/' . $path);
+
+            if (strpos(request()->fullUrl(), '/system/') !== false && strpos($finalUrl, '/system/') === false) {
+                $finalUrl = str_replace(request()->getSchemeAndHttpHost(), request()->getSchemeAndHttpHost() . '/system', $finalUrl);
+            }
+            
+            return $finalUrl;
         }
 
         return $url;

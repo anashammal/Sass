@@ -191,10 +191,18 @@ class Product extends Model implements HasMedia
             // 2. حذف أي متغيرات (مثل ?v=...)
             $path = explode('?', $path)[0];
             
-            // ✅ الحل النهائي لمشكلة Missing Subdirectory
-            // نقوم بدمج الـ Base URL (مثل /system) يدوياً للتأكد من وجوده
-            $baseUrl = request()->getBaseUrl(); // يعيد /system أو فارغ
-            return $baseUrl . '/storage-files/' . $path;
+            // ✅ الحل الطارئ والنهائي (Hard Fix)
+            // 1. نستخدم url() لأنها عادة الأفضل في تحديد المسار
+            $finalUrl = url('storage-files/' . $path);
+
+            // 2. إذا كان الرابط الحالي يحتوي على /system (مثل tech-sys.online/system)
+            // ولكن الرابط المولد لا يحتويه (tech-sys.online/storage-files)
+            // نقوم بإضافته يدوياً وبالقوة.
+            if (strpos(request()->fullUrl(), '/system/') !== false && strpos($finalUrl, '/system/') === false) {
+                $finalUrl = str_replace(request()->getSchemeAndHttpHost(), request()->getSchemeAndHttpHost() . '/system', $finalUrl);
+            }
+            
+            return $finalUrl;
         }
 
         return $url;
