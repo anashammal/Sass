@@ -36,18 +36,15 @@ class ProductUnit extends Model implements HasMedia
             return route('serve.media.workaround', ['path' => 'images/default-product.png']);
         }
         
-        // نبحث عن كلمة storage/ لقص ما بعدها وضمان التحويل للمسار البديل
-        $search = 'storage/';
-        $pos = strpos($url, $search);
-        
-        if ($pos !== false) {
-            $path = substr($url, $pos + strlen($search));
-            // نتأكد من فك تشفير الرابط (مثل الحروف العربية والمسافات) قبل تمريره للراوت
+        // ✅ الحل الجذري: نستخدم RegEx لالتقاط أي مسار يأتي بعد /storage/ بغض النظر عن الدومين
+        if (preg_match('/\/storage\/(.*)$/i', $url, $matches)) {
+            $path = $matches[1];
+            // 1. فك تشفير الرابط (لعلاج الأسماء العربية)
             $path = urldecode($path);
-            // حذف أي متغيرات استعلام
+            // 2. حذف أي متغيرات (مثل ?v=...)
             $path = explode('?', $path)[0];
             
-            return route('serve.media.workaround', ['path' => ltrim($path, '/')]);
+            return route('serve.media.workaround', ['path' => $path]);
         }
 
         return $url;
