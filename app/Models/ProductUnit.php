@@ -44,14 +44,23 @@ class ProductUnit extends Model implements HasMedia
             // 2. حذف أي متغيرات (مثل ?v=...)
             $path = explode('?', $path)[0];
             
-            // ✅ الحل الطارئ والنهائي
-            $finalUrl = url('storage-files/' . $path);
+            // ✅ الحل الهجين الذكي (Smart Hybrid Fix)
+            $generatedUrl = url('storage-files/' . $path);
 
-            if (strpos(request()->fullUrl(), '/system/') !== false && strpos($finalUrl, '/system/') === false) {
-                $finalUrl = str_replace(request()->getSchemeAndHttpHost(), request()->getSchemeAndHttpHost() . '/system', $finalUrl);
+            // استخراج مسار المجلد الفرعي من APP_URL
+            $configUrl = config('app.url');
+            $configPath = parse_url($configUrl, PHP_URL_PATH) ?? '';
+            $configPath = rtrim($configPath, '/');
+
+            // إذا كان المسار مفقوداً في الرابط المولد، نحقنه يدوياً
+            if (!empty($configPath) && !str_contains($generatedUrl, $configPath)) {
+                $schemeHost = request()->getSchemeAndHttpHost();
+                if (str_starts_with($generatedUrl, $schemeHost)) {
+                    return $schemeHost . $configPath . '/storage-files/' . $path;
+                }
             }
             
-            return $finalUrl;
+            return $generatedUrl;
         }
 
         return $url;

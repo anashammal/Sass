@@ -191,18 +191,28 @@ class Product extends Model implements HasMedia
             // 2. حذف أي متغيرات (مثل ?v=...)
             $path = explode('?', $path)[0];
             
-            // ✅ الحل الطارئ والنهائي (Hard Fix)
-            // 1. نستخدم url() لأنها عادة الأفضل في تحديد المسار
-            $finalUrl = url('storage-files/' . $path);
+            // ✅ الحل الهجين الذكي (Smart Hybrid Fix)
+            // 1. توليد الرابط الافتراضي باستخدام url()
+            $generatedUrl = url('storage-files/' . $path);
 
-            // 2. إذا كان الرابط الحالي يحتوي على /system (مثل tech-sys.online/system)
-            // ولكن الرابط المولد لا يحتويه (tech-sys.online/storage-files)
-            // نقوم بإضافته يدوياً وبالقوة.
-            if (strpos(request()->fullUrl(), '/system/') !== false && strpos($finalUrl, '/system/') === false) {
-                $finalUrl = str_replace(request()->getSchemeAndHttpHost(), request()->getSchemeAndHttpHost() . '/system', $finalUrl);
+            // 2. استخراج مسار المجلد الفرعي من إعدادات APP_URL (مثل /system)
+            $configUrl = config('app.url');
+            $configPath = parse_url($configUrl, PHP_URL_PATH) ?? '';
+            $configPath = rtrim($configPath, '/'); // ضمان عدم تكرار الشرطة المائلة
+
+            // 3. إذا كان Config يحتوي على مسار (مثل /system) ولكنه مفقود في الرابط المولد
+            // نقوم بحقنه يدوياً بعد الدومين، مع الحفاظ على البروتوكول الحالية (http/https)
+            if (!empty($configPath) && !str_contains($generatedUrl, $configPath)) {
+                $schemeHost = request()->getSchemeAndHttpHost(); // https://tech-sys.online
+                
+                // التأكد من أن الرابط يبدأ بالدومين الحالي قبل الحقن لتجنب أي تداخل
+                if (str_starts_with($generatedUrl, $schemeHost)) {
+                    // النتيجة: https://tech-sys.online/system/storage-files/...
+                    return $schemeHost . $configPath . '/storage-files/' . $path;
+                }
             }
             
-            return $finalUrl;
+            return $generatedUrl;
         }
 
         return $url;
