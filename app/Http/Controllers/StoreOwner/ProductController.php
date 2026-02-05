@@ -16,45 +16,70 @@ class ProductController extends Controller
 {
     public function serveMedia($path)
     {
-        // تسجيل الطلب للفحص
         $originalPath = $path;
+        // فك التشفير لضمان قراءة الأسماء العربية والرموز
         $path = urldecode($path);
         $path = explode('?', $path)[0];
         
         $fullPath = storage_path('app/public/' . $path);
-        $exists = file_exists($fullPath);
         
-        // تسجيل تفصيلي في Laravel Log
-        \Illuminate\Support\Facades\Log::info("serveMedia Request", [
-            'original' => $originalPath,
-            'decoded' => $path,
-            'full_path' => $fullPath,
-            'exists' => $exists ? 'YES' : 'NO'
-        ]);
-
-        if (!$exists) {
-            // محاولة 2: البحث في مجلد public المباشر (للصور الافتراضية مثل default-product.png)
-            $publicPath = public_path($path);
-            if (file_exists($publicPath)) {
-                $fullPath = $publicPath;
-                $exists = true;
-            } else {
-                // محاولة 3: ربما المسار يبدأ بـ storage/ أو public/
-                $altPath = str_replace(['public/', 'storage/'], '', $path);
-                $fullAltPath = storage_path('app/public/' . $altPath);
-                if (file_exists($fullAltPath)) {
-                    $fullPath = $fullAltPath;
-                    $exists = true;
+        // محاولة البحث في مسارات بديلة (قديمة أو مباشرة)
+        if (!file_exists($fullPath)) {
+            $altPath = str_replace(['public/', 'storage/', 'stores/'], '', $path);
+            $tryPaths = [
+                storage_path('app/public/' . $altPath),
+                public_path($path),
+                public_path($altPath),
+                storage_path('app/' . $path),
+            ];
+            
+            foreach ($tryPaths as $tp) {
+                if (file_exists($tp)) {
+                    $fullPath = $tp;
+                    break;
                 }
             }
         }
 
-        if (!$exists) {
-             Log::warning("serveMedia: File NOT FOUND", ['path' => $path]);
-             abort(404);
+        // تسجيل خطأ في حال فقدان الملف تماماً للمساعدة في التتبع
+        if (!file_exists($fullPath)) {
+            Log::warning("serveMedia: File NOT FOUND", [
+                'provided_path' => $originalPath,
+                'decoded_path' => $path,
+                'target_full_path' => $fullPath
+            ]);
+            abort(404);
         }
 
+        $extension = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        $mimeTypes = [
+            'pdf'  => 'application/pdf',
+            'doc'  => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls'  => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'ppt'  => 'application/vnd.ms-powerpoint',
+            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'mp4'  => 'video/mp4',
+            'mp3'  => 'audio/mpeg',
+            'webp' => 'image/webp',
+            'png'  => 'image/png',
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'gif'  => 'image/gif',
+            'svg'  => 'image/svg+xml',
+        ];
+
+        $contentType = $mimeTypes[$extension] ?? 'application/octet-stream';
+
+        // للمستندات غير الصور والـ PDF، نفضل التحميل بدلاً من العرض
+        $disposition = in_array($extension, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mp3', 'svg']) 
+            ? 'inline' 
+            : 'attachment';
+
         return response()->file($fullPath, [
+            'Content-Type' => $contentType,
+            'Content-Disposition' => $disposition . '; filename="' . basename($fullPath) . '"',
             'Access-Control-Allow-Origin' => '*',
             'Cache-Control' => 'public, max-age=86400',
         ]);

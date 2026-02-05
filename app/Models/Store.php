@@ -69,6 +69,11 @@ class Store extends Model
             return route('serve.media.workaround', ['path' => 'images/logo.png']);
         }
 
+        // إذا كان المسار لا يبدأ بـ store_، فهذا يعني أنه مسار قديم
+        if (strpos($path, 'store_') !== 0 && strpos($path, 'stores/') !== 0) {
+            // محاولة التحقق من وجوده في المسار القديم أو الجديد برمجياً يتم في serveMedia
+        }
+
         return route('serve.media.workaround', ['path' => $path]);
     }
 

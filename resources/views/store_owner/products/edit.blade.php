@@ -80,7 +80,7 @@
                             <div class="col-md-2 text-center">
                                 <label class="form-label small fw-bold">صورة الوحدة</label>
                                 <div class="position-relative">
-                                    <img id="base_preview" src="{{ $product->getFirstMediaUrl('products') ?: asset('images/default-product.png') }}" class="img-thumbnail mb-2" style="height: 120px; width: 120px; object-fit: contain;">
+                                    <img id="base_preview" src="{{ $product->image_url }}" class="img-thumbnail mb-2" style="height: 120px; width: 120px; object-fit: contain;">
                                     <input type="file" name="base_unit_image" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'base_preview')">
                                 </div>
                             </div>
@@ -287,7 +287,7 @@
                 is_purchase: {{ $unit->is_purchase ? 'true' : 'false' }},
                 is_sale: {{ $unit->is_sale ? 'true' : 'false' }},
                 // ضمان وجود رابط صورة صالح
-                image: '{{ $unit->getFirstMediaUrl("unit_images") }}'
+                image: '{{ $unit->image }}'
             });
         @endforeach
     });

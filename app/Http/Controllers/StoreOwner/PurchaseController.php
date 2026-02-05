@@ -710,22 +710,11 @@ class PurchaseController extends Controller
                 $matchedUnit = $product->units->firstWhere('barcode', $term);
                 $product->scanned_unit_id = $matchedUnit ? $matchedUnit->id : null;
                 
-                // جلب الصور يدوياً من الداتابيس (تأكد من وجود الجدول)
-                $mainImg = asset('images/default-product.png');
-                try {
-                    $prodMedia = DB::table('media')->where('model_type', 'App\\Models\\Product')->where('model_id', $product->id)->first();
-                    if ($prodMedia) {
-                        $mainImg = asset('storage/' . $prodMedia->id . '/' . $prodMedia->file_name);
-                    }
-                } catch (\Exception $e) { /* ignore media error */ }
-                
-                $product->main_image = $mainImg;
+                // ✅ استخدام الـ Accessors الموحدة لضمان عمل الصور في كل البيئات
+                $product->main_image = $product->image_url;
 
                 foreach($product->units as $unit) {
-                    try {
-                        $unitMedia = DB::table('media')->where('model_type', 'App\\Models\\ProductUnit')->where('model_id', $unit->id)->first();
-                        $unit->image_url = $unitMedia ? asset('storage/' . $unitMedia->id . '/' . $unitMedia->file_name) : $mainImg;
-                    } catch (\Exception $e) { $unit->image_url = $mainImg; }
+                    $unit->image_url = $unit->image;
                 }
 
                 return $product;

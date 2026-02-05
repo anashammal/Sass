@@ -33,15 +33,21 @@ class ProductUnit extends Model implements HasMedia
         $url = $this->getFirstMediaUrl('unit_images', 'thumb');
         
         if (!$url) {
-            // صورة افتراضية عبر المسار البديل
             return route('serve.media.workaround', ['path' => 'images/default-product.png']);
         }
         
-        // إذا كان الرابط الرامي للميديا يحتوي على storage/، سنقوم بتحويله فوراً للمسار البديل
-        if (strpos($url, 'storage/') !== false) {
-            $path = explode('storage/', $url, 2)[1];
-            $path = explode('?', $path)[0]; // حذف أي متغيرات استعلام
-            return route('serve.media.workaround', ['path' => $path]);
+        // نبحث عن كلمة storage/ لقص ما بعدها وضمان التحويل للمسار البديل
+        $search = 'storage/';
+        $pos = strpos($url, $search);
+        
+        if ($pos !== false) {
+            $path = substr($url, $pos + strlen($search));
+            // نتأكد من فك تشفير الرابط (مثل الحروف العربية والمسافات) قبل تمريره للراوت
+            $path = urldecode($path);
+            // حذف أي متغيرات استعلام
+            $path = explode('?', $path)[0];
+            
+            return route('serve.media.workaround', ['path' => ltrim($path, '/')]);
         }
 
         return $url;

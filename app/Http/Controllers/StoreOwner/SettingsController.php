@@ -42,18 +42,18 @@ class SettingsController extends Controller
              'clock_theme' => 'nullable|string',
          ]);
 
-         // 3. رفع الصور (الكود الأصلي)
+         // 3. رفع الصور (الهيكلة الجديدة)
          if ($request->hasFile('logo')) {
              if ($store->logo_path) Storage::disk('public')->delete($store->logo_path);
-             $store->logo_path = $request->file('logo')->store('stores/'.$store->id, 'public');
+             $store->logo_path = $request->file('logo')->store('store_'.$store->id.'/settings', 'public');
          }
          if ($request->hasFile('stamp')) {
              if ($store->stamp_path) Storage::disk('public')->delete($store->stamp_path);
-             $store->stamp_path = $request->file('stamp')->store('stores/'.$store->id, 'public');
+             $store->stamp_path = $request->file('stamp')->store('store_'.$store->id.'/settings', 'public');
          }
          if ($request->hasFile('signature')) {
              if ($store->signature_path) Storage::disk('public')->delete($store->signature_path);
-             $store->signature_path = $request->file('signature')->store('stores/'.$store->id, 'public');
+             $store->signature_path = $request->file('signature')->store('store_'.$store->id.'/settings', 'public');
          }
 
          // 4. 🔥 حفظ التوقيت والساعة 🔥
@@ -179,18 +179,18 @@ class SettingsController extends Controller
         $store->wa_daily_report = $request->wa_daily_report;
         $store->whatsapp_auto_prompt = $request->whatsapp_auto_prompt;
 
-        // 5. رفع الصور (إذا تم تغييرها)
+        // 5. رفع الصور (إذا تم تغييرها - الهيكلة الجديدة)
         if ($request->hasFile('logo')) {
             if ($store->logo_path) Storage::disk('public')->delete($store->logo_path);
-            $store->logo_path = $request->file('logo')->store('stores/'.$store->id, 'public');
+            $store->logo_path = $request->file('logo')->store('store_'.$store->id.'/settings', 'public');
         }
         if ($request->hasFile('stamp')) {
             if ($store->stamp_path) Storage::disk('public')->delete($store->stamp_path);
-            $store->stamp_path = $request->file('stamp')->store('stores/'.$store->id, 'public');
+            $store->stamp_path = $request->file('stamp')->store('store_'.$store->id.'/settings', 'public');
         }
         if ($request->hasFile('signature')) {
             if ($store->signature_path) Storage::disk('public')->delete($store->signature_path);
-            $store->signature_path = $request->file('signature')->store('stores/'.$store->id, 'public');
+            $store->signature_path = $request->file('signature')->store('store_'.$store->id.'/settings', 'public');
         }
 
         $store->save();
