@@ -47,22 +47,33 @@ class Store extends Model
 
     // --- الدوال المساعدة (Accessors) ---
 
-    // 1. دالة لجلب رابط الشعار (النظام الجديد)
+    // 1. دالة لجلب رابط الشعار (النظام الموحد)
     public function getLogoUrlAttribute()
     {
-        $baseUrl = rtrim(request()->getBaseUrl(), '/');
-
-        if ($this->logo_path) {
-            return $baseUrl . '/storage/' . $this->logo_path;
-        }
-        
-        // جلب شعار النظام الافتراضي
-        $systemLogo = \App\Models\SystemSetting::where('key', 'system_default_logo')->value('value');
-        if ($systemLogo) {
-             return $baseUrl . '/storage/' . $systemLogo;
+        if (!$this->logo_path) {
+            // جلب شعار النظام الافتراضي
+            $systemLogo = \App\Models\SystemSetting::where('key', 'system_default_logo')->value('value');
+            if ($systemLogo) {
+                return route('serve.media.workaround', ['path' => $systemLogo]);
+            }
+            return asset('images/default-logo.png');
         }
 
-        return $baseUrl . '/images/default-logo.png';
+        return route('serve.media.workaround', ['path' => $this->logo_path]);
+    }
+
+    // 2. دالة لجلب رابط الختم
+    public function getStampUrlAttribute()
+    {
+        if (!$this->stamp_path) return null;
+        return route('serve.media.workaround', ['path' => $this->stamp_path]);
+    }
+
+    // 3. دالة لجلب رابط التوقيع
+    public function getSignatureUrlAttribute()
+    {
+        if (!$this->signature_path) return null;
+        return route('serve.media.workaround', ['path' => $this->signature_path]);
     }
 
     // 2. دالة التوافق (Compatibility Fix) - هذه الدالة ستحل مشكلة الخطأ

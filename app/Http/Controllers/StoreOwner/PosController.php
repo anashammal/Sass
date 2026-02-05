@@ -633,18 +633,11 @@ class PosController extends Controller
 
             $store = Auth::user()->store;
             
-            // إصلاح مسار الشعار
-            $fixPath = function($p) { 
-                if(!$p) return null;
-                $clean = str_replace(['public/', 'storage/'], '', $p);
-                return route('serve.media.workaround', ['path' => $clean]);
-            };
-
             return response()->json([
                 'sales' => $sales,
                 'store_info' => [
                     'name' => $store->name,
-                    'logo' => $fixPath($store->logo_path ?? $store->logo)
+                    'logo' => $store->logo_url
                 ]
             ]);
 
@@ -748,17 +741,11 @@ class PosController extends Controller
 
             $store = Auth::user()->store;
             
-            $fixUrl = function($path) {
-                if (empty($path)) return null;
-                $clean = str_replace(['public/', 'storage/'], '', $path);
-                return route('serve.media.workaround', ['path' => $clean]);
-            };
-
             $storeData = [
                 'name' => $store->name, 'address' => $store->address, 'tax_number' => $store->tax_number,
-                'logo_url'      => $fixUrl($store->logo_path),
-                'stamp_url'     => $fixUrl($store->stamp_path),
-                'signature_url' => $fixUrl($store->signature_path),
+                'logo_url'      => $store->logo_url,
+                'stamp_url'     => $store->stamp_url,
+                'signature_url' => $store->signature_url,
             ];
 
             $items = $sale->items->map(function($item) {
