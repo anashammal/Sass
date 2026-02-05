@@ -30,7 +30,12 @@ class ProductUnit extends Model implements HasMedia
 
     public function getImageAttribute()
     {
-        $url = $this->getFirstMediaUrl('unit_images', 'thumb') ?: asset('images/default-product.png');
+        $url = $this->getFirstMediaUrl('unit_images', 'thumb');
+        
+        if (!$url) {
+            // صورة افتراضية عبر المسار البديل
+            return route('serve.media.workaround', ['path' => 'images/default-product.png']);
+        }
         
         // إذا كان الرابط الرامي للميديا يحتوي على storage/، سنقوم بتحويله فوراً للمسار البديل
         if (strpos($url, 'storage/') !== false) {

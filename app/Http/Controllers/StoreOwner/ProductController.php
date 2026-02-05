@@ -14,23 +14,50 @@ use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
-    // دالة بديلة لعرض الصور في حال فشل الروابط الرمزية (storage:link) أونلاين
     public function serveMedia($path)
     {
-        // Decode path in case it was double encoded
+        // تسجيل الطلب للفحص
+        $originalPath = $path;
         $path = urldecode($path);
-        
-        // Strip query strings if they somehow got into the path parameter
         $path = explode('?', $path)[0];
         
         $fullPath = storage_path('app/public/' . $path);
+        $exists = file_exists($fullPath);
         
-        if (!file_exists($fullPath)) {
-            \Illuminate\Support\Facades\Log::warning("serveMedia: File not found at: " . $fullPath);
-            abort(404);
+        // تسجيل تفصيلي في Laravel Log
+        \Illuminate\Support\Facades\Log::info("serveMedia Request", [
+            'original' => $originalPath,
+            'decoded' => $path,
+            'full_path' => $fullPath,
+            'exists' => $exists ? 'YES' : 'NO'
+        ]);
+
+        if (!$exists) {
+            // محاولة 2: البحث في مجلد public المباشر (للصور الافتراضية مثل default-product.png)
+            $publicPath = public_path($path);
+            if (file_exists($publicPath)) {
+                $fullPath = $publicPath;
+                $exists = true;
+            } else {
+                // محاولة 3: ربما المسار يبدأ بـ storage/ أو public/
+                $altPath = str_replace(['public/', 'storage/'], '', $path);
+                $fullAltPath = storage_path('app/public/' . $altPath);
+                if (file_exists($fullAltPath)) {
+                    $fullPath = $fullAltPath;
+                    $exists = true;
+                }
+            }
         }
 
-        return response()->file($fullPath);
+        if (!$exists) {
+             Log::warning("serveMedia: File NOT FOUND", ['path' => $path]);
+             abort(404);
+        }
+
+        return response()->file($fullPath, [
+            'Access-Control-Allow-Origin' => '*',
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 
     public function index(Request $request)

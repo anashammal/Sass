@@ -8,10 +8,12 @@
 
     RewriteEngine On
 
-    # توجيه ملفات التخزين إلى المجلد العام الصحيح
-    RewriteRule ^storage/(.*)$ public/storage/$1 [L]
+    # توجيه الملفات العامة (الصور، التنسيقات، الأكواد) إلى مجلد public تلقائياً
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(images|css|js|storage|fonts|assets)/(.*)$ public/$1/$2 [L,NC]
 
-    # توجيه جميع الطلبات إلى server.php
+    # توجيه جميع الطلبات الأخرى إلى server.php
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)$ server.php/$1 [L]

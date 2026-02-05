@@ -65,7 +65,8 @@ class Store extends Model
             if ($systemLogo) {
                 return route('serve.media.workaround', ['path' => $this->cleanPath($systemLogo)]);
             }
-            return asset('images/default-logo.png');
+            // شعار المتجر الافتراضي عبر المسار البديل
+            return route('serve.media.workaround', ['path' => 'images/logo.png']);
         }
 
         return route('serve.media.workaround', ['path' => $path]);
