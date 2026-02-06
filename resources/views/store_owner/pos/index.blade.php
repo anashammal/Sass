@@ -911,8 +911,19 @@
 {{-- Bootstrap Bundle already loaded in layout --}}
 
 <script>
-    // ✅ الحل النهائي للروابط: الاعتماد على الإعدادات الصريحة في .env
-    const APP_URL = "{{ rtrim(config('app.url'), '/') }}";
+    // ✅ الحل الجذري والنهائي: اكتشاف الرابط تلقائياً من المتصفح (Auto-Detect)
+    // هذا يلغي الحاجة لضبط .env بشكل دقيق، ويعمل فوراً على أي سيرفر أو بروتوكول
+    const getBaseUrl = () => {
+        const path = window.location.pathname;
+        const marker = '/store-owner';
+        const markerIndex = path.indexOf(marker);
+        if (markerIndex !== -1) {
+            return window.location.origin + path.substring(0, markerIndex);
+        }
+        return window.location.origin;
+    };
+    const APP_URL = getBaseUrl();
+    console.log('🔗 Auto-Detected System URL:', APP_URL);
 
     let cart = [];
     let currentFocus = -1;
