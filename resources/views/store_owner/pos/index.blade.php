@@ -1977,12 +1977,14 @@
         }).then((res) => {
             if (res.isConfirmed) {
                 $.ajax({
-                    url: APP_URL + "/store-owner/pos/delete-sale/" + id,
-
+                    url: "{{ route('store.pos.delete-sale', ['id' => ':id']) }}".replace(':id', id),
                     type: 'DELETE',
                     headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
                     success: function() { toastr.success('تم الحذف'); getRecentSales(); },
-                    error: function() { toastr.error('فشل الحذف'); }
+                    error: function(xhr) { 
+                        let msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'فشل الحذف';
+                        toastr.error(msg); 
+                    }
                 });
             }
         });
@@ -2000,8 +2002,7 @@
         $('#invoiceModal').modal('show');
 
         $.ajax({
-            url: APP_URL + "/store-owner/pos/sale-details/" + id,
-
+            url: "{{ route('store.pos.sale-details', ['id' => ':id']) }}".replace(':id', id),
             method: 'GET',
             success: function(res) {
                 let s = res.sale;
@@ -2034,7 +2035,12 @@
                 $('#invItemsBody').html(h); 
                 $('#invTotal').text(parseFloat(s.total).toFixed(2));
             },
-            error: function(err) { $('#invoiceModal').modal('hide'); toastr.error('فشل تحميل الفاتورة'); }
+            error: function(xhr) { 
+                $('#invoiceModal').modal('hide'); 
+                let msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'فشل تحميل الفاتورة';
+                toastr.error(msg); 
+                console.error("Invoice Load Error:", xhr);
+            }
         });
     };
 
@@ -2048,8 +2054,7 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get("{{ route('store.pos.invoice.pdf', ':id') }}".replace(':id', currentViewedInvoiceId))
-
+        $.get("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}".replace(':id', currentViewedInvoiceId))
          .done(function(res) {
              Swal.close();
              if(res.success) {
@@ -2074,8 +2079,7 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get("{{ route('store.pos.invoice.pdf', ':id') }}".replace(':id', currentViewedInvoiceId))
-
+        $.get("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}".replace(':id', currentViewedInvoiceId))
          .done(function(res) {
              Swal.close();
              if(res.success) {

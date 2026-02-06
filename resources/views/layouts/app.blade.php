@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <script>window.APP_URL = "{{ url('/') }}";</script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'Tech-Sys') }}</title>

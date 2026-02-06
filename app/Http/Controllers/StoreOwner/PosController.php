@@ -22,7 +22,7 @@ class PosController extends Controller
 {
     public function index()
     {
-        try { \Illuminate\Support\Facades\Artisan::call('optimize:clear'); } catch (\Exception $e) {}
+        // تم إزالة Artisan::call('optimize:clear') لأنه يسبب مشاكل في قفل الملفات في ويندوز
         
         // ✅ ضمان وجود حساب "صاحب المتجر" عند فتح الصفحة
         // ✅ ضمان وجود حساب "صاحب المتجر" وتحديث القديم إن وجد (إصلاح شامل لجميع التكرارات)
@@ -753,17 +753,14 @@ class PosController extends Controller
                 if($item->unit_id && $u = \App\Models\ProductUnit::find($item->unit_id)) $uName = $u->unit_name;
                 elseif($item->product && $item->product->baseUnit) $uName = $item->product->baseUnit->unit_name;
 
-                // ✅ تحديث: قراءة التكلفة من بطاقة المنتج مباشرة (حسب طلب المستخدم)
                 $currentUnitCost = 0;
                 $prod = $item->product;
+                
                 if ($prod) {
                     $u = $item->unit_id ? \App\Models\ProductUnit::find($item->unit_id) : ($prod->baseUnit ?? null);
-                    
-                    // 1. إذا كان للوحدة سعر تكلفة محدد
                     if ($u && !empty($u->cost_price) && $u->cost_price > 0) {
                         $currentUnitCost = (float)$u->cost_price;
                     } 
-                    // 2. إذا لم يكن، نحسب بناءً على سعر التكلفة الأساسي * معامل التحويل
                     else {
                         $baseCost = (float)$prod->last_cost_price;
                         $factor = ($u) ? (float)$u->conversion_factor : 1;
@@ -773,17 +770,28 @@ class PosController extends Controller
 
                 return [
                     'name' => optional($prod)->name_ar ?? 'محذوف',
-                    'barcode' => $prod->sku ?? ($prod->baseUnit->barcode ?? '---'),
+                    'barcode' => $prod ? ($prod->sku ?? (optional($prod->baseUnit)->barcode ?? '---')) : '---',
                     'unit' => $uName,
                     'qty' => (float)$item->quantity,
-                    'cost' => $currentUnitCost * (float)$item->quantity, // إرسال التكلفة الحالية × الكمية
+                    'cost' => $currentUnitCost * (float)$item->quantity, 
                     'price' => (float)$item->price,
                     'total' => (float)$item->total
                 ];
             });
 
-            return response()->json(['sale' => $sale, 'items' => $items, 'store' => $storeData]);
-        } catch (\Exception $e) { return response()->json(['error' => $e->getMessage()], 500); }
+            // ✅ تبسيط البيانات المرسلة لمنع الانهيار (Serialization Crash) في XAMPP
+            $saleData = [
+                'id' => $sale->id,
+                'total' => (float)$sale->total,
+                'created_at' => $sale->created_at->toDateTimeString(),
+                'contact' => $sale->contact ? [ 'contact_name' => $sale->contact->contact_name ] : null,
+            ];
+
+            return response()->json(['sale' => $saleData, 'items' => $items, 'store' => $storeData]);
+        } catch (\Exception $e) { 
+            \Illuminate\Support\Facades\Log::error("GetSaleDetails Error: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+            return response()->json(['error' => $e->getMessage()], 500); 
+        }
     }
 
     public function showSalePartial($id)
