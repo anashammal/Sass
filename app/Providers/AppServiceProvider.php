@@ -26,9 +26,8 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        $defaultConnection = Config::get('database.default');
-        Config::set("database.connections.{$defaultConnection}.username", env('DB_USERNAME'));
-        Config::set("database.connections.{$defaultConnection}.password", env('DB_PASSWORD'));
+        // تمت إزالة التعيين اليدوي لبيانات القاعدة هنا لغرض ثبات البيئة المحلية (XAMPP)
+        // حيث يتم الاعتماد على الكود المكتوب في config/database.php مباشرة.
 
         // ============================================================
         // 4. مشاركة تنبيهات (الصلاحية + نقص الكمية)

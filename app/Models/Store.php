@@ -99,10 +99,9 @@ class Store extends Model
     {
         return $this->logo_url; // استدعاء الدالة رقم 1
     }
-public function getIsWhatsappLinkedAttribute()
-{
-    // افترضنا أنك تخزن حالة الاتصال أو التوكن في جدول settings أو عمود بالمتجر
-    // عدلها حسب طريقة ربطك، هذا مثال شائع:
-    return !empty($this->whatsapp_token) || !empty($this->whatsapp_session);
-}
+    public function getIsWhatsappLinkedAttribute()
+    {
+        // التحقق من وجود الأعمدة في الموديل لتجنب الأخطاء
+        return !empty($this->attributes['whatsapp_token'] ?? null) || !empty($this->attributes['whatsapp_session'] ?? null);
+    }
 }

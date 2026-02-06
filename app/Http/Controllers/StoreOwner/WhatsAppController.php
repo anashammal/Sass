@@ -30,9 +30,17 @@ class WhatsAppController extends Controller
 
     public function getStatus()
     {
-        $storeId = $this->getStoreId();
-        // نمرر فقط الـ ID لأن السيرفس يضيف البادئة تلقائياً
-        return response()->json($this->whatsapp->getStatus($storeId));
+        try {
+            $storeId = $this->getStoreId();
+            if (!$storeId) {
+                return response()->json(['connected' => false, 'error' => 'Store not found']);
+            }
+            // نمرر فقط الـ ID لأن السيرفس يضيف البادئة تلقائياً
+            return response()->json($this->whatsapp->getStatus($storeId));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("WhatsApp getStatus Error: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function logout()
