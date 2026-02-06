@@ -911,6 +911,9 @@
 {{-- Bootstrap Bundle already loaded in layout --}}
 
 <script>
+    // ✅ الحل النهائي للروابط: الاعتماد على الإعدادات الصريحة في .env
+    const APP_URL = "{{ rtrim(config('app.url'), '/') }}";
+
     let cart = [];
     let currentFocus = -1;
     let debounceTimer;
@@ -1963,7 +1966,8 @@
         }).then((res) => {
             if (res.isConfirmed) {
                 $.ajax({
-                    url: "{{ url('store-owner/pos/delete-sale') }}/" + id, // استخدام Helper لضمان المسار
+                    url: APP_URL + "/store-owner/pos/delete-sale/" + id,
+
                     type: 'DELETE',
                     headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
                     success: function() { toastr.success('تم الحذف'); getRecentSales(); },
@@ -1985,7 +1989,8 @@
         $('#invoiceModal').modal('show');
 
         $.ajax({
-            url: "{{ url('store-owner/pos/sale-details') }}/" + id,
+            url: APP_URL + "/store-owner/pos/sale-details/" + id,
+
             method: 'GET',
             success: function(res) {
                 let s = res.sale;
@@ -2032,7 +2037,8 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get("{{ url('store-owner/pos/invoice-pdf') }}/" + currentViewedInvoiceId)
+        $.get("{{ route('store.pos.invoice.pdf', ':id') }}".replace(':id', currentViewedInvoiceId))
+
          .done(function(res) {
              Swal.close();
              if(res.success) {
@@ -2057,7 +2063,8 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get("{{ url('store-owner/pos/invoice-pdf') }}/" + currentViewedInvoiceId)
+        $.get("{{ route('store.pos.invoice.pdf', ':id') }}".replace(':id', currentViewedInvoiceId))
+
          .done(function(res) {
              Swal.close();
              if(res.success) {
