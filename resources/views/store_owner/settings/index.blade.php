@@ -696,28 +696,9 @@
 })
 
     .done(function(res) {
-            // ✅ ضمان أن res كائن JSON وليس نص
-        if (typeof res === 'string') {
-            try {
-                res = JSON.parse(res);
-            } catch (e) {
-                console.error("WhatsApp status is not valid JSON:", res);
-                $('#wa_loading').hide();
-                $('#wa_qr').hide();
-                $('#wa_connected').hide();
-                $('#wa_error').show();
-                $('#wa_status_badge').text('غير متاح')
-                    .removeClass().addClass('badge bg-danger text-white');
-                return;
-            }
-        }
-
-
-        // ✅ أي نجاح HTTP => اخفِ اللودينغ (لا تربطها بـ connected/qr)
         $('#wa_loading').hide();
         $('#wa_error').hide();
 
-        // ✅ لو السيرفر رجّع error لكن 200 (احتياط)
         if (res && res.error) {
             $('#wa_error').show();
             $('#wa_status_badge').text('غير متاح').removeClass().addClass('badge bg-danger text-white');
@@ -725,69 +706,71 @@
         }
 
         if (res.connected || res.is_authenticated) {
-
             // 🟢 متصل
             $('#wa_qr').hide();
             $('#wa_connected').show();
             $('#wa_status_badge').text('متصل').removeClass().addClass('badge bg-success text-white');
 
             if(res.user) {
-                $('#wa_number').text(res.user.id || '...');
-                $('#wa_name').text(res.user.name || 'WhatsApp');
+                // تنظيف الرقم من الرموز الزائدة لبيان الجمالية
+                let cleanNum = (res.user.id || '').split('@')[0];
+                $('#wa_number').text(cleanNum);
+                $('#wa_name').text(res.user.name || 'WhatsApp User');
             }
+            lastQrCode = null; // إعادة ضبط لكي يظهر QR فوراً إذا فصل من الجوال
             return;
         }
 
-        // 🟡 غير متصل
+        // 🟡 غير متصل أو فصل من الجوال
         $('#wa_connected').hide();
         $('#wa_qr').show();
         $('#wa_status_badge').text('بانتظار المسح').removeClass().addClass('badge bg-warning text-dark');
 
-        // ✅ أهم إصلاح: إذا qr=null لا تعتبرها مشكلة
         if (!res.qr) {
             document.getElementById("qrcode_canvas").innerHTML =
-                "<div class='text-muted small'>جارٍ تجهيز QR... انتظر ثواني</div>";
+                "<div class='text-muted small py-3'><i class='fas fa-sync fa-spin me-1'></i> جارٍ تجهيز الكود...</div>";
             lastQrCode = null;
             return;
         }
 
-        // رسم الـ QR عند تغيّره فقط
         if (res.qr !== lastQrCode) {
             document.getElementById("qrcode_canvas").innerHTML = "";
             new QRCode(document.getElementById("qrcode_canvas"), {
-                text: res.qr,
-                width: 150,
-                height: 150,
-                correctLevel : QRCode.CorrectLevel.L
+                text: res.qr, width: 140, height: 140,
+                correctLevel : QRCode.CorrectLevel.M
             });
             lastQrCode = res.qr;
         }
     })
     .fail(function(jqXHR, textStatus, errorThrown) {
-        // 🔥 إضافة تنبيه للتشخيص 🔥
-        alert("خطأ الاتصال (Settings): " + jqXHR.status + " " + errorThrown + "\nالرابط: " + this.url);
-        
-        // ✅ fail يعني فعلاً غير متاح (503/500/timeout)
+        // لا نحتاج للتنبيه المزعج كل 4 ثواني، نكتفي بالحالة
         $('#wa_loading').hide();
         $('#wa_qr').hide();
         $('#wa_connected').hide();
         $('#wa_error').show();
-        $('#wa_status_badge').text('غير متاح').removeClass().addClass('badge bg-danger text-white');
+        $('#wa_status_badge').text('عطل في السيرفر').removeClass().addClass('badge bg-danger text-white');
     });
 }
 
 
     function logoutWhatsApp() {
-        if(!confirm('هل أنت متأكد من فك الارتباط؟')) return;
+        if(!confirm('هل أنت متأكد من فك ارتباط واتساب؟')) return;
+        
+        // تغيير فوري للواجهة لكي لا يشعر المستخدم بالثقل
         $('#wa_connected').hide(); 
         $('#wa_loading').show();
-        $.post("{{ route('store.whatsapp.logout') }}", { _token: '{{ csrf_token() }}' }) // ✅ رابط كامل
-
-        .done(function() { 
+        $('#wa_status_badge').text('جاري المعالجة...').removeClass().addClass('badge bg-secondary text-white');
+        
+        $.post("{{ route('store.whatsapp.logout') }}", { _token: '{{ csrf_token() }}' })
+        .always(function() { 
+            // دائماً أعد ضبط الـ QR لكي يظهر الجديد فوراً
             lastQrCode = null;
+            document.getElementById("qrcode_canvas").innerHTML = "";
             isWhatsAppConfirmed = false;
             enforceNotificationRules(false);
-            setTimeout(checkWhatsApp, 2000); 
+            
+            // انتظر قليلاً ثم افحص لضمان تحديث السيرفر
+            setTimeout(checkWhatsApp, 1000); 
         });
     }
 
@@ -799,7 +782,7 @@
         
         // تشغيل الفحص الدوري
         checkWhatsApp();
-        setInterval(checkWhatsApp, 4000);
+        setInterval(checkWhatsApp, 2000);
     });
 
     // --- قوقل ماب وإدارة المواقع ---

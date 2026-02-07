@@ -150,54 +150,43 @@
 
     // 2. فحص حالة الواتساب
     function checkWhatsApp() {
-        // نستخدم الراوت الجديد المخصص للإعدادات
         $.get("{{ route('superadmin.settings.whatsapp.status') }}")
         .done(function(res) {
             $('#wa_loading').hide(); 
             $('#wa_error').hide();
 
-            if (res.connected) {
-                // === حالة الاتصال ===
+            if (res.connected || res.is_authenticated) {
                 $('#wa_qr').hide();
-                $('#wa_connected').fadeIn();
-                lastQrCode = null; // تصفير الباركود السابق
-
-                // عرض البيانات (الاسم والرقم)
+                $('#wa_connected').show();
+                
                 if(res.user) {
-                    let cleanNumber = res.user.id.split(':')[0]; // حذف الزوائد من الرقم
+                    let cleanNumber = (res.user.id || '').split(':')[0];
                     $('#wa_number_display').text(cleanNumber);
                     $('#wa_name_display').text(res.user.name || 'مستخدم واتساب');
                 }
+                lastQrCode = null; // إعادة ضبط
             } 
-            else if (res.qr) {
-                // === حالة الباركود ===
+            else {
                 $('#wa_connected').hide();
-                $('#wa_qr').fadeIn();
+                $('#wa_qr').show();
 
-                // رسم الباركود فقط إذا تغير (لتجنب إعادة الرسم كل 3 ثواني)
-                if (res.qr !== lastQrCode) {
+                if (!res.qr) {
+                    document.getElementById("qrcode_canvas").innerHTML = 
+                        "<div class='text-muted small py-3'><i class='fas fa-sync fa-spin'></i> جاري التجهيز...</div>";
+                    lastQrCode = null;
+                } else if (res.qr !== lastQrCode) {
                     document.getElementById("qrcode_canvas").innerHTML = "";
                     new QRCode(document.getElementById("qrcode_canvas"), {
-                        text: res.qr,
-                        width: 160,
-                        height: 160,
-                        correctLevel : QRCode.CorrectLevel.L
+                        text: res.qr, width: 160, height: 160, correctLevel : QRCode.CorrectLevel.M
                     });
                     lastQrCode = res.qr;
                 }
             } 
-            else {
-                // حالة انتقالية (لم يتم الاتصال بعد ولم يتم توليد باركود)
-                $('#wa_connected').hide();
-                $('#wa_qr').hide();
-                $('#wa_loading').show();
-            }
         })
         .fail(function() {
+            // لا نخفي كل شيء، فقط نظهر خطأ في التنبيه العلوي
             $('#wa_loading').hide();
-            $('#wa_connected').hide(); 
-            $('#wa_qr').hide();
-            $('#wa_error').fadeIn(); // إظهار خطأ السيرفر
+            $('#wa_error').show();
         });
     }
 
@@ -205,26 +194,24 @@
     function logoutWhatsApp() {
         if(!confirm('هل أنت متأكد من فك ارتباط الرقم؟ ستتوقف الإشعارات فوراً.')) return;
         
+        // استجابة فورية للواجهة
         $('#wa_connected').hide(); 
         $('#wa_loading').show();
         
         $.post("{{ route('superadmin.settings.whatsapp.logout') }}", { _token: '{{ csrf_token() }}' })
-        .done(function() { 
-            // ننتظر قليلاً ثم نعيد الفحص ليظهر الباركود الجديد
+        .always(function() { 
             lastQrCode = null;
-            setTimeout(checkWhatsApp, 3000); 
-        })
-        .fail(function() {
-            alert('حدث خطأ أثناء تسجيل الخروج');
-            checkWhatsApp();
+            document.getElementById("qrcode_canvas").innerHTML = "";
+            // فحص فوري بعد ثانية
+            setTimeout(checkWhatsApp, 1000); 
         });
     }
 
     // التشغيل التلقائي
     $(document).ready(function() {
         checkWhatsApp();
-        // الفحص كل 3 ثواني
-        setInterval(checkWhatsApp, 3000);
+        // تقليل الفاصل الزمني لزيادة السرعة (كل ثانيتين)
+        setInterval(checkWhatsApp, 2000);
     });
 </script>
 @endsection

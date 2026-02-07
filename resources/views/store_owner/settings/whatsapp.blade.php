@@ -70,56 +70,71 @@
     let lastQrCode = null;
 
     function checkWhatsApp() {
-        // لاحظ استخدام راوت المتجر store.whatsapp.status
         $.get("{{ route('store.whatsapp.status') }}")
         .done(function(res) {
             $('#wa_loading').hide(); 
             $('#wa_error').hide();
 
-            if (res.connected) {
+            if (res.connected || res.is_authenticated) {
                 $('#wa_qr').hide();
                 $('#wa_connected').fadeIn();
-                lastQrCode = null;
-
+                
                 if(res.user) {
-                    $('#wa_number_display').text(res.user.id.split(':')[0]);
+                    let cleanNum = (res.user.id || '').split('@')[0];
+                    $('#wa_number_display').text(cleanNum);
                     $('#wa_name_display').text(res.user.name || 'WhatsApp User');
                 }
-            } else if (res.qr) {
+                lastQrCode = null; // إعادة ضبط
+            } else {
                 $('#wa_connected').hide();
                 $('#wa_qr').fadeIn();
 
-                if (res.qr !== lastQrCode) {
+                if (!res.qr) {
+                    document.getElementById("qrcode_canvas").innerHTML = "<div class='text-muted small py-3'><i class='fas fa-sync fa-spin'></i> جارٍ تجهيز الكود...</div>";
+                    lastQrCode = null;
+                } else if (res.qr !== lastQrCode) {
                     document.getElementById("qrcode_canvas").innerHTML = "";
                     new QRCode(document.getElementById("qrcode_canvas"), {
-                        text: res.qr, width: 200, height: 200
+                        text: res.qr, width: 200, height: 200, correctLevel : QRCode.CorrectLevel.M
                     });
                     lastQrCode = res.qr;
                 }
             }
         })
-        .fail(function(jqXHR, textStatus, errorThrown) {
-            console.log("AJAX Fail: ", textStatus, errorThrown);
+        .fail(function() {
             $('#wa_loading').hide();
-            $('#wa_error').fadeIn();
+            $('#wa_error').show();
         });
     }
 
     function logoutWhatsApp() {
-        if(!confirm('هل أنت متأكد؟ سيتوقف المتجر عن إرسال الفواتير واتساب.')) return;
+        if(!confirm('هل أنت متأكد من فك ارتباط واتساب؟')) return;
         
         $('#wa_connected').hide(); 
         $('#wa_loading').show();
         
+        // إرسال طلب فك الارتباط
         $.post("{{ route('store.whatsapp.logout') }}", { _token: '{{ csrf_token() }}' })
-        .done(function() { 
-            setTimeout(checkWhatsApp, 3000); 
+        .done(function(data) {
+            if(data.success) {
+                // نجاح.. انتظر قليلاً ثم أعد التحقق
+                setTimeout(() => {
+                    location.reload(); 
+                }, 1500);
+            } else {
+                alert('فشل فك الارتباط: ' + (data.message || 'يرجى المحاولة مرة أخرى'));
+                location.reload(); 
+            }
+        })
+        .fail(function() {
+            alert('حدث خطأ أثناء الاتصال بالسيرفر');
+            location.reload();
         });
     }
 
     $(document).ready(function() {
         checkWhatsApp();
-        setInterval(checkWhatsApp, 4000); // فحص كل 4 ثواني
+        setInterval(checkWhatsApp, 2000); // زيادة السرعة للفحص الدوري
     });
 </script>
 @endsection

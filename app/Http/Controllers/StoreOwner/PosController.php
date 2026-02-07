@@ -428,11 +428,17 @@ class PosController extends Controller
                         }
 
                         if (!empty($waMsg)) {
-                            Http::timeout(2)->post('https://wa.tech-sys.online/send-message', [
-                                'phone' => $store->phone_number, 
-                                'message' => trim($waMsg), 
-                                'session_id' => 'store_' . $storeId
-                            ]);
+                            // استخدام الخدمة الموحدة بدلاً من الرابط المباشر
+                            // هذا يضمن استخدام الرابط الصحيح من الإعدادات (config/services.php)
+                            try {
+                                app(\App\Services\WhatsAppService::class)->send(
+                                    $store->phone_number, 
+                                    trim($waMsg), 
+                                    $storeId 
+                                );
+                            } catch (\Exception $e) {
+                                Log::error("POS WhatsApp Service Error: " . $e->getMessage());
+                            }
                         }
                     } catch (\Exception $e) {
                         Log::error("POS WhatsApp Error: " . $e->getMessage());
@@ -852,39 +858,62 @@ class PosController extends Controller
     // 7. دوال الإرجاع
     public function searchReturnInvoices(Request $request)
     {
-        $term = $request->term;
+        $term = trim($request->term);
         $customerId = $request->customer_id;
         $storeId = Auth::user()->store->id;
 
+        if (empty($term)) return response()->json(['invoices' => []]);
+
+        // 1. نبحث عن المنتجات التي تطابق الاسم أو الباركود
         $productIds = Product::where('store_id', $storeId)
             ->where(function($q) use ($term) {
                 $q->where('name_ar', 'LIKE', "%{$term}%")
-                  ->orWhere('sku', 'LIKE', "%{$term}%");
+                  ->orWhere('sku', 'LIKE', "%{$term}%")
+                  ->orWhereHas('units', function($u) use ($term) {
+                      $u->where('barcode', 'LIKE', "%{$term}%");
+                  });
             })->pluck('id');
 
-        if($productIds->isEmpty()) return response()->json(['invoices' => []]);
+        // 2. نبحث عن الفاتورة إذا كان البحث برقم الفاتورة (مثلا INV-123 أو 123)
+        $invoiceId = null;
+        if (is_numeric($term)) {
+            $invoiceId = $term;
+        } elseif (preg_match('/INV-(\d+)/i', $term, $matches)) {
+            $invoiceId = $matches[1];
+        }
 
-        $query = SaleItem::whereIn('product_id', $productIds)
-            ->whereHas('sale', function($q) use ($storeId, $customerId) {
+        // 3. بناء الاستعلام للأصناف
+        $query = SaleItem::whereHas('sale', function($q) use ($storeId, $customerId) {
                 $q->where('store_id', $storeId);
-                if ($customerId) $q->where('contact_id', $customerId);
-            })
-            ->with(['sale', 'product', 'unit'])
-            ->latest()
-            ->take(30);
+                if ($customerId && $customerId !== 'all') $q->where('contact_id', $customerId);
+            });
 
-        $items = $query->get()->map(function($item) {
-            return [
-                'sale_id' => $item->sale->id,
-                'invoice_no' => 'INV-' . $item->sale->id,
-                'date' => $item->sale->created_at->format('Y-m-d H:i'),
-                'product_name' => $item->product->name_ar,
-                'unit_name' => $item->unit->unit_name ?? 'قطعة',
-                'qty' => $item->quantity,
-                'price' => $item->price,
-                'item_id' => $item->id
-            ];
+        $query->where(function($q) use ($productIds, $invoiceId) {
+            if (!$productIds->isEmpty()) {
+                $q->whereIn('product_id', $productIds);
+            }
+            if ($invoiceId) {
+                $q->orWhere('sale_id', $invoiceId);
+            }
         });
+
+        $items = $query->with(['sale', 'product', 'unit'])
+            ->latest()
+            ->take(40)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'sale_id' => $item->sale->id,
+                    'invoice_no' => 'INV-' . $item->sale->id,
+                    'date' => $item->sale->created_at->format('Y-m-d H:i'),
+                    'product_name' => $item->product->name_ar,
+                    'unit_name' => $item->unit->unit_name ?? ($item->product->baseUnit->unit_name ?? 'قطعة'),
+                    'qty' => (float)$item->quantity,
+                    'price' => (float)$item->price,
+                    'item_id' => $item->id,
+                    'customer_name' => optional($item->sale->contact)->contact_name ?? 'عميل نقدي'
+                ];
+            });
 
         return response()->json(['invoices' => $items]);
     }

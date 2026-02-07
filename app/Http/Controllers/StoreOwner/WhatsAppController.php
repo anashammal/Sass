@@ -48,7 +48,8 @@ class WhatsAppController extends Controller
         $storeId = $this->getStoreId();
         $reset = $this->whatsapp->logout($storeId);
         
-        return response()->json(['success' => $reset]);
+        $message = $reset ? 'تم فك الارتباط بنجاح' : 'تعذر فك الارتباط، يرجى المحاولة لاحقاً';
+        return response()->json(['success' => $reset, 'message' => $message]);
     }
 
     public function sendMessage(Request $request)

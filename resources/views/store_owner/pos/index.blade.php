@@ -925,6 +925,29 @@
     const APP_URL = getBaseUrl();
     console.log('🔗 Auto-Detected System URL:', APP_URL);
 
+    // ✅ دالة تصحيح الروابط للعمل في المجلدات الفرعية
+    const fixUrl = (url) => {
+        if (!url) return url;
+        let finalUrl = url;
+        // إذا كان الرابط يبدأ بـ http، نجعل المسار فقط
+        if (url.startsWith('http')) {
+            try {
+                const u = new URL(url);
+                finalUrl = u.pathname + u.search;
+            } catch(e) { return url; }
+        }
+        
+        // جرد المجلد الفرعي من مسار الصفحة الحالي
+        // مثال: /system/store-owner/pos -> /system
+        const currentPath = window.location.pathname;
+        const subDir = currentPath.split('/store-owner')[0];
+        
+        if (subDir && subDir !== '/' && !finalUrl.startsWith(subDir)) {
+            finalUrl = subDir + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
+        }
+        return finalUrl;
+    };
+
     let cart = [];
     let currentFocus = -1;
     let debounceTimer;
@@ -969,7 +992,7 @@
             allowClear: true,
             minimumInputLength: 1,
             ajax: {
-                url: "{{ route('store.pos.search-customers') }}",
+                url: fixUrl("{{ route('store.pos.search-customers') }}"),
                 dataType: 'json',
                 delay: 250,
                 data: function (params) { return { term: params.term }; },
@@ -1135,7 +1158,7 @@
 
     function performSearch(term, isEnterKey) {
         if(!term) return;
-        fetch("{{ route('store.pos.search-products') }}?term=" + term)
+        fetch(fixUrl("{{ route('store.pos.search-products') }}") + "?term=" + term)
             .then(res => res.json())
             .then(data => {
                 if (data.length === 1) {
@@ -1531,7 +1554,7 @@
 
             Swal.fire({title: 'جاري الحفظ...', didOpen: () => Swal.showLoading()});
 
-            $.post("{{ route('store.pos.save') }}", data)
+            $.post(fixUrl("{{ route('store.pos.save') }}"), data)
              .done((res) => { 
                  if (res.whatsapp_data) {
                     Swal.fire({
@@ -1666,7 +1689,7 @@
                     confirmButtonText: 'حفظ',
                     showLoaderOnConfirm: true,
                     preConfirm: (newQty) => {
-                        return $.post("{{ route('store.pos.adjustStock') }}", {
+                        return $.post(fixUrl("{{ route('store.pos.adjustStock') }}"), {
                             product_id: productId, new_qty: newQty, _token: '{{ csrf_token() }}'
                         }).then(response => ({ newQty: newQty, response: response }))
                           .fail(xhr => Swal.showValidationMessage(`خطأ: ${xhr.responseJSON.message}`));
@@ -1721,7 +1744,7 @@
                 dropdownParent: $('#historyModal'),
                 theme: 'bootstrap-5', dir: "rtl", placeholder: "الكل", allowClear: true,
                 ajax: {
-                    url: "{{ route('store.pos.search-customers') }}", dataType: 'json', delay: 250,
+                    url: fixUrl("{{ route('store.pos.search-customers') }}"), dataType: 'json', delay: 250,
                     data: function (params) { return { term: params.term }; }, // ✅ استعادة term
                     processResults: function (data) { return { results: data.results }; } // ✅ استعادة البنية الصحيحة
                 }
@@ -1747,7 +1770,7 @@
 
         $('#historyList').html('<tr><td colspan="10" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>');
 
-        $.get("{{ route('store.pos.recent-sales') }}", params, function(res) {
+        $.get(fixUrl("{{ route('store.pos.recent-sales') }}"), params, function(res) {
             let rows = ''; 
             let t=0, p=0, d=0;
             currentStoreInfo = res.store_info || {};
@@ -1873,7 +1896,7 @@
             }
         }).then((r) => {
             if(r.isConfirmed && r.value) {
-                $.post("{{ route('store.pos.return.process') }}", {
+                $.post(fixUrl("{{ route('store.pos.return.process') }}"), {
                     item_id: itemId, 
                     return_qty: r.value.qty, 
                     reason: r.value.reason,
@@ -1914,7 +1937,7 @@
             if (result.isConfirmed) {
                 // إرسال الطلب للخلفية
                 Swal.showLoading();
-                $.post("{{ route('store.pos.updateExpiry') }}", {
+                $.post(fixUrl("{{ route('store.pos.updateExpiry') }}"), {
                     product_id: product.id,
                     new_date: result.value.date,
                     reason: result.value.reason,
@@ -1977,7 +2000,7 @@
         }).then((res) => {
             if (res.isConfirmed) {
                 $.ajax({
-                    url: "{{ route('store.pos.delete-sale', ['id' => ':id']) }}".replace(':id', id),
+                    url: fixUrl("{{ route('store.pos.delete-sale', ['id' => ':id']) }}").replace(':id', id),
                     type: 'DELETE',
                     headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
                     success: function() { toastr.success('تم الحذف'); getRecentSales(); },
@@ -2002,7 +2025,7 @@
         $('#invoiceModal').modal('show');
 
         $.ajax({
-            url: "{{ route('store.pos.sale-details', ['id' => ':id']) }}".replace(':id', id),
+            url: fixUrl("{{ route('store.pos.sale-details', ['id' => ':id']) }}").replace(':id', id),
             method: 'GET',
             success: function(res) {
                 let s = res.sale;
@@ -2054,7 +2077,7 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}".replace(':id', currentViewedInvoiceId))
+        $.get(fixUrl("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}").replace(':id', currentViewedInvoiceId))
          .done(function(res) {
              Swal.close();
              if(res.success) {
@@ -2079,7 +2102,7 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}".replace(':id', currentViewedInvoiceId))
+        $.get(fixUrl("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}").replace(':id', currentViewedInvoiceId))
          .done(function(res) {
              Swal.close();
              if(res.success) {
@@ -2168,7 +2191,7 @@
     // ========================================================================
 
     window.checkShiftStatus = function() {
-        $.get("{{ route('store.pos.shift.status') }}", function(res) {
+        $.get(fixUrl("{{ route('store.pos.shift.status') }}"), function(res) {
             isShiftOpen = res.has_open_shift; // تحديث الحالة
             
             if (isShiftOpen) {
@@ -2194,7 +2217,7 @@
         let amount = $('#startCashInput').val();
         if(amount === '') return toastr.error('الرجاء إدخال المبلغ');
         
-        $.post("{{ route('store.pos.shift.open') }}", { start_cash: amount, _token: '{{ csrf_token() }}' })
+        $.post(fixUrl("{{ route('store.pos.shift.open') }}"), { start_cash: amount, _token: '{{ csrf_token() }}' })
          .done(() => {
              $('#openShiftModal').modal('hide');
              $('.modal-backdrop').remove();       
@@ -2211,7 +2234,7 @@
 
     window.openCloseShiftModal = function() {
         Swal.showLoading(); 
-        $.get("{{ route('store.pos.shift.summary') }}", function(res) {
+        $.get(fixUrl("{{ route('store.pos.shift.summary') }}"), function(res) {
             Swal.close();
             $('#shiftOpenDate').text(res.opened_at);
             $('#shiftStartCash').text(res.start_cash);
@@ -2238,7 +2261,7 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.showLoading();
-                $.post("{{ route('store.pos.shift.close') }}", { end_cash: actualCash, _token: '{{ csrf_token() }}' })
+                $.post(fixUrl("{{ route('store.pos.shift.close') }}"), { end_cash: actualCash, _token: '{{ csrf_token() }}' })
                 .done((res) => {
                     Swal.close();
                     $('#closeShiftModal').modal('hide');
@@ -2270,7 +2293,7 @@
         $('#returnCustomerSelect').select2({
             dropdownParent: $('#returnModal'),
             theme: 'bootstrap-5', placeholder: "اختر العميل (اختياري)", allowClear: true,
-            ajax: { url: "{{ route('store.pos.search-customers') }}", dataType: 'json', processResults: data => ({results: data.results}) }
+            ajax: { url: fixUrl("{{ route('store.pos.search-customers') }}"), dataType: 'json', processResults: data => ({results: data.results}) }
         }).on('change', function() { searchForReturnInvoices(); }); // عند تغيير العميل نبحث فوراً
 
         // 🔥 تفعيل بحث المنتجات الذكي (مثل شاشة البيع) 🔥
@@ -2281,7 +2304,7 @@
             allowClear: true,
             minimumInputLength: 1,
             ajax: {
-                url: "{{ route('store.pos.search-products') }}", // ✅ تم التصحيح
+                url: fixUrl("{{ route('store.pos.search-products') }}"), // ✅ تم التصحيح
                 dataType: 'json',
                 delay: 250,
                 data: function (params) { return { term: params.term }; }, // ✅ استعادة term
@@ -2319,7 +2342,7 @@
 
         $('#returnResultsBody').html('<tr><td colspan="5">جاري البحث...</td></tr>');
 
-        $.get("{{ route('store.pos.return.search') }}", {term: term, customer_id: cust}, function(res) {
+        $.get(fixUrl("{{ route('store.pos.return.search') }}"), {term: term, customer_id: cust}, function(res) {
             let rows = '';
             if(res.invoices.length === 0) rows = '<tr><td colspan="5" class="text-muted">لا توجد فواتير لهذا المنتج/العميل</td></tr>';
             else {
@@ -2436,7 +2459,7 @@
         urlParams.set('date_to', $('#filterDateTo').val() || '');
         urlParams.set('output', 'url');
         
-        const fetchUrl = "{{ route('store.pos.sales-report-pdf') }}?" + urlParams.toString();
+        const fetchUrl = fixUrl("{{ route('store.pos.sales-report-pdf') }}") + "?" + urlParams.toString();
         
         if (typeof Swal !== 'undefined') {
             Swal.fire({
@@ -2485,7 +2508,7 @@
         urlParams.set('date_to', $('#filterDateTo').val() || '');
         urlParams.set('output', 'url');
         
-        const fetchUrl = "{{ route('store.pos.sales-report-pdf') }}?" + urlParams.toString();
+        const fetchUrl = fixUrl("{{ route('store.pos.sales-report-pdf') }}") + "?" + urlParams.toString();
         
         if (typeof Swal !== 'undefined') {
             Swal.fire({
@@ -2543,7 +2566,7 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get("{{ url('store-owner/pos/sale-returns') }}/" + saleId)
+        $.get(fixUrl("{{ url('store-owner/pos/sale-returns') }}/" + saleId))
         .done(function(data) {
             Swal.close();
             
@@ -2665,7 +2688,7 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get("{{ url('store-owner/pos/return-pdf') }}/" + saleId)
+        $.get(fixUrl("{{ url('store-owner/pos/return-pdf') }}/" + saleId))
         .done(function(data) {
             Swal.close();
             if(data.success && data.url) {
@@ -2697,7 +2720,7 @@
         });
 
         // طلب إنشاء PDF من الخادم
-        $.get("{{ url('store-owner/pos/return-pdf') }}/" + saleId)
+        $.get(fixUrl("{{ url('store-owner/pos/return-pdf') }}/" + saleId))
         .done(function(data) {
             Swal.close();
             
