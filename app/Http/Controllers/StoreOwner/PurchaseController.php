@@ -88,6 +88,10 @@ class PurchaseController extends Controller
         $store = $user->store;
         $storeId = $store->id;
 
+        // زيادة الزمن والذاكرة للتقارير الكبيرة
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
         $query = Purchase::where('store_id', $storeId)->with(['supplier', 'items.product', 'items.unit']);
 
         if ($request->filled('search')) {

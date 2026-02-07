@@ -1142,6 +1142,10 @@ class PosController extends Controller
             $query->take((int) $limit);
         }
         
+        // زيادة الزمن والذاكرة للتقارير الكبيرة
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
         $sales = $query->get();
         
         // حساب الإجماليات
