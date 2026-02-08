@@ -2511,11 +2511,38 @@
         const fetchUrl = fixUrl("{{ route('store.pos.sales-report-pdf') }}") + "?" + urlParams.toString();
         
         if (typeof Swal !== 'undefined') {
+            let progressTimer;
             Swal.fire({
                 title: 'جاري تجهيز ملف التقرير...',
-                html: 'يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...',
+                html: `
+                    <div class="mb-3">يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...</div>
+                    <div class="progress" style="height: 20px;">
+                        <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                    </div>
+                `,
                 allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
+                showConfirmButton: false,
+                didOpen: () => {
+                    // Swal.showLoading(); // لا نريد الدائرة، نريد الشريط فقط
+                    const progressBar = document.getElementById('swal-progress-bar');
+                    let progress = 0;
+                    const duration = 180000; // 3 دقائق
+                    const interval = 1000;
+                    const increment = 95 / (duration / interval);
+
+                    progressTimer = setInterval(() => {
+                        progress += increment;
+                        if(progress > 95) progress = 95;
+                        const pct = Math.round(progress) + '%';
+                        if(progressBar) {
+                            progressBar.style.width = pct;
+                            progressBar.innerText = pct;
+                        }
+                    }, interval);
+                },
+                willClose: () => {
+                    clearInterval(progressTimer);
+                }
             });
         }
 

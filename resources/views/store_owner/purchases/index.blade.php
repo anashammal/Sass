@@ -333,11 +333,38 @@
         const fetchUrl = "{{ route('store.purchases.report.pdf') }}?" + urlParams.toString();
         
         if (typeof Swal !== 'undefined') {
+            let progressTimer;
             Swal.fire({
                 title: 'جاري تجهيز ملف التقرير...',
-                html: 'يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...',
+                html: `
+                    <div class="mb-3">يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...</div>
+                    <div class="progress" style="height: 20px;">
+                        <div id="swal-progress-bar-wa" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                    </div>
+                `,
                 allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
+                showConfirmButton: false,
+                didOpen: () => {
+                    // Swal.showLoading(); 
+                    const progressBar = document.getElementById('swal-progress-bar-wa');
+                    let progress = 0;
+                    const duration = 180000; // 3 دقائق
+                    const interval = 1000;
+                    const increment = 95 / (duration / interval);
+
+                    progressTimer = setInterval(() => {
+                        progress += increment;
+                        if(progress > 95) progress = 95;
+                        const pct = Math.round(progress) + '%';
+                        if(progressBar) {
+                            progressBar.style.width = pct;
+                            progressBar.innerText = pct;
+                        }
+                    }, interval);
+                },
+                willClose: () => {
+                    clearInterval(progressTimer);
+                }
             });
         } else {
             console.log('Preparing report...');
@@ -346,6 +373,8 @@
         fetch(fetchUrl)
             .then(res => res.json())
             .then(data => {
+            .then(data => {
+                // if (typeof Swal !== 'undefined') Swal.close(); // Don't verify Swal close here, let it close or handle inside
                 if (typeof Swal !== 'undefined') Swal.close();
                 
                 if (data.url) {
@@ -387,11 +416,38 @@
         const fetchUrl = "{{ route('store.purchases.report.pdf') }}?" + urlParams.toString();
         
         if (typeof Swal !== 'undefined') {
+            let progressTimer;
             Swal.fire({
                 title: 'جاري تجهيز طلب الإرسال...',
-                html: 'يرجى الانتظار بينما يتم تجهيز ملف PDF والاتصال بخدمة البريد الإلكتروني...',
+                html: `
+                    <div class="mb-3">يرجى الانتظار بينما يتم تجهيز ملف PDF والاتصال بخدمة البريد الإلكتروني...</div>
+                    <div class="progress" style="height: 20px;">
+                        <div id="swal-progress-bar-email" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                    </div>
+                `,
                 allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
+                showConfirmButton: false,
+                didOpen: () => {
+                    // Swal.showLoading(); 
+                    const progressBar = document.getElementById('swal-progress-bar-email');
+                    let progress = 0;
+                    const duration = 180000; // 3 دقائق
+                    const interval = 1000;
+                    const increment = 95 / (duration / interval);
+
+                    progressTimer = setInterval(() => {
+                        progress += increment;
+                        if(progress > 95) progress = 95;
+                        const pct = Math.round(progress) + '%';
+                        if(progressBar) {
+                            progressBar.style.width = pct;
+                            progressBar.innerText = pct;
+                        }
+                    }, interval);
+                },
+                willClose: () => {
+                    clearInterval(progressTimer);
+                }
             });
         }
 

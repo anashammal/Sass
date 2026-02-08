@@ -1962,6 +1962,68 @@
         myModal.show();
     }
 
+    /**
+     * دالة مساعدة لإنشاء شريط تقدم داخل الزر
+     * @param {HTMLElement} btn الزر الذي سيتم تحويله
+     * @param {number} duration المدة المتوقعة بالميلي ثانية (للأشرطة الطويلة)
+     */
+    function simulateProgressBar(btn, duration = 30000) {
+        const originalText = btn.innerHTML;
+        const originalWidth = btn.offsetWidth; // حفظ العرض الأصلي للحفاظ على الشكل
+        
+        btn.disabled = true;
+        btn.style.width = (originalWidth < 200 ? 200 : originalWidth) + 'px'; // ضمان عرض كافٍ للشريط
+
+        // HTML الخاص بشريط التقدم
+        btn.innerHTML = `
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <span id="prog_lbl_${btn.id}" class="small me-2">0%</span>
+                <div class="progress flex-grow-1" style="height: 6px;">
+                    <div id="prog_bar_${btn.id}" class="progress-bar progress-bar-striped progress-bar-animated bg-light" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        `;
+
+        let progress = 0;
+        const intervalTime = 1000; // تحديث كل ثانية
+        const totalSteps = duration / intervalTime;
+        const increment = 95 / totalSteps; // نهدف للوصول إلى 95% فقط وترك الـ 5% للنهاية
+
+        const timer = setInterval(() => {
+            progress += increment;
+            if (progress > 95) progress = 95; // توقف عند 95% حتى يأتي الرد
+
+            const currentPct = Math.round(progress) + '%';
+            const bar = document.getElementById(`prog_bar_${btn.id}`);
+            const lbl = document.getElementById(`prog_lbl_${btn.id}`);
+            
+            if (bar) bar.style.width = currentPct;
+            if (lbl) lbl.innerText = currentPct;
+        }, intervalTime);
+
+        return {
+            stop: function() {
+                clearInterval(timer);
+                // القفز إلى 100%
+                const bar = document.getElementById(`prog_bar_${btn.id}`);
+                const lbl = document.getElementById(`prog_lbl_${btn.id}`);
+                if (bar) {
+                    bar.style.width = '100%';
+                    bar.classList.remove('progress-bar-animated'); // إيقاف الحركة
+                    bar.classList.add('bg-success'); // لون النجاح
+                }
+                if (lbl) lbl.innerText = '100%';
+
+                // إعادة الزر لحالته الطبيعية بعد لحظات
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    btn.style.width = ''; // إعادة العرض الافتراضي
+                }, 1500);
+            }
+        };
+    }
+
     function sendGlobalEmail() {
         const email = document.getElementById('ge_email').value;
         const subject = document.getElementById('ge_subject').value;
@@ -1971,9 +2033,8 @@
         if(!subject) return alert('الرجاء إدخال عنوان الرسالة');
 
         const btn = document.getElementById('ge_send_btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الإرسال...';
-        btn.disabled = true;
+        // بدء شريط التقدم (لمدة 3 دقائق تقريباً)
+        const progressControl = simulateProgressBar(btn, 180000); 
 
         const mediaUrl = document.getElementById('ge_media_url').value;
         const filename = document.getElementById('ge_filename').value;
@@ -1994,8 +2055,8 @@
         })
         .catch(err => alert('حدث خطأ أثناء الاتصال بالسيرفر'))
         .finally(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+            // إيقاف التقدم وإعادة الزر لطبيعته
+            progressControl.stop();
         });
     }
 
@@ -2126,10 +2187,10 @@
         if(cleanPhone.length < 9) return alert('رقم الهاتف غير صحيح');
         
         // إظهار لودينغ
+        // إظهار شريط التقدم (لمدة 3 دقائق تقريباً)
         const btn = document.getElementById('gw_send_btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الإرسال...';
-        btn.disabled = true;
+        const progressControl = simulateProgressBar(btn, 180000); 
+        // btn.disabled = true; // يتم تعطيله داخل الدالة already
 
         const mediaUrl = document.getElementById('gw_media_url').value;
         const filename = document.getElementById('gw_filename').value;
@@ -2151,8 +2212,8 @@
         })
         .catch(err => alert('حدث خطأ أثناء الاتصال بالسيرفر'))
         .finally(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+            // إيقاف التقدم وإعادة الزر لطبيعته
+            progressControl.stop();
         });
     }
 </script>
