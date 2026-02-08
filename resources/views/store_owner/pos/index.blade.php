@@ -1572,7 +1572,7 @@
                         if (result.isConfirmed) {
                             triggerWhatsappPrompt(res.whatsapp_data.phone, res.whatsapp_data.message);
                         } else if (result.isDenied) {
-                            triggerEmailPrompt(res.customer_email || '', res.whatsapp_data.message, "فاتورة مبيعات - " + (res.invoice_id || ''));
+                            triggerEmailPrompt(res.customer_email || '', res.whatsapp_data.message, "إرسال فاتورة مبيعات - رقم #" + (res.invoice_id || ''));
                         }
                         resetPosScreen();
                     });
@@ -1816,7 +1816,7 @@
                             <div class="d-flex justify-content-center gap-1 align-items-center">
                                 <button class="btn btn-outline-info btn-sm-custom" onclick="viewInvoice(${s.id})"><i class="fas fa-eye"></i></button>
                                                                 ${s.contact_phone ? `<button class="btn btn-outline-success btn-sm-custom" onclick="triggerWhatsappPrompt('${s.contact_phone}', '')"><i class="fab fa-whatsapp"></i></button>` : ''}
-                                ${s.contact_email ? `<button class="btn btn-outline-primary btn-sm-custom" onclick="triggerEmailPrompt('${s.contact_email}', '')"><i class="fas fa-envelope"></i></button>` : ''}
+                                ${s.contact_email ? `<button class="btn btn-outline-primary btn-sm-custom" onclick="triggerEmailPrompt('${s.contact_email}', '', 'إرسال الفاتورة رقم #${s.invoice_number}')"><i class="fas fa-envelope"></i></button>` : ''}
                                 <button class="btn btn-outline-danger btn-sm-custom" onclick="deleteInvoice(${s.id})"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
@@ -2475,14 +2475,16 @@
             .then(data => {
                 if (typeof Swal !== 'undefined') Swal.close();
                 if (data.url) {
-                    const message = `*تقرير سجل المبيعات*\n` +
-                                    `المتجر: {{ auth()->user()->store->name }}\n` +
-                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
-                                    `مرفق لكم التقرير التفصيلي كملف PDF.`;
+                    const message = `تحية طيبة،\n\nنرفق لكم تقرير سجل المبيعات الخاص بـ ({{ auth()->user()->store->name }})\n\n` +
+                                    `تفاصيل التقرير:\n` +
+                                    `- تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
+                                    `- حالة الدفع المختارة: ${$('#filterPaymentStatus').val() || 'الكل'}\n\n` +
+                                    `مرفق لكم التقرير التفصيلي كملف PDF يحتوي على كافة العمليات المالية.\n` +
+                                    `شكراً لثقتكم بنا،\nإدارة المبيعات - نظام Tech-Sys`;
                     
                     const filename = data.filename || "sales_report.pdf";
                     if (typeof triggerEmailPrompt === 'function') {
-                        triggerEmailPrompt('', message, "إرسال سجل المبيعات كمرفق PDF", data.url, filename);
+                        triggerEmailPrompt('', message, "تقرير سجل المبيعات - {{ auth()->user()->store->name }}", data.url, filename);
                     } else {
                         alert('حدث خطأ: وظيفة إرسال البريد غير متوفرة');
                     }
@@ -2552,10 +2554,12 @@
                 if (typeof Swal !== 'undefined') Swal.close();
                 
                 if (data.url) {
-                    const message = `*تقرير سجل المبيعات*\n` +
-                                    `المتجر: {{ auth()->user()->store->name }}\n` +
-                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
-                                    `مرفق لكم التقرير التفصيلي كملف PDF.`;
+                    const message = `تحية طيبة،\n\nنرفق لكم تقرير سجل المبيعات الخاص بـ ({{ auth()->user()->store->name }})\n\n` +
+                                    `تفاصيل التقرير:\n` +
+                                    `- تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
+                                    `- حالة الدفع المختارة: ${$('#filterPaymentStatus').val() || 'الكل'}\n\n` +
+                                    `مرفق لكم التقرير التفصيلي كملف PDF يحتوي على كافة العمليات المالية.\n` +
+                                    `شكراً لثقتكم بنا،\nإدارة المبيعات - نظام Tech-Sys`;
                     
                     const filename = data.filename || "sales_report.pdf";
                     

@@ -25,7 +25,8 @@
         </div>
 
         <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eeeeee; text-align: center; color: #999999; font-size: 12px;">
-            &copy; {{ date('Y') }} {{ config('app.name') }}. جميع الحقوق محفوظة.
+            <p>&copy; {{ date('Y') }} {{ config('app.name') }}. جميع الحقوق محفوظة.</p>
+            <p>إذا كنت لا ترغب في استلام هذه الإشعارات، يمكنك <a href="{{ config('app.url') }}" style="color: #999999;">إلغاء الاشتراك من هنا</a>.</p>
         </div>
     </div>
 

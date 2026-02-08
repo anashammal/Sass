@@ -10,7 +10,13 @@
     <div style="white-space: pre-wrap;">{!! nl2br(e($messageBody)) !!}</div>
     
     <div class="footer">
-        هذا البريد تم إرساله بواسطة نظام TechSys.
+        <p>هذا التقرير تم توليده آلياً بناءً على طلبكم من لوحة تحكم TechSys.</p>
+        <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+        <p style="color:#999; font-size:11px;">
+            Tech-Sys Software Solutions | Istanbul, Turkey<br>
+            يمكنك التحكم في وتيرة استلام هذه التقارير من إعدادات المتجر داخل النظام.
+        </p>
+        <p>© {{ date('Y') }} Tech-Sys Digital. All rights reserved.</p>
     </div>
 </body>
 </html>

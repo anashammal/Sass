@@ -1940,7 +1940,7 @@
 
 
     // --- نظام البريد الإلكتروني الموحد (Universal Email Logic) ---
-    function triggerEmailPrompt(email, message, title = "إرسال التقرير عبر البريد", mediaUrl = "", filename = "") {
+    function triggerEmailPrompt(email, message, title = "إرسال تقرير رسمي", mediaUrl = "", filename = "") {
         const modalEl = document.getElementById('globalEmailModal');
         if(!modalEl) return;
         
