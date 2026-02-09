@@ -32,6 +32,14 @@ class ReportMail extends Mailable
             ]);
         }
         
+        $email->withSwiftMessage(function ($message) {
+            $domain = 'tech-sys.online';
+            // Restoring headers but focusing on clean Message-ID
+            $messageId = md5(uniqid()) . '@' . $domain;
+            $message->getHeaders()->addTextHeader('Message-ID', '<' . $messageId . '>');
+            $message->getHeaders()->addTextHeader('X-Mailer', 'PHP/' . phpversion());
+        });
+
         return $email;
     }
 }

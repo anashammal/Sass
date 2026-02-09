@@ -19,6 +19,17 @@ class StockAlertMail extends Mailable
 
     public function build() {
         return $this->subject('🚨 تنبيه انخفاض المخزون - ' . $this->storeName)
-                   ->view('emails.stock_alert');
+                   ->from(config('mail.from.address'), config('mail.from.name'))
+                   ->view('emails.stock_alert')
+                   ->withSwiftMessage(function ($message) {
+                       $domain = 'tech-sys.online';
+                       $message->getHeaders()->addTextHeader('List-Unsubscribe', '<mailto:noreply@'.$domain.'?subject=unsubscribe>');
+                       $message->getHeaders()->addTextHeader('List-ID', '<alerts.'.$domain.'>');
+                       $message->getHeaders()->addTextHeader('Precedence', 'bulk');
+                       
+                       // Fix Message-ID to avoid @localhost
+                       $messageId = md5(uniqid()) . '@' . $domain;
+                       $message->getHeaders()->addTextHeader('Message-ID', '<' . $messageId . '>');
+                   });
     }
 }

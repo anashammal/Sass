@@ -7,9 +7,9 @@ $kernel->bootstrap();
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ReportMail;
 
-$target = 'aanas.work@gmail.com'; // Testing with a known address
-$subject = 'Notification ' . date('Y-m-d');
-$body = 'Please find the attached document for your review.';
+$target = 'test-68adad@test.mailgenius.com'; // New MailGenius verification
+$subject = 'Test ' . date('H:i');
+$body = 'This is a test message from TechSys server. Time: ' . date('H:i:s');
 
 try {
     echo "Attempting to send Simplified ReportMail to $target via " . config('mail.mailers.smtp.host') . "...\n";

@@ -50,6 +50,7 @@ class EmailController extends Controller
 
             return response()->json(['success' => true, 'message' => 'تم إرسال البريد الإلكتروني بنجاح!']);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Email Sending Failed: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'فشل الإرسال: ' . $e->getMessage()], 500);
         }
     }
