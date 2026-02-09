@@ -97,7 +97,7 @@ class SendStoreDailyReports extends Command
         ])->setPaper('a4', 'portrait')
           ->setOptions([
               'isHtml5ParserEnabled' => true,
-              'isRemoteEnabled' => true,
+              'isRemoteEnabled' => false,
               'defaultFont' => 'DejaVu Sans'
           ]);
 

@@ -376,6 +376,32 @@ class PosController extends Controller
             // 🔥 منطقة الإشعارات (إيميل وواتساب) 🔥
             // ============================================================
             try {
+                // 1. توليد ملف PDF للفاتورة (محلياً وبسرعة)
+                $pdfPath = null;
+                $pdfUrl = null;
+                $pdfName = 'invoice_' . $sale->id . '.pdf';
+
+                try {
+                    $arabicService = new \App\Services\ArabicTextService();
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('store_owner.pos.invoice_pdf', compact('sale', 'store', 'arabicService'))
+                        ->setPaper('a4', 'portrait')
+                        ->setOptions([
+                            'isHtml5ParserEnabled' => true,
+                            'isRemoteEnabled' => false, // 🚀 هام جداً للسرعة local
+                            'defaultFont' => 'DejaVu Sans'
+                        ]);
+                    
+                    $tempDir = public_path('temp_reports');
+                    if (!file_exists($tempDir)) mkdir($tempDir, 0777, true);
+                    
+                    $pdfPath = $tempDir . '/' . $pdfName;
+                    $pdf->save($pdfPath);
+                    $pdfUrl = asset('temp_reports/' . $pdfName);
+
+                } catch (\Exception $pdfEx) {
+                    Log::error("Invoice PDF Generation Error: " . $pdfEx->getMessage());
+                }
+
                 $isCredit = ($sale->due > 0);
                 $stockAlertLines = [];
                 $emailAlertData = [];
@@ -405,15 +431,12 @@ class PosController extends Controller
                 
                 $stockBody = !empty($stockAlertLines) ? implode("\n", $stockAlertLines) : "";
 
-                // 🟢 1. منطق الواتساب (مستقل) 🟢
+                // 🟢 2. منطق الواتساب (مرفق PDF) 🟢
                 if ($store->notify_whatsapp && $store->phone_number) {
                     try {
                         $waMsg = "";
-                        if ($store->wa_notify_stock && !empty($stockBody)) {
-                            $waMsg .= $stockBody . "\n\n";
-                        }
                         
-                        // إشعار المبيعات (فقط إذا لم يكن سحباً)
+                        // إشعار المبيعات
                         if (!$isWithdrawal && $store->wa_notify_sales) {
                             $sendInv = false;
                             if ($store->wa_sales_credit_only) { 
@@ -422,22 +445,37 @@ class PosController extends Controller
                                 if ($netTotal >= ($store->wa_sales_min ?? 0)) $sendInv = true; 
                                 if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
                             }
+
                             if ($sendInv) {
-                                $waMsg .= "🧾 *فاتورة #{$sale->id}*\n💰 {$netTotal}\n👤 " . ($sale->contact ? $sale->contact->contact_name : 'نقدي');
+                                $waMsg .= "🧾 *فاتورة جديدة #{$sale->id}*\n";
+                                $waMsg .= "💰 القيمة: {$netTotal}\n";
+                                $waMsg .= "👤 العميل: " . ($sale->contact ? $sale->contact->contact_name : 'نقدي') . "\n";
+                                if ($isCredit) $waMsg .= "⚠️ متبقي عليه: {$sale->due}\n";
                             }
                         }
 
+                        // إلحاق تنبيهات المخزون
+                        if ($store->wa_notify_stock && !empty($stockBody)) {
+                            $waMsg .= "\n" . $stockBody . "\n";
+                        }
+                        
                         if (!empty($waMsg)) {
-                            // استخدام الخدمة الموحدة بدلاً من الرابط المباشر
-                            // هذا يضمن استخدام الرابط الصحيح من الإعدادات (config/services.php)
-                            try {
+                            // إرسال الملف (مع النص كـ Caption) إذا نجح توليد الـ PDF
+                            if ($pdfUrl) {
+                                app(\App\Services\WhatsAppService::class)->sendFile(
+                                    $store->phone_number, 
+                                    $pdfUrl, 
+                                    trim($waMsg), 
+                                    $storeId,
+                                    $pdfName // اسم الملف عند الاستيلام
+                                );
+                            } else {
+                                // Fallback: إرسال نص فقط إذا فشل الـ PDF
                                 app(\App\Services\WhatsAppService::class)->send(
                                     $store->phone_number, 
                                     trim($waMsg), 
                                     $storeId 
                                 );
-                            } catch (\Exception $e) {
-                                Log::error("POS WhatsApp Service Error: " . $e->getMessage());
                             }
                         }
                     } catch (\Exception $e) {
@@ -445,10 +483,23 @@ class PosController extends Controller
                     }
                 }
 
-                // 🔵 2. منطق الإيميل (مستقل) 🔵
+                // 🔵 3. منطق الإيميل (مرفق PDF) 🔵
                 if ($store->notify_email && $store->email) {
                     try {
-                        // تنبيه المخزون عبر الإيميل
+                        // إرسال الفاتورة (مطلوب دائماً للمبيعات)
+                        if (!$isWithdrawal && $pdfPath && file_exists($pdfPath)) {
+                            $subject = "فاتورة مبيعات جديدة #{$sale->id}";
+                            $body = "مرفق طيه فاتورة المبيعات رقم #{$sale->id}.\nالقيمة الإجمالية: {$netTotal}";
+                            
+                            Mail::to($store->email)->send(new \App\Mail\ReportMail(
+                                $subject,
+                                $body,
+                                $pdfPath,
+                                $pdfName
+                            ));
+                        }
+
+                        // تنبيه المخزون (منفصل)
                         if ($store->email_notify_stock && !empty($emailAlertData)) {
                             $reason = $isWithdrawal ? "سحب كمية من قبل صاحب المتجر" : "عملية بيع جديدة";
                             Mail::to($store->email)->send(new StockAlertMail($emailAlertData, $store->name, $reason));
@@ -1163,7 +1214,7 @@ class PosController extends Controller
                   ->setPaper('a4', 'portrait')
                   ->setOptions([
                       'isHtml5ParserEnabled' => true,
-                      'isRemoteEnabled' => true,
+                      'isRemoteEnabled' => false,
                       'isFontSubsettingEnabled' => true,
                       'defaultFont' => 'DejaVu Sans'
                   ]);
