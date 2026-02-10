@@ -28,6 +28,11 @@ class Purchase extends Model
         return $this->hasMany(PurchaseItem::class);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     // =========================================================
     // 🔥 دوال تحويل التوقيت (Accessors) - النسخة المصححة 🔥
     // =========================================================
@@ -52,26 +57,31 @@ class Purchase extends Model
     {
         if (!$value) return null;
         
-        // 1. نعتبر القيمة القادمة من قاعدة البيانات هي UTC (توقيت جرينتش)
-        // 2. ثم نحولها لتوقيت المتجر الحالي (الذي تم ضبطه في الإعدادات)
-        return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $value, 'UTC')
-                    ->setTimezone(config('app.timezone'));
+        try {
+            return \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     public function getCreatedAtAttribute($value)
     {
         if (!$value) return null;
-        
-        return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $value, 'UTC')
-                    ->setTimezone(config('app.timezone'));
+        try {
+            return \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
+        } catch (\Exception $e) {
+            return null;
+        }
     }
     
     public function getUpdatedAtAttribute($value)
     {
         if (!$value) return null;
-        
-        return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $value, 'UTC')
-                    ->setTimezone(config('app.timezone'));
+        try {
+            return \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     public function payments()

@@ -433,43 +433,39 @@ class PurchaseController extends Controller
             if (!$isDraft && $store->type == 'restaurant') {
                 foreach ($request->items as $itemData) {
                     $ingredientId = $itemData['product_id'];
-                    // جلب كل الوجبات التي تستخدم هذا المكون في "الرسبي" بتاعها
                     $affectedMeals = \App\Models\Product::whereHas('recipes', function($q) use ($ingredientId) {
                                             $q->where('ingredient_product_id', $ingredientId);
                                         })->get();
-
                     foreach ($affectedMeals as $meal) {
                         $meal->recalculateMealCost();
                     }
                 }
             }
 
+            $pdfData = ['success' => false, 'url' => null, 'filename' => null];
+            if (!$isDraft) {
+                $pdfData = $this->generateInvoicePdf($purchase);
+            }
+
             // ============================================================
-            // 🔥 منطقة إشعارات المشتريات (الجديدة والمنفصلة) 🔥
+            // 🔥 منطقة إشعارات المشتريات (المتجر) 🔥
             // ============================================================
             if (!$isDraft) {
                 try {
                     $user = Auth::user();
                     $store = $user->store;
-                    
-                    // المتغيرات المشتركة
                     $netTotal = $grandTotal;
                     $due = $grandTotal - $totalPaid;
                     $isCredit = ($due > 0);
-                    // تحميل علاقة المورد لضمان وجود البيانات
                     $purchase->load('supplier');
-                    // جلب الاسم (نبحث عن contact_name أو company_name)
                     $sup = $purchase->supplier;
                     $supplierName = $sup ? ($sup->contact_name ?? $sup->company_name ?? 'مورد عام') : 'مورد عام';
-
-                    // ✅ التحقق من تشفير اللغة العربية قبل الإرسال (Clean UTF-8)
                     $supplierName = mb_convert_encoding($supplierName, 'UTF-8', 'UTF-8');
 
-                    // 1. منطق الواتساب (مستقل)
+                    // 1. منطق الواتساب (لصاحب المتجر)
                     if ($store->notify_whatsapp && $store->phone_number && $store->wa_notify_purchases) {
                         try {
                             $waSend = false;
-                            
                             if ($store->wa_purchases_credit_only) {
                                 if ($isCredit && $due >= $store->wa_purchases_credit_min) $waSend = true;
                             } else {
@@ -478,28 +474,28 @@ class PurchaseController extends Controller
                             }
 
                             if ($waSend) {
-                                $msg = "🚛 *فاتورة مشتريات جديدة #{$purchase->id}*\n";
+                                $msg = "🚛 *فاتورة مشتريات جديدة #{$purchase->invoice_number}*\n";
                                 $msg .= "👤 المورد: {$supplierName}\n";
                                 $msg .= "💰 القيمة: " . number_format($netTotal, 2) . "\n";
                                 if($isCredit) $msg .= "❗️ آجل (دين): " . number_format($due, 2) . "\n";
                                 $msg .= "✍️ بواسطة: {$user->name}";
 
-                                Http::timeout(2)->withoutVerifying()->post('https://wa.tech-sys.online/send-message', [
-                                    'phone' => $store->phone_number,
-                                    'message' => $msg,
-                                    'session_id' => 'store_' . $store->id
-                                ]);
+                                $waService = new \App\Services\WhatsAppService();
+                                if ($pdfData['success']) {
+                                    $waService->sendFile($store->phone_number, $pdfData['url'], $msg, $store->id, $pdfData['filename']);
+                                } else {
+                                    $waService->send($store->phone_number, $msg, $store->id);
+                                }
                             }
                         } catch (\Exception $e) {
                              Log::error("Purchase WhatsApp Error: " . $e->getMessage());
                         }
                     }
 
-                    // 2. منطق الإيميل (مستقل)
+                    // 2. منطق الإيميل (لصاحب المتجر)
                     if ($store->notify_email && $store->email && $store->email_notify_purchases) {
                         try {
                             $emailSend = false;
-
                             if ($store->email_purchases_credit_only) {
                                 if ($isCredit && $due >= $store->email_purchases_credit_min) $emailSend = true;
                             } else {
@@ -508,37 +504,43 @@ class PurchaseController extends Controller
                             }
 
                             if ($emailSend) {
+                                $data = [
+                                    'purchase' => $purchase,
+                                    'store' => $store,
+                                    'user' => $user,
+                                    'supplierName' => $supplierName,
+                                    'netTotal' => $netTotal,
+                                    'totalPaid' => $totalPaid,
+                                    'due' => $due
+                                ];
+
                                 $emailMsg = "تم تسجيل فاتورة مشتريات جديدة.\n\n";
-                                $emailMsg .= "رقم الفاتورة: #{$purchase->id}\n";
+                                $emailMsg .= "رقم الفاتورة: #{$purchase->invoice_number}\n";
                                 $emailMsg .= "المورد: {$supplierName}\n";
                                 $emailMsg .= "الإجمالي: " . number_format($netTotal, 2) . "\n";
                                 $emailMsg .= "المدفوع: " . number_format($totalPaid, 2) . "\n";
                                 $emailMsg .= "المتبقي (آجل): " . number_format($due, 2) . "\n";
                                 $emailMsg .= "بواسطة: {$user->name}";
 
-                                Mail::raw($emailMsg, function($m) use ($store, $purchase) {
-                                    $m->to($store->email)->subject("فاتورة شراء #{$purchase->id}");
+                                Mail::raw($emailMsg, function($m) use ($store, $purchase, $pdfData) {
+                                    $m->to($store->email)->subject("فاتورة شراء #{$purchase->invoice_number}");
+                                    
+                                    if ($pdfData['success']) {
+                                        $m->attach(public_path('temp_reports/' . $pdfData['filename']));
+                                    }
                                 });
                             }
                         } catch (\Exception $e) {
                             Log::error("Purchase Email Error: " . $e->getMessage());
                         }
                     }
-
                 } catch (\Exception $e) {
                     Log::error("Purchase Notification General Failed: " . $e->getMessage());
                 }
             }
-            // ============================================================
 
             if ($request->ajax()) {
-                // تجهيز بيانات الواتساب للمورد (إذا كانت الخدمة مفعلة)
                 $whatsappData = null;
-                
-                if (!$isDraft) {
-                    $pdfData = $this->generateInvoicePdf($purchase);
-                }
-
                 if (!$isDraft && isset($store) && $store->whatsapp_auto_prompt && $purchase->supplier && $purchase->supplier->phone) {
                     $itemsLines = [];
                     foreach($purchase->items as $item) {

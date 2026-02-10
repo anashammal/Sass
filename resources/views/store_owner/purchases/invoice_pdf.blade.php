@@ -110,7 +110,7 @@
         <tr>
             <td width="50%">
                 <strong>{{ $arabicService->shape('رقم الفاتورة:') }}</strong> #{{ $purchase->invoice_number }}<br>
-                <strong>{{ $arabicService->shape('التاريخ:') }}</strong> {{ $purchase->invoice_date->format('Y-m-d') }}<br>
+                <strong>{{ $arabicService->shape('التاريخ:') }}</strong> {{ $purchase->invoice_date ? $purchase->invoice_date->format('Y-m-d') : '---' }}<br>
                 <strong>{{ $arabicService->shape('بواسطة:') }}</strong> {{ $arabicService->shape($purchase->user->name ?? '---') }}
             </td>
             <td width="50%">
