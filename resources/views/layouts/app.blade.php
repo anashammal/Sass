@@ -2093,79 +2093,212 @@
     }
     
     // دالة البحث الذكي
-    document.addEventListener("DOMContentLoaded", function() {
-        const phoneInputEl = document.getElementById('gw_phone');
-        if(phoneInputEl) {
-            console.log('WhatsApp Search Listener Attached');
-            phoneInputEl.addEventListener('keyup', handleSearch);
-            phoneInputEl.addEventListener('paste', function() {
-                setTimeout(handleSearch, 100);
-            });
-        } else {
-            console.error('WhatsApp Phone Input Not Found!');
-        }
-    });
+    // دالة البحث الموحدة (Autocomplete) - Global Definition
+    window.setupSearch = function(inputId, resultsId, url, onSelect, autoSelect = false) {
+        console.log(`Setting up search for: ${inputId}`);
+        const input = document.getElementById(inputId);
+        const results = document.getElementById(resultsId);
+        let timeout = null;
+        let currentFocus = -1; 
 
-    function handleSearch() {
-        const query = document.getElementById('gw_phone').value;
-        const resultsInfo = document.getElementById('gw_search_info');
-        const resultsList = document.getElementById('gw_search_results');
-        
-        if(query.length < 1) {
-            resultsList.style.display = 'none';
-            resultsInfo.innerText = '';
+        if (!input || !results) {
+            console.error(`Search elements not found: ${inputId} or ${resultsId}`);
             return;
         }
-        
-        resultsInfo.innerText = 'جاري البحث...';
-        
-        if(searchTimeout) clearTimeout(searchTimeout);
-        
-        searchTimeout = setTimeout(() => {
-            fetch("{{ route('store.whatsapp.contacts.search') }}?q=" + query)
-            .then(res => res.json())
-            .then(data => {
-                resultsList.innerHTML = '';
-                
-                if(data.length > 0) {
-                    data.forEach(contact => {
-                        const li = document.createElement('li');
-                        li.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center';
-                        li.style.cursor = 'pointer'; // Ensure pointer cursor
-                        li.innerHTML = `
-                            <div>
-                                <div class="fw-bold">${contact.name}</div>
-                                <small class="text-muted"><i class="fas fa-phone-alt me-1"></i> ${contact.phone || 'بدون رقم'}</small>
-                            </div>
-                            <button class="btn btn-sm btn-outline-primary select-contact-btn">اختيار</button>
-                        `;
-                        
-                        // عند الضغط على العنصر
-                        li.onclick = function() {
-                            if(contact.phone) {
-                                document.getElementById('gw_phone').value = contact.phone;
-                                resultsList.style.display = 'none';
-                                resultsInfo.innerText = `تم اختيار: ${contact.name}`;
-                            } else {
-                                alert('هذا العميل لا يملك رقم هاتف مسجل');
+
+        // Force High Z-Index to prevent hiding behind other elements
+        results.style.zIndex = '9999';
+
+        input.addEventListener('input', function() {
+            const term = this.value;
+            currentFocus = -1; 
+            
+            if (term.length < 1) { 
+                results.style.display = 'none';
+                return;
+            }
+
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                console.log(`[DEBUG] Preparing to send request to: ${url}`);
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    data: { term: term },
+                    dataType: 'text', 
+                    cache: false,
+                    headers: { 
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+                    },
+                    beforeSend: function(xhr) {
+                        console.log(`[DEBUG] Request init. ReadyState: ${xhr.readyState}`);
+                    },
+                    success: function(rawResponse) {
+                        console.log(`[DEBUG] Success! Response lenth: ${rawResponse.length}`);
+                        let data;
+                        try {
+                            data = JSON.parse(rawResponse);
+                        } catch (e) {
+                            console.error('Failed to parse JSON:', rawResponse);
+                            results.innerHTML = `<div class="list-group-item text-danger">
+                                <strong>رد غير متوقع من السيرفر!</strong><br>
+                                <small>يبدو أن هناك خطأ برمجي (500) أو إعادة توجيه.</small>
+                                <div class="mt-2 text-muted" style="font-size: 0.7em; max-height: 100px; overflow: auto;">${rawResponse.substring(0, 200)}...</div>
+                            </div>`;
+                            results.style.display = 'block';
+                            return;
+                        }
+
+                        console.log(`Search results received: ${data.length} items`);
+                        results.innerHTML = '';
+                        if (data.length > 0) {
+                            if (autoSelect && data.length === 1) {
+                                // Relaxed condition: Auto-select if term length > 2 (numeric or text)
+                                if (term.length > 2) {
+                                     console.log('Auto-selecting single result');
+                                     onSelect(data[0]);
+                                     results.style.display = 'none';
+                                     input.value = ''; 
+                                     return;
+                                }
                             }
-                        };
+
+                            data.forEach((item, index) => {
+                                const isList = results.tagName === 'UL' || results.tagName === 'OL';
+                                const el = document.createElement(isList ? 'li' : 'a');
+                                
+                                el.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center';
+                                el.style.cursor = 'pointer';
+                                el.setAttribute('data-index', index);
+                                
+                                // استخدام text الموحد أو التراجع للحقول الفردية
+                                let displayText = item.text || item.contact_name || item.name_ar || item.name;
+                                let phoneText = item.phone || '';
+                                
+                                // تنسيق المحتوى
+                                if (phoneText) {
+                                    el.innerHTML = `<div><div class="fw-bold">${displayText}</div><small class="text-muted"><i class="fas fa-phone-alt me-1"></i> ${phoneText}</small></div>`;
+                                    if(isList) el.innerHTML += `<button class="btn btn-sm btn-outline-primary select-contact-btn">اختيار</button>`;
+                                } else {
+                                    el.innerHTML = `<div class="fw-bold">${displayText}</div>`;
+                                }
+                                
+                                el.onclick = (e) => {
+                                    e.preventDefault();
+                                    onSelect(item);
+                                    results.style.display = 'none';
+                                };
+                                results.appendChild(el);
+                            });
+                            results.style.display = 'block';
+
+                        } else {
+                            const isList = results.tagName === 'UL' || results.tagName === 'OL';
+                            const el = document.createElement(isList ? 'li' : 'div');
+                            el.className = 'list-group-item text-muted';
+                            el.textContent = 'لا توجد نتائج';
+                            results.innerHTML = '';
+                            results.appendChild(el);
+                            results.style.display = 'block';
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('[DEBUG] Error Callback Triggered');
+                        console.error('State:', xhr.readyState);
+                        console.error('Status:', xhr.status);
+                        console.error('TextStatus:', status);
+                        console.error('Error:', error);
+                        console.error('Raw Response:', xhr.responseText);
                         
-                        resultsList.appendChild(li);
-                    });
-                    resultsList.style.display = 'block';
-                    resultsInfo.innerText = '';
-                } else {
-                    resultsList.style.display = 'none';
-                    resultsInfo.innerText = 'لا توجد نتائج';
+                        let debugSafe = xhr.responseText ? xhr.responseText.substring(0, 300) : 'No response text';
+                        let msg = 'خطأ غير معروف';
+                        
+                        if (xhr.readyState === 0) {
+                            msg = 'فشل الاتصال تماماً! يرجى التأكد من أن السيرفر يعمل وأنك تستخدم الرابط الصحيح (http/https).';
+                        } else if (xhr.status === 404) {
+                            msg = 'الرابط غير موجود (404)';
+                        } else if (xhr.status === 500) {
+                            msg = 'خطأ في السيرفر (500)';
+                        }
+
+                        results.innerHTML = `<div class="list-group-item text-danger">
+                            <strong>خطأ في الاتصال!</strong><br>
+                            <small>${msg}</small><br>
+                            <small class="text-muted" style="font-size: 0.7em;">Code: ${xhr.status} | State: ${xhr.readyState}</small><br>
+                            <small class="text-muted" style="font-size: 0.6em; display:block; margin-top:5px;">Details: ${debugSafe.replace(/</g, '&lt;')}</small>
+                        </div>`;
+                        results.style.display = 'block';
+                    },
+                    complete: function(xhr, status) {
+                        console.log(`[DEBUG] Request completed with status: ${status}`);
+                    }
+                });
+            }, 300);
+        });
+
+        input.addEventListener('keydown', function(e) {
+            const isList = results.tagName === 'UL' || results.tagName === 'OL';
+            let items = results.getElementsByTagName(isList ? 'li' : 'a');
+            
+            if (e.key === 'ArrowDown') {
+                currentFocus++;
+                addActive(items);
+            } else if (e.key === 'ArrowUp') {
+                currentFocus--;
+                addActive(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault(); 
+                if (currentFocus > -1) {
+                    if (items[currentFocus]) items[currentFocus].click();
+                } else if (results.style.display === 'block' && items.length === 1) {
+                     items[0].click();
                 }
-            })
-            .catch(err => {
-                console.error(err);
-                resultsInfo.innerText = ''; // Hide error text to not confuse user if it's just a network blip
-            });
-        }, 300);
-    }
+            }
+        });
+
+        function addActive(x) {
+            if (!x) return false;
+            removeActive(x);
+            if (currentFocus >= x.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (x.length - 1);
+            x[currentFocus].classList.add('active'); 
+            x[currentFocus].scrollIntoView({block: 'nearest'});
+        }
+
+        function removeActive(x) {
+            for (var i = 0; i < x.length; i++) {
+                x[i].classList.remove('active');
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target !== input && e.target !== results && !results.contains(e.target)) {
+                results.style.display = 'none';
+            }
+        });
+    };
+
+    // تهيئة واتساب عند التحميل
+    document.addEventListener("DOMContentLoaded", function() {
+        const phoneInputEl = document.getElementById('gw_phone');
+        
+        const basePath = window.location.pathname.split('/store-owner/')[0];
+        const searchUrl = `${window.location.origin}${basePath}/store-owner/whatsapp/contacts/search`;
+        
+        setupSearch(
+            'gw_phone',
+            'gw_search_results',
+            searchUrl,
+            (contact) => {
+                if(contact.phone) {
+                    document.getElementById('gw_phone').value = contact.phone;
+                    document.getElementById('gw_search_info').innerText = `تم اختيار: ${contact.name || contact.contact_name}`;
+                } else {
+                    alert('هذا العميل لا يملك رقم هاتف مسجل');
+                }
+            }
+        );
+    });
     
     // إخفاء القائمة عند النقر خارجها
     document.addEventListener('click', function(e) {

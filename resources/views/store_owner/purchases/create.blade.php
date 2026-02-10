@@ -363,9 +363,12 @@
             document.getElementById('supplierResults').style.display = 'none';
         }, true); // true = تفعيل الاختيار التلقائي للموردين
 
-        // إعداد بحث المنتجات
-        console.log("Initializing Product Search...");
-        setupSearch('productSearch', 'searchResults', "{{ route('store.products.search') }}", function(p) {
+        // حساب الرابط ديناميكياً مع استخدام Alias جديد لتجنب الحظر
+        const basePath = window.location.pathname.split('/store-owner/')[0];
+        const searchUrl = `${window.location.origin}${basePath}/store-owner/core/lookup`;
+        console.log('Computed Search URL (Safe Alias):', searchUrl);
+
+        setupSearch('productSearch', 'searchResults', searchUrl, function(p) {
             console.log("Product Selected:", p);
             addProductRow(p);
             // تفريغ الحقل
@@ -592,7 +595,7 @@
         let trueBaseCost = (selectedFactor > 0) ? (calculatedCost / selectedFactor) : 0;
         
         let initialBarcode = selectedUnit.barcode || '-';
-        let sellPrice = parseFloat(selectedUnit.selling_price) || 0;
+        let sellPrice = parseFloat(selectedUnit.sale_price) || 0;
         let profitPercent = (calculatedCost > 0) ? ((sellPrice - calculatedCost) / calculatedCost) * 100 : 0;
         
         let imgUrl = selectedUnit.image_url || product.main_image;
@@ -609,7 +612,7 @@
             return `<option value="${u.id}" 
                     data-barcode="${u.barcode || '-'}" 
                     data-price="${mathPrice.toFixed(4)}" 
-                    data-sell="${formatNum(u.selling_price)}" 
+                    data-sell="${formatNum(u.sale_price)}" 
                     data-profit="${formatNum(u.profit_percent || 0)}"
                     data-factor="${safeFactor}" 
                     data-img="${u.image_url || ''}" 
@@ -698,9 +701,20 @@
 
     // 🟢 دالة جلب ورسم السجل
     function renderHistory(idx, productId) {
-        // استخدام route helper مع placeholder ثم استبداله في JS لضمان صحة الرابط
-        let url = "{{ route('store.purchases.history', ':id') }}";
-        url = url.replace(':id', productId);
+        console.log(`[History] Fetching for Product ID: ${productId} (Row: ${idx})`);
+
+        if (!productId) {
+            console.error("[History] Product ID is missing!");
+            document.getElementById(`history_container_${idx}`).innerHTML = '<span class="text-danger">معرف المنتج مفقود</span>';
+            return;
+        }
+
+        // استخدام رابط مباشر للقضاء على مشاكل الـ replacement
+        // نستخدم الرابط الأساسي ثم نضيف الـ ID
+        let baseUrl = "{{ route('store.purchases.history', ['id' => ':id']) }}";
+        let url = baseUrl.replace(':id', productId);
+        
+        console.log(`[History] Request URL: ${url}`);
 
         fetch(url)
             .then(async res => {
@@ -710,6 +724,7 @@
                 return res.json();
             })
             .then(data => {
+                console.log(`[History] Data received:`, data);
                 let container = document.getElementById(`history_container_${idx}`);
                 if (data.length === 0) {
                     container.innerHTML = '<div class="alert alert-secondary p-1 m-0 text-center">لا يوجد سجل مشتريات سابق</div>';
@@ -797,7 +812,7 @@
             let safeFactor = isBase ? 1 : (parseFloat(u.conversion_factor) || 1);
             let calculatedCost = trueBaseCost * safeFactor; 
             
-            let uSell = parseFloat(u.selling_price) || 0;
+            let uSell = parseFloat(u.sale_price) || 0;
             // جلب الربح الأصلي من قاعدة البيانات للمقارنة
             let originalProfit = parseFloat(u.profit_percent) || 0; 
             
@@ -970,121 +985,8 @@
         }
     }
 
-    // --- دالة البحث المحدثة (تدعم الاختيار التلقائي للمورد والمنتج) ---
-    function setupSearch(inputId, resultsId, url, onSelect, autoSelect = false) {
-        const input = document.getElementById(inputId);
-        const results = document.getElementById(resultsId);
-        let debounce;
-        let currentFocus = -1;
+    // الدالة المحلية setupSearch تم حذفها لاستخدام الدالة العامة المعرفة في app.blade.php
 
-        function addActive(items) {
-            if (!items) return false;
-            removeActive(items);
-            if (currentFocus >= items.length) currentFocus = 0;
-            if (currentFocus < 0) currentFocus = (items.length - 1);
-            items[currentFocus].classList.add("active");
-            items[currentFocus].scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        }
-
-        function removeActive(items) {
-            for (let i = 0; i < items.length; i++) {
-                items[i].classList.remove("active");
-            }
-        }
-
-        input.addEventListener("keydown", function(e) {
-            let items = results.getElementsByTagName("a");
-            if (e.key === "ArrowDown") {
-                currentFocus++;
-                addActive(items);
-            } else if (e.key === "ArrowUp") {
-                currentFocus--;
-                addActive(items);
-            } else if (e.key === "Enter") {
-                e.preventDefault(); 
-                if (currentFocus > -1) {
-                    if (items[currentFocus]) items[currentFocus].click();
-                } else if (items.length === 1) {
-                    items[0].click();
-                }
-            }
-        });
-
-        input.addEventListener('input', function() {
-            clearTimeout(debounce);
-            const term = input.value.trim();
-            currentFocus = -1;
-
-            if(term.length < 1) { 
-                results.style.display = 'none'; 
-                return; 
-            }
-
-            debounce = setTimeout(() => {
-                fetch(`${url}?term=${encodeURIComponent(term)}`, {
-    method: 'GET',
-    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-    credentials: 'same-origin'
-})
-
-                    .then(r => {
-                        if (!r.ok) throw new Error("Server Error");
-                        return r.json();
-                    })
-                    .then(data => {
-                        results.innerHTML = '';
-                        if (data.length > 0) {
-                            
-                            // 🚀 الاختيار التلقائي إذا كانت النتيجة واحدة فقط
-                            if (autoSelect && data.length === 1) {
-                                onSelect(data[0]);
-                                results.style.display = 'none';
-                                return;
-                            }
-
-                            data.forEach((item, index) => {
-                                let a = document.createElement('a');
-                                a.className = 'list-group-item list-group-item-action cursor-pointer';
-                                a.href = "#"; 
-                                
-                                if (item.contact_name) {
-                                    a.innerHTML = `<strong>${item.contact_name}</strong>`;
-                                } else {
-                                    a.innerHTML = `<div class="d-flex justify-content-between"><span>${item.name_ar}</span> <small class="text-muted">${item.sku || ''}</small></div>`;
-                                }
-
-                                a.addEventListener("click", function(e) {
-                                    e.preventDefault();
-                                    onSelect(item); 
-                                    results.style.display = 'none';
-                                });
-
-                                a.addEventListener("mouseover", function() {
-                                    currentFocus = index;
-                                    removeActive(results.getElementsByTagName("a"));
-                                    this.classList.add("active");
-                                });
-
-                                results.appendChild(a);
-                            });
-                            results.style.display = 'block';
-                        } else {
-                            results.style.display = 'none';
-                        }
-                    })
-                    .catch(error => {
-                        console.error("خطأ:", error);
-                        results.style.display = 'none';
-                    });
-            }, 250);
-        });
-
-        document.addEventListener("click", function(e) {
-            if (e.target !== input && !results.contains(e.target)) {
-                results.style.display = 'none';
-            }
-        });
-    }
 
     // --- بقية الدوال (calcTotals, removeRow, etc...) ضروري تكون موجودة ---
     function calcTotals(idx) { 
@@ -1363,9 +1265,21 @@
                         denyButtonColor: '#007bff',
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            triggerWhatsappPrompt(data.whatsapp_data.phone, data.whatsapp_data.message, "إرسال فاتورة المشتريات للمورد");
+                            triggerWhatsappPrompt(
+                                data.whatsapp_data.phone, 
+                                data.whatsapp_data.message, 
+                                "إرسال فاتورة المشتريات للمورد",
+                                data.whatsapp_data.pdf_url,
+                                data.whatsapp_data.pdf_filename
+                            );
                         } else if (result.isDenied) {
-                            triggerEmailPrompt(data.supplier_email || '', data.whatsapp_data.message, "فاتورة مشتريات - " + (data.invoice_no || ''), "", "");
+                            triggerEmailPrompt(
+                                data.supplier_email || '', 
+                                data.whatsapp_data.message, 
+                                "فاتورة مشتريات - " + (data.invoice_no || ''), 
+                                data.pdf_url,
+                                data.pdf_filename
+                            );
                         } else {
                             window.location.href = "{{ route('store.purchases.index') }}";
                         }

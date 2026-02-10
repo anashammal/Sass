@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Mail; // هذا هو سبب الخطأ الحال
 use Illuminate\Support\Facades\Http; // ضروري للواتساب
 use Illuminate\Support\Facades\Log;  // لتسجيل الأخطاء
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\ArabicTextService;
 
 
 
@@ -534,7 +535,10 @@ class PurchaseController extends Controller
                 // تجهيز بيانات الواتساب للمورد (إذا كانت الخدمة مفعلة)
                 $whatsappData = null;
                 
-                // التأكد من أن قيمة $store موجودة ومحملة
+                if (!$isDraft) {
+                    $pdfData = $this->generateInvoicePdf($purchase);
+                }
+
                 if (!$isDraft && isset($store) && $store->whatsapp_auto_prompt && $purchase->supplier && $purchase->supplier->phone) {
                     $itemsLines = [];
                     foreach($purchase->items as $item) {
@@ -555,7 +559,9 @@ class PurchaseController extends Controller
 
                     $whatsappData = [
                         'phone' => $purchase->supplier->phone,
-                        'message' => $msgBody
+                        'message' => $msgBody,
+                        'pdf_url' => $pdfData['url'] ?? null,
+                        'pdf_filename' => $pdfData['filename'] ?? null
                     ];
                 }
 
@@ -565,7 +571,9 @@ class PurchaseController extends Controller
                     'message' => $isDraft ? 'تم حفظ المسودة' : 'تم حفظ الفاتورة',
                     'whatsapp_data' => $whatsappData,
                     'supplier_email' => ($purchase->supplier ? $purchase->supplier->email : null),
-                    'invoice_no' => $purchase->invoice_number
+                    'invoice_no' => $purchase->invoice_number,
+                    'pdf_url' => $pdfData['url'] ?? null,
+                    'pdf_filename' => $pdfData['filename'] ?? null
                 ]);
             }
 
@@ -689,7 +697,8 @@ class PurchaseController extends Controller
             $term = $request->term;
             $storeId = Auth::user()->store->id;
             
-            $query = Product::where('store_id', $storeId)
+            // Limit the select fields to reduce memory usage and avoid accidental blob loading
+            $products = Product::where('store_id', $storeId)
                 ->where(function($q) use ($term) {
                     $q->where('name_ar', 'like', "%$term%")
                       ->orWhere('name_en', 'like', "%$term%")
@@ -697,35 +706,44 @@ class PurchaseController extends Controller
                       ->orWhereHas('units', function($q2) use ($term) {
                           $q2->where('barcode', 'like', "%$term%");
                       });
-                });
-
-            // للمطاعم: تم السماح بظهور الوجبات لأن المستخدم طلب إضافتها للفاتورة
-            // سنضيف كل الأنواع للتأكد من شمولية البحث
-            $query->whereIn('product_type', ['standard', 'ingredient', 'meal', 'compound']);
-
-            $products = $query->with(['units']) 
+                })
+                ->whereIn('product_type', ['standard', 'ingredient', 'meal', 'compound'])
+                ->with(['units:id,product_id,unit_name,barcode,cost_price,selling_price,conversion_factor,is_base_unit,is_purchase,profit_percent']) 
                 ->take(20)
                 ->get();
-    
-            $products->transform(function ($product) use ($term) {
-                // إضافة النص للقائمة
-                $product->text = $product->name_ar . ' (' . $product->sku . ')';
-
+            
+            // Manual mapping to ensure no circular references or heavy objects
+            $results = $products->map(function ($product) use ($term) {
+                // Find matched unit ID if searching by barcode
                 $matchedUnit = $product->units->firstWhere('barcode', $term);
-                $product->scanned_unit_id = $matchedUnit ? $matchedUnit->id : null;
                 
-                // ✅ استخدام الـ Accessors الموحدة لضمان عمل الصور في كل البيئات
-                $product->main_image = $product->image_url;
-
-                foreach($product->units as $unit) {
-                    $unit->image_url = $unit->image;
-                }
-
-                return $product;
+                // Construct a safe, simple object
+                return [
+                    'id' => $product->id,
+                    'text' => $product->name_ar . ' (' . $product->sku . ')',
+                    'name_ar' => $product->name_ar,
+                    'sku' => $product->sku,
+                    'main_image' => $product->image_url, // Assuming Accessor
+                    'scanned_unit_id' => $matchedUnit ? $matchedUnit->id : null,
+                    'units' => $product->units->map(function($unit) {
+                        return [
+                            'id' => $unit->id,
+                            'unit_name' => $unit->unit_name,
+                            'barcode' => $unit->barcode,
+                            'cost_price' => $unit->cost_price,
+                            'sale_price' => $unit->selling_price, 
+                            'conversion_factor' => $unit->conversion_factor,
+                            'is_base_unit' => $unit->is_base_unit,
+                            'is_purchase' => $unit->is_purchase,
+                            'profit_percent' => $unit->profit_percent,
+                            'image_url' => (strpos($unit->image, 'default-product.png') !== false) ? null : $unit->image,
+                        ];
+                    })
+                ];
             });
-                
-            return response()->json($products);
-    
+
+            return response()->json($results);
+
         } catch (\Exception $e) {
             Log::error("Search Products Error: " . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
@@ -760,6 +778,54 @@ class PurchaseController extends Controller
 
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Helper to generate PDF for the purchase invoice
+     */
+    private function generateInvoicePdf(Purchase $purchase)
+    {
+        try {
+            $store = $purchase->store;
+            $purchase->load(['items.product.units', 'items.unit', 'supplier', 'user']);
+            
+            // Arabic Text Service
+            $arabicService = new ArabicTextService();
+
+            $pdf = Pdf::loadView('store_owner.purchases.invoice_pdf', compact('purchase', 'store', 'arabicService'))
+                  ->setPaper('a4', 'portrait')
+                  ->setOptions([
+                      'isHtml5ParserEnabled' => true,
+                      'isRemoteEnabled' => true,
+                      'defaultFont' => 'DejaVu Sans'
+                  ]);
+
+            $filename = 'purchase_' . $purchase->id . '_' . date('Ymd_His') . '.pdf';
+            $path = public_path('temp_reports');
+            
+            if (!file_exists($path)) {
+                @mkdir($path, 0777, true);
+            }
+            
+            // Cleanup old files
+            foreach (glob($path . '/*.pdf') as $file) {
+                if (filemtime($file) < time() - 3600) { 
+                    @unlink($file); 
+                }
+            }
+
+            $pdf->save($path . '/' . $filename);
+            
+            return [
+                'success' => true,
+                'url' => asset('temp_reports/' . $filename),
+                'filename' => $filename
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Purchase PDF Error: " . $e->getMessage());
+            return ['success' => false];
         }
     }
 }

@@ -126,21 +126,21 @@ class SendStoreDailyReports extends Command
         $msg .= "📎 *لتحميل التقرير التفصيلي PDF:*\n{$reportUrl}\n\n";
         $msg .= "🔗 [فتح النظام](" . config('app.url') . "/store-owner/dashboard)";
 
-        // 5. الإرسال (واتساب) - مستقل
+        // 5. الإرسال (واتساب) - استخدام الخدمة الموحدة
         $whatsappSuccess = false;
         if ($store->notify_whatsapp && $store->phone_number) {
             try {
-                $response = Http::timeout(10)->post('http://127.0.0.1:3000/send-message', [
-                    'phone' => $store->phone_number,
-                    'message' => $msg,
-                    'session_id' => 'system'
-                ]);
+                $whatsappService = new \App\Services\WhatsAppService();
+                // إرسال رسالة نصية تحتوي على الرابط
+                $whatsappSuccess = $whatsappService->send($store->phone_number, $msg, $store->id);
                 
-                if ($response->successful()) {
-                    $whatsappSuccess = true;
-                    // \Log::info("WhatsApp Report Sent: Store {$store->id}");
+                // اختياري: إرسال الملف نفسه أيضاً إذا أردت
+                // $whatsappService->sendFile($store->phone_number, $reportUrl, 'التقرير اليومي', $store->id, $filename);
+
+                if ($whatsappSuccess) {
+                     \Log::info("WhatsApp Report Sent: Store {$store->id}");
                 } else {
-                     \Log::warning("WhatsApp Report Failed (API Error): Store {$store->id}", ['response' => $response->body()]);
+                     \Log::warning("WhatsApp Report Failed (Service returned false): Store {$store->id}");
                 }
             } catch (\Exception $e) {
                  \Log::error("WhatsApp Report Failed (Exception): Store {$store->id}", ['error' => $e->getMessage()]);

@@ -46,6 +46,10 @@ Route::get('/force-clear', function() {
 Route::get('storage-files/{path}', [\App\Http\Controllers\StoreOwner\ProductController::class, 'serveMedia'])
     ->where('path', '.*')->name('serve.media.workaround');
 
+Route::get('/system-check', function() {
+    return response()->json(['status' => 'alive', 'message' => 'Connection Successful']);
+});
+
 Route::get('/', function () { 
     return redirect()->route('login');
 });
@@ -122,6 +126,7 @@ Route::middleware(['auth'])->group(function () {
         // ==========================================
         
         // 1. الروابط المخصصة (يجب أن تكون في الأعلى لتجنب تضارب الـ ID)
+        Route::get('core/lookup', [PurchaseController::class, 'searchProducts'])->name('core.lookup'); // ✅ Safe Alias
         Route::get('products/expired-manager', [ProductController::class, 'expiredManager'])->name('products.expired_manager');
         
         // New Routes for Advanced Expiry Management
