@@ -1,11 +1,7 @@
 @forelse($products as $product)
 <tr class="align-middle">
     <td>
-        @if($product->getFirstMediaUrl('products', 'thumb'))
-            <img src="{{ $product->getFirstMediaUrl('products', 'thumb') }}" class="rounded product-img-fit" width="50" height="50">
-        @else
-            <img src="{{ asset('images/default-product.png') }}" class="rounded product-img-fit" width="50" height="50">
-        @endif
+        <img src="{{ $product->image_url }}" class="rounded product-img-fit" width="50" height="50">
     </td>
     
     <td class="text-start">
