@@ -373,144 +373,15 @@ class PosController extends Controller
             DB::commit();
 
             // ============================================================
-            // 🔥 منطقة الإشعارات (إيميل وواتساب) 🔥
+            // 🔥 منطقة الإشعارات (إيميل وواتساب) - تم النقل للخلفية 🔥
             // ============================================================
             try {
-                // 1. توليد ملف PDF للفاتورة (محلياً وبسرعة)
-                $pdfPath = null;
-                $pdfUrl = null;
-                $pdfName = 'invoice_' . $sale->id . '.pdf';
-
-                try {
-                    $arabicService = new \App\Services\ArabicTextService();
-                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('store_owner.pos.invoice_pdf', compact('sale', 'store', 'arabicService'))
-                        ->setPaper('a4', 'portrait')
-                        ->setOptions([
-                            'isHtml5ParserEnabled' => true,
-                            'isRemoteEnabled' => false, // 🚀 هام جداً للسرعة local
-                            'defaultFont' => 'DejaVu Sans'
-                        ]);
-                    
-                    $tempDir = public_path('temp_reports');
-                    if (!file_exists($tempDir)) mkdir($tempDir, 0777, true);
-                    
-                    $pdfPath = $tempDir . '/' . $pdfName;
-                    $pdf->save($pdfPath);
-                    $pdfUrl = asset('temp_reports/' . $pdfName);
-
-                } catch (\Exception $pdfEx) {
-                    Log::error("Invoice PDF Generation Error: " . $pdfEx->getMessage());
-                }
-
-                $isCredit = ($sale->due > 0);
-                $stockAlertLines = [];
-                $emailAlertData = [];
-                
-                foreach ($items as $item) {
-                    $prod = Product::with('baseUnit')->find($item['id']);
-                    if ($prod && $prod->track_stock) {
-                        $currentStock = (float)$prod->current_stock; 
-                        $alertLimit = (float)$prod->alert_quantity;
-                        
-                        if ($currentStock <= $alertLimit) {
-                            $barcode = $prod->baseUnit ? $prod->baseUnit->barcode : $prod->sku; 
-                            $barcodeStr = $barcode ? $barcode : '---';
-                            
-                            $header = $currentStock <= 0 ? "🔴 نفذت الكمية" : "⚠️ مخزون منخفض";
-                            $msgSuffix = $isWithdrawal ? " (بسبب سحب صاحب المتجر)" : "";
-                            
-                            $stockAlertLines[] = "{$header}{$msgSuffix}\n📦 {$prod->name_ar}\n🔢 {$barcodeStr}\n📉 الحالية: {$currentStock}";
-                            
-                            $emailAlertData[] = [
-                                'name' => $prod->name_ar,
-                                'stock' => $currentStock
-                            ];
-                        }
-                    }
-                }
-                
-                $stockBody = !empty($stockAlertLines) ? implode("\n", $stockAlertLines) : "";
-
-                // 🟢 2. منطق الواتساب (مرفق PDF) 🟢
-                if ($store->notify_whatsapp && $store->phone_number) {
-                    try {
-                        $waMsg = "";
-                        
-                        // إشعار المبيعات
-                        if (!$isWithdrawal && $store->wa_notify_sales) {
-                            $sendInv = false;
-                            if ($store->wa_sales_credit_only) { 
-                                if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
-                            } else { 
-                                if ($netTotal >= ($store->wa_sales_min ?? 0)) $sendInv = true; 
-                                if ($isCredit && $sale->due >= ($store->wa_sales_credit_min ?? 0)) $sendInv = true; 
-                            }
-
-                            if ($sendInv) {
-                                $waMsg .= "🧾 *فاتورة جديدة #{$sale->id}*\n";
-                                $waMsg .= "💰 القيمة: {$netTotal}\n";
-                                $waMsg .= "👤 العميل: " . ($sale->contact ? $sale->contact->contact_name : 'نقدي') . "\n";
-                                if ($isCredit) $waMsg .= "⚠️ متبقي عليه: {$sale->due}\n";
-                            }
-                        }
-
-                        // إلحاق تنبيهات المخزون
-                        if ($store->wa_notify_stock && !empty($stockBody)) {
-                            $waMsg .= "\n" . $stockBody . "\n";
-                        }
-                        
-                        if (!empty($waMsg)) {
-                            // إرسال الملف (مع النص كـ Caption) إذا نجح توليد الـ PDF
-                            if ($pdfUrl) {
-                                app(\App\Services\WhatsAppService::class)->sendFile(
-                                    $store->phone_number, 
-                                    $pdfUrl, 
-                                    trim($waMsg), 
-                                    $storeId,
-                                    $pdfName // اسم الملف عند الاستيلام
-                                );
-                            } else {
-                                // Fallback: إرسال نص فقط إذا فشل الـ PDF
-                                app(\App\Services\WhatsAppService::class)->send(
-                                    $store->phone_number, 
-                                    trim($waMsg), 
-                                    $storeId 
-                                );
-                            }
-                        }
-                    } catch (\Exception $e) {
-                        Log::error("POS WhatsApp Error: " . $e->getMessage());
-                    }
-                }
-
-                // 🔵 3. منطق الإيميل (مرفق PDF) 🔵
-                if ($store->notify_email && $store->email) {
-                    try {
-                        // إرسال الفاتورة (مطلوب دائماً للمبيعات)
-                        if (!$isWithdrawal && $pdfPath && file_exists($pdfPath)) {
-                            $subject = "فاتورة مبيعات جديدة #{$sale->id}";
-                            $body = "مرفق طيه فاتورة المبيعات رقم #{$sale->id}.\nالقيمة الإجمالية: {$netTotal}";
-                            
-                            Mail::to($store->email)->send(new \App\Mail\ReportMail(
-                                $subject,
-                                $body,
-                                $pdfPath,
-                                $pdfName
-                            ));
-                        }
-
-                        // تنبيه المخزون (منفصل)
-                        if ($store->email_notify_stock && !empty($emailAlertData)) {
-                            $reason = $isWithdrawal ? "سحب كمية من قبل صاحب المتجر" : "عملية بيع جديدة";
-                            Mail::to($store->email)->send(new StockAlertMail($emailAlertData, $store->name, $reason));
-                        }
-                    } catch (\Exception $e) {
-                         Log::error("POS Email Error: " . $e->getMessage());
-                    }
-                }
+                // إطلاق المهمة في الخلفية لتسريع الاستجابة
+                \App\Jobs\ProcessSaleNotifications::dispatch($sale->id);
+                // Log::info("Sale Notification Job Dispatched: " . $sale->id);
 
             } catch (\Exception $e) { 
-                Log::error("General Notif Error: " . $e->getMessage()); 
+                Log::error("Job Dispatch Error: " . $e->getMessage()); 
             }
 
             if ($isWithdrawal) {

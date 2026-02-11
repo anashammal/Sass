@@ -443,99 +443,19 @@ class PurchaseController extends Controller
             }
 
             $pdfData = ['success' => false, 'url' => null, 'filename' => null];
-            if (!$isDraft) {
-                $pdfData = $this->generateInvoicePdf($purchase);
-            }
+            // if (!$isDraft) {
+            //    $pdfData = $this->generateInvoicePdf($purchase); // تم الطي لزيادة السرعة
+            // }
 
             // ============================================================
-            // 🔥 منطقة إشعارات المشتريات (المتجر) 🔥
+            // 🔥 منطقة إشعارات المشتريات (المتجر) - تم النقل للخلفية 🔥
             // ============================================================
             if (!$isDraft) {
                 try {
-                    $user = Auth::user();
-                    $store = $user->store;
-                    $netTotal = $grandTotal;
-                    $due = $grandTotal - $totalPaid;
-                    $isCredit = ($due > 0);
-                    $purchase->load('supplier');
-                    $sup = $purchase->supplier;
-                    $supplierName = $sup ? ($sup->contact_name ?? $sup->company_name ?? 'مورد عام') : 'مورد عام';
-                    $supplierName = mb_convert_encoding($supplierName, 'UTF-8', 'UTF-8');
-
-                    // 1. منطق الواتساب (لصاحب المتجر)
-                    if ($store->notify_whatsapp && $store->phone_number && $store->wa_notify_purchases) {
-                        try {
-                            $waSend = false;
-                            if ($store->wa_purchases_credit_only) {
-                                if ($isCredit && $due >= $store->wa_purchases_credit_min) $waSend = true;
-                            } else {
-                                if ($netTotal >= $store->wa_purchases_min) $waSend = true;
-                                if ($isCredit && $due >= $store->wa_purchases_credit_min) $waSend = true;
-                            }
-
-                            if ($waSend) {
-                                $msg = "🚛 *فاتورة مشتريات جديدة #{$purchase->invoice_number}*\n";
-                                $msg .= "👤 المورد: {$supplierName}\n";
-                                $msg .= "💰 القيمة: " . number_format($netTotal, 2) . "\n";
-                                if($isCredit) $msg .= "❗️ آجل (دين): " . number_format($due, 2) . "\n";
-                                $msg .= "✍️ بواسطة: {$user->name}";
-
-                                $waService = new \App\Services\WhatsAppService();
-                                if ($pdfData['success']) {
-                                    $waService->sendFile($store->phone_number, $pdfData['url'], $msg, $store->id, $pdfData['filename']);
-                                } else {
-                                    $waService->send($store->phone_number, $msg, $store->id);
-                                }
-                            }
-                        } catch (\Exception $e) {
-                             Log::error("Purchase WhatsApp Error: " . $e->getMessage());
-                        }
-                    }
-
-                    // 2. منطق الإيميل (لصاحب المتجر)
-                    if ($store->notify_email && $store->email && $store->email_notify_purchases) {
-                        try {
-                            $emailSend = false;
-                            if ($store->email_purchases_credit_only) {
-                                if ($isCredit && $due >= $store->email_purchases_credit_min) $emailSend = true;
-                            } else {
-                                if ($netTotal >= $store->email_purchases_min) $emailSend = true;
-                                if ($isCredit && $due >= $store->email_purchases_credit_min) $emailSend = true;
-                            }
-
-                            if ($emailSend) {
-                                $data = [
-                                    'purchase' => $purchase,
-                                    'store' => $store,
-                                    'user' => $user,
-                                    'supplierName' => $supplierName,
-                                    'netTotal' => $netTotal,
-                                    'totalPaid' => $totalPaid,
-                                    'due' => $due
-                                ];
-
-                                $emailMsg = "تم تسجيل فاتورة مشتريات جديدة.\n\n";
-                                $emailMsg .= "رقم الفاتورة: #{$purchase->invoice_number}\n";
-                                $emailMsg .= "المورد: {$supplierName}\n";
-                                $emailMsg .= "الإجمالي: " . number_format($netTotal, 2) . "\n";
-                                $emailMsg .= "المدفوع: " . number_format($totalPaid, 2) . "\n";
-                                $emailMsg .= "المتبقي (آجل): " . number_format($due, 2) . "\n";
-                                $emailMsg .= "بواسطة: {$user->name}";
-
-                                Mail::raw($emailMsg, function($m) use ($store, $purchase, $pdfData) {
-                                    $m->to($store->email)->subject("فاتورة شراء #{$purchase->invoice_number}");
-                                    
-                                    if ($pdfData['success']) {
-                                        $m->attach(public_path('temp_reports/' . $pdfData['filename']));
-                                    }
-                                });
-                            }
-                        } catch (\Exception $e) {
-                            Log::error("Purchase Email Error: " . $e->getMessage());
-                        }
-                    }
+                     \App\Jobs\ProcessPurchaseNotifications::dispatch($purchase->id);
+                     // Log::info("Purchase Notification Job Dispatched: " . $purchase->id);
                 } catch (\Exception $e) {
-                    Log::error("Purchase Notification General Failed: " . $e->getMessage());
+                    Log::error("Purchase Notification Job Failed: " . $e->getMessage());
                 }
             }
 
