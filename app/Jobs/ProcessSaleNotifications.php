@@ -38,19 +38,58 @@ class ProcessSaleNotifications implements ShouldQueue
      *
      * @return void
      */
-    public function handle(WhatsAppService $whatsappService)
+    public function handle(WhatsAppService $whatsappService, \App\Services\InventoryService $inventoryService)
     {
         try {
             // Re-fetch sale with relations to ensure fresh data
-            $sale = Sale::with(['store', 'contact', 'items.product.baseUnit', 'user'])->find($this->saleId);
+            $sale = Sale::with(['store', 'contact', 'items.product.baseUnit', 'user', 'items.product.recipes'])->find($this->saleId);
 
             if (!$sale) {
                 Log::error("ProcessSaleNotifications: Sale #{$this->saleId} not found.");
                 return;
             }
 
+            // ============================================================
+            // 0. Stock Deduction & Cost Calculation (Moved to Background)
+            // ============================================================
+            Log::info("Starting Stock Deduction for Sale #{$this->saleId}");
+            foreach ($sale->items as $item) {
+                $product = $item->product; 
+                if ($product && $product->track_stock) {
+                    try {
+                        // Calculate quantity to deduct (considering unit factor)
+                        $factor = 1;
+                        if ($item->unit_id) {
+                            $unit = \App\Models\ProductUnit::find($item->unit_id);
+                            if ($unit) $factor = ($unit->is_base_unit || $unit->id == $product->base_unit_id) ? 1 : $unit->conversion_factor;
+                        }
+                        $qtyToDeduct = $item->quantity * $factor;
+
+                        // Deduct stock and get actual cost (FIFO / Recipe)
+                        $actualCost = $inventoryService->reduceStock($product, $qtyToDeduct);
+                        
+                        // Update item cost in database
+                        $item->cost = $actualCost;
+                        $item->save();
+
+                    } catch (\Exception $e) {
+                         Log::error("Stock Deduction Error (Item {$item->id}): " . $e->getMessage());
+                    }
+                }
+            }
+            Log::info("Stock Deduction Completed for Sale #{$this->saleId}");
+
+            // Reload items to get updated costs if needed for reports? 
+            // Actually, we already updated the models in memory? No, reduceStock updates Product, we updated SaleItem.
+            // We might need to refresh $sale->items if the PDF view relies on exact cost, but usually it relies on price/total.
+            // However, stock amounts listed in the alert section below need fresh product data.
+            $sale->refresh(); // Refresh sale to get any deep changes if needed
+            $items = $sale->items; // Refresh items collection with new data
+            
+            // ... Rest of the logic ...
+
             $store = $sale->store;
-            $items = $sale->items;
+            //$items = $sale->items; // Already set above
             $isWithdrawal = $sale->is_withdrawal;
 
             // ============================================================

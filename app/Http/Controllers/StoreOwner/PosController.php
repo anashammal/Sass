@@ -282,7 +282,16 @@ class PosController extends Controller
                         return response()->json(['error' => 'stock_error', 'message' => "الكمية غير كافية للمنتج: <b>{$product->name_ar}</b>"], 422);
                     }
 
-                    $itemsCosts[$index] = $inventoryService->reduceStock($product, $qtyToDeduct);
+                    // $itemsCosts[$index] = $inventoryService->reduceStock($product, $qtyToDeduct);
+                    // ⚡ تم نقل خصم المخزون للخلفية (ProcessSaleNotifications) لتسريع العملية ⚡
+                    // سنقوم بتعيين تكلفة تقديرية مؤقتة، وسيتم تصحيحها في الخلفية
+                    $estimatedCost = 0;
+                    if ($product->track_stock) {
+                        // محاولة تقدير التكلفة بناءً على آخر سعر شراء (لن يؤثر على المخزون الفعلي الآن)
+                        $baseCost = $product->last_cost_price ?? 0;
+                        $estimatedCost = $baseCost * $qtyToDeduct;
+                    }
+                    $itemsCosts[$index] = $estimatedCost;
                     
                     // ✅ التحقق من الكسور (Validation for Fractions)
                     $unitName = 'قطعة';
@@ -294,14 +303,15 @@ class PosController extends Controller
                          return response()->json(['error' => 'stock_error', 'message' => "خطأ: الوحدة ($unitName) للمنتج ({$product->name_ar}) لا تقبل الكسور!"], 422);
                     }
                     
-                    // منطق التنبيه
-                    $product->refresh();
+                    // منطق التنبيه (تحديث: بما أن الخصم في الخلفية، سنعتمد على الكمية الحالية قبل الخصم للتنبيه المبدئي)
+                    // $product->refresh(); // لا حاجة للريفرش لأننا لم نخصم
                     if ($product->track_stock) {
                         $currentStock = (float)$product->current_stock;
-                        if ($currentStock <= 0) {
-                            $stockAlerts[] = "🔴 نفذت الكمية: {$product->name_ar}";
-                        } elseif ($currentStock <= $product->alert_quantity) {
-                            $stockAlerts[] = "⚠️ مخزون منخفض: {$product->name_ar} (باقي: {$currentStock})";
+                        // تنبيه مبدئي (توقع)
+                        if (($currentStock - $qtyToDeduct) <= 0) {
+                             $stockAlerts[] = "🔴 سينفذ قريباً: {$product->name_ar}";
+                        } elseif (($currentStock - $qtyToDeduct) <= $product->alert_quantity) {
+                             $stockAlerts[] = "⚠️ مخزون منخفض: {$product->name_ar}";
                         }
                     }
                 }
