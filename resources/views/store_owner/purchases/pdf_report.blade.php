@@ -98,7 +98,7 @@
         }
         
         /* تصميم بطاقة الفاتورة مع تمييز الهدف */
-        .purchase-detail-card {
+        .sale-detail-card {
             margin-bottom: 40px;
             border: 2px solid #ddd;
             page-break-inside: avoid;
@@ -107,14 +107,14 @@
         }
         
         /* تمييز الفاتورة المستهدفة بلون خفيف */
-        .purchase-detail-card:target {
+        .sale-detail-card:target {
             border-color: #0d6efd;
             background-color: #e7f1ff;
             box-shadow: 0 0 15px rgba(13, 110, 253, 0.3);
         }
         
         .card-header {
-            background: linear-gradient(135deg, #333 0%, #555 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
             color: white;
             padding: 12px 15px;
             font-weight: bold;
@@ -124,8 +124,8 @@
         /* زر العودة للأعلى */
         .back-to-top {
             float: left;
-            background-color: #0d6efd;
-            color: white !important;
+            background-color: #fff;
+            color: #0d6efd !important;
             padding: 5px 12px;
             border-radius: 15px;
             font-size: 10px;
@@ -178,7 +178,7 @@
         
         /* أيقونة السهم */
         .arrow-down { color: #0d6efd; font-size: 14px; }
-        .arrow-up { color: white; font-size: 12px; }
+        .arrow-up { color: #0d6efd; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -216,27 +216,32 @@
     <table class="main-table">
         <thead>
             <tr>
-                <th width="20%">{{ $arabicService->shape('الإجمالي') }}</th>
-                <th width="15%">{{ $arabicService->shape('الحالة') }}</th>
-                <th width="20%">{{ $arabicService->shape('التاريخ') }}</th>
-                <th width="25%">{{ $arabicService->shape('المورد') }}</th>
-                <th width="15%">{{ $arabicService->shape('رقم الفاتورة') }}</th>
-                <th width="5%">{{ $arabicService->shape('م') }}</th>
+                <th width="18%">{{ $arabicService->shape('الإجمالي') }}</th>
+                <th width="12%">{{ $arabicService->shape('الحالة') }}</th>
+                <th width="18%">{{ $arabicService->shape('التاريخ') }}</th>
+                <th width="22%">{{ $arabicService->shape('المورد') }}</th>
+                <th width="15%">{{ $arabicService->shape('المستخدم') }}</th>
+                <th width="12%">{{ $arabicService->shape('رقم الفاتورة') }}</th>
+                <th width="3%">{{ $arabicService->shape('م') }}</th>
             </tr>
         </thead>
         <tbody>
             @foreach($purchases as $p)
+            @php
+                $status = $p->payment_status; // paid, partial, unpaid
+            @endphp
             <tr>
                 <td class="fw-bold">{{ number_format($p->grand_total, 2) }}</td>
                 <td>
-                    <span class="badge {{ $p->payment_status == 'paid' ? 'badge-paid' : ($p->payment_status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
-                        @if($p->payment_status == 'paid') {{ $arabicService->shape('مدفوع') }} @elseif($p->payment_status == 'partial') {{ $arabicService->shape('جزئي') }} @else {{ $arabicService->shape('غير مدفوع') }} @endif
+                    <span class="badge {{ $status == 'paid' ? 'badge-paid' : ($status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
+                        @if($status == 'paid') {{ $arabicService->shape('مدفوع') }} @elseif($status == 'partial') {{ $arabicService->shape('جزئي') }} @else {{ $arabicService->shape('غير مدفوع') }} @endif
                     </span>
                 </td>
                 <td>{{ \Carbon\Carbon::parse($p->invoice_date)->format('Y-m-d') }}</td>
-                <td>{{ $arabicService->shape($p->supplier->contact_name ?? '---') }}</td>
+                <td>{{ $arabicService->shape(optional($p->supplier)->contact_name ?? '---') }}</td>
+                <td>{{ $arabicService->shape(optional($p->user)->name ?? '---') }}</td>
                 <td>
-                    <a href="#invoice-{{ $p->id }}" class="invoice-link">
+                    <a href="#sale-{{ $p->id }}" class="invoice-link">
                         {{ $p->invoice_number }} <span class="arrow-down">↓</span>
                     </a>
                 </td>
@@ -251,25 +256,28 @@
     <div class="section-title">{{ $arabicService->shape('تفاصيل الفواتير والبنود') }}</div>
     
     @foreach($purchases as $p)
-    <div id="invoice-{{ $p->id }}" class="purchase-detail-card">
+    @php
+        $status = $p->payment_status;
+    @endphp
+    <div id="sale-{{ $p->id }}" class="sale-detail-card">
         <div class="card-header">
             <a href="#top" class="back-to-top">
                 <span class="arrow-up">↑</span> {{ $arabicService->shape('العودة للفهرس') }}
             </a>
-            {{ $arabicService->shape('فاتورة رقم:') }} {{ $p->invoice_number }}
+            {{ $arabicService->shape(' فاتورة رقم:') }} {{ $p->invoice_number }}
         </div>
         
         <div class="detail-info">
             <table width="100%">
                 <tr>
-                    <td align="right" width="50%"><strong>{{ $arabicService->shape('تاريخ الفاتورة:') }}</strong> {{ $p->invoice_date }}</td>
-                    <td align="right" width="50%"><strong>{{ $arabicService->shape('المورد:') }}</strong> {{ $arabicService->shape($p->supplier->contact_name ?? '---') }}</td>
+                    <td align="right" width="50%"><strong>{{ $arabicService->shape('التاريخ:') }}</strong> {{ \Carbon\Carbon::parse($p->invoice_date)->format('Y-m-d H:i') }}</td>
+                    <td align="right" width="50%"><strong>{{ $arabicService->shape('المورد:') }}</strong> {{ $arabicService->shape(optional($p->supplier)->contact_name ?? '---') }}</td>
                 </tr>
                 <tr>
                     <td align="right"><strong>{{ $arabicService->shape('الإجمالي:') }}</strong> <span class="text-primary fw-bold">{{ number_format($p->grand_total, 2) }}</span></td>
                     <td align="right"><strong>{{ $arabicService->shape('الحالة:') }}</strong> 
-                        <span class="badge {{ $p->payment_status == 'paid' ? 'badge-paid' : ($p->payment_status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
-                            @if($p->payment_status == 'paid') {{ $arabicService->shape('مدفوع') }} @elseif($p->payment_status == 'partial') {{ $arabicService->shape('جزئي') }} @else {{ $arabicService->shape('غير مدفوع') }} @endif
+                        <span class="badge {{ $status == 'paid' ? 'badge-paid' : ($status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
+                            @if($status == 'paid') {{ $arabicService->shape('مدفوع') }} @elseif($status == 'partial') {{ $arabicService->shape('جزئي') }} @else {{ $arabicService->shape('غير مدفوع') }} @endif
                         </span>
                     </td>
                 </tr>
@@ -292,7 +300,7 @@
                     <td class="fw-bold">{{ number_format($item->total_cost, 2) }}</td>
                     <td>{{ number_format($item->unit_price, 2) }}</td>
                     <td>{{ $item->quantity }}</td>
-                    <td>{{ $arabicService->shape($item->product->name_ar ?? $item->product->name) }}</td>
+                    <td>{{ $arabicService->shape($item->product->name_ar ?? $item->product->name ?? '---') }}</td>
                     <td>{{ $loop->iteration }}</td>
                 </tr>
                 @endforeach

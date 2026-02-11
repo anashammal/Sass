@@ -373,7 +373,7 @@
         fetch(fetchUrl)
             .then(res => res.json())
             .then(data => {
-            .then(data => {
+
                 // if (typeof Swal !== 'undefined') Swal.close(); // Don't verify Swal close here, let it close or handle inside
                 if (typeof Swal !== 'undefined') Swal.close();
                 

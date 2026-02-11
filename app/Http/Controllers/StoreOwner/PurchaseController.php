@@ -12,8 +12,8 @@ use App\Models\Contact;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Mail; // هذا هو سبب الخطأ الحالي
-use Illuminate\Support\Facades\Http; // ضروري للواتساب
+// use Illuminate\Support\Facades\Mail; // Unused
+// use Illuminate\Support\Facades\Http; // Unused
 use Illuminate\Support\Facades\Log;  // لتسجيل الأخطاء
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\ArabicTextService;
