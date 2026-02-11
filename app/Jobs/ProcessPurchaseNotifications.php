@@ -120,7 +120,8 @@ class ProcessPurchaseNotifications implements ShouldQueue
                         $msg .= "👤 المورد: {$supplierName}\n";
                         $msg .= "💰 القيمة: " . number_format($netTotal, 2) . "\n";
                         if($isCredit) $msg .= "❗️ آجل (دين): " . number_format($due, 2) . "\n";
-                        $msg .= "✍️ بواسطة: {$user->name}";
+                        $userName = $user ? $user->name : 'غير معروف';
+                        $msg .= "✍️ بواسطة: {$userName}";
 
                         if ($pdfData['success']) {
                             $whatsappService->sendFile($store->phone_number, $pdfData['url'], $msg, $store->id, $pdfData['filename']);
@@ -153,7 +154,8 @@ class ProcessPurchaseNotifications implements ShouldQueue
                         $emailMsg .= "الإجمالي: " . number_format($netTotal, 2) . "\n";
                         $emailMsg .= "المدفوع: " . number_format($totalPaid, 2) . "\n";
                         $emailMsg .= "المتبقي (آجل): " . number_format($due, 2) . "\n";
-                        $emailMsg .= "بواسطة: {$user->name}";
+                        $userName = $user ? $user->name : 'غير معروف';
+                        $emailMsg .= "بواسطة: {$userName}";
 
                         Mail::raw($emailMsg, function($m) use ($store, $purchase, $pdfData) {
                             $m->to($store->email)->subject("فاتورة شراء #{$purchase->invoice_number}");

@@ -33,8 +33,8 @@ class WhatsAppService
                 $phone = '966' . $phone;
             }
 
-            // الإرسال مع تجاوز SSL ومهلة قصيرة
-            $response = Http::withoutVerifying()->timeout(2)->post("{$this->baseUrl}/send-message", [
+            // الإرسال مع تجاوز SSL ومهلة كافية
+            $response = Http::withoutVerifying()->timeout(20)->post("{$this->baseUrl}/send-message", [
                 'phone' => $phone,
                 'message' => $message,
                 'session_id' => $sessionId
@@ -183,7 +183,7 @@ class WhatsAppService
         $sessionId = $storeId ? "store_{$storeId}" : "system";
         
         try {
-            $response = Http::withoutVerifying()->timeout(5)->get("{$this->baseUrl}/session-status", [
+            $response = Http::withoutVerifying()->timeout(15)->get("{$this->baseUrl}/session-status", [
                 'session_id' => $sessionId,
                 'session' => $sessionId
             ]);

@@ -309,10 +309,15 @@ class PurchaseController extends Controller
 
             if ($request->has('items')) {
                 foreach ($request->items as $itemData) {
-                    $product = Product::find($itemData['product_id']);
-                    $mainUnit = ProductUnit::find($itemData['unit_id']); 
+                    $product = Product::find($itemData['product_id'] ?? null);
+                    // Fix: Check if unit_id exists, otherwise try to use product's base unit or default
+                    $unitId = $itemData['unit_id'] ?? ($product ? $product->base_unit_id : null);
+                    $mainUnit = ProductUnit::find($unitId); 
                     
-                    if (!$product || !$mainUnit) continue;
+                    if (!$product || !$mainUnit) {
+                        // Log::warning("Skipping item in purchase due to missing product or unit", ['data' => $itemData]);
+                        continue;
+                    }
 
                     $quantity = (float)($itemData['quantity'] ?? 0);
                     $unitPrice = (float)($itemData['unit_price'] ?? 0); 
