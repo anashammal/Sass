@@ -634,7 +634,7 @@ class PurchaseController extends Controller
                           $q2->where('barcode', 'like', "%$term%");
                       });
                 })
-                ->whereIn('product_type', ['standard', 'ingredient', 'meal', 'compound'])
+                ->whereIn('product_type', ['standard', 'ingredient', 'meal'])
                 ->whereHas('units', function($q) {
                     $q->where('is_purchase', true);
                 })
