@@ -2431,5 +2431,38 @@
         </div>
     </div>
 </div>
+    <!-- ================================================== -->
+    <!-- ⚡ AUTOMATIC QUEUE WORKER (LOCAL & ONLINE) ⚡ -->
+    <!-- ================================================== -->
+    <script>
+        $(document).ready(function() {
+            // function to run queue worker
+            function runQueueWorker() {
+                $.ajax({
+                    url: "{{ route('queue.run') }}",
+                    type: "GET",
+                    timeout: 45000, // Timeout slightly less than PHP execution time
+                    success: function(response) {
+                        if(response.status === 'success') {
+                            console.log("Queue processed:", response.message);
+                        } else {
+                            console.log("Queue status:", response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        // Silent fail (don't annoy user)
+                        console.log("Queue worker pause/error");
+                    },
+                    complete: function() {
+                        // Schedule next run after 15 seconds (prevent request flooding)
+                        setTimeout(runQueueWorker, 15000);
+                    }
+                });
+            }
+            
+            // Start the worker loop after 5 seconds of page load
+            setTimeout(runQueueWorker, 5000);
+        });
+    </script>
 </body>
 </html>

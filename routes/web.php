@@ -50,7 +50,10 @@ Route::get('/system-check', function() {
     return response()->json(['status' => 'alive', 'message' => 'Connection Successful']);
 });
 
-Route::get('/', function () { 
+// تشغيل القائمة تلقائياً (AJAX)
+Route::get('/queue/run', [\App\Http\Controllers\NotificationController::class, 'runQueueWorker'])->name('queue.run');
+
+Route::get('/', function () {  
     return redirect()->route('login');
 });
 
