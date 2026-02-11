@@ -60,6 +60,9 @@ class ProcessSaleNotifications implements ShouldQueue
             $pdfUrl = null;
             $pdfName = 'invoice_' . $sale->id . '.pdf';
 
+            // Debug Logging
+            Log::info("Job Started for Sale #{$this->saleId}. Email: {$store->notify_email}, WhatsApp: {$store->notify_whatsapp}");
+
             try {
                 $arabicService = new ArabicTextService();
                 $pdf = Pdf::loadView('store_owner.pos.invoice_pdf', compact('sale', 'store', 'arabicService'))
@@ -118,6 +121,7 @@ class ProcessSaleNotifications implements ShouldQueue
             // 3. WhatsApp Notification
             // ============================================================
             if ($store->notify_whatsapp && $store->phone_number) {
+                Log::info("Entering WhatsApp Block for Sale #{$this->saleId}");
                 try {
                     $waMsg = "";
                     
@@ -168,6 +172,7 @@ class ProcessSaleNotifications implements ShouldQueue
             // 4. Email Notification
             // ============================================================
             if ($store->notify_email && $store->email) {
+                Log::info("Entering Email Block for Sale #{$this->saleId}");
                 try {
                     // Invoice Email
                     if (!$isWithdrawal && $pdfPath && file_exists($pdfPath)) {
