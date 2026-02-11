@@ -97,6 +97,24 @@
         @if($logo)
             <img src="{{ $logo }}" width="100" style="max-height: 80px;">
         @endif
+        
+        {{-- QR Code Injection (Supplier Info) --}}
+        @inject('qrService', 'App\Services\ZatcaQrService')
+        @php
+            $supplierName = $purchase->supplier ? ($purchase->supplier->company_name ?? $purchase->supplier->contact_name) : 'مورد عام';
+            $supplierTax = $purchase->supplier->tax_number ?? '000000000000000';
+            $qrData = $qrService->generate(
+                $supplierName,
+                $supplierTax,
+                $purchase->created_at->toIso8601String(),
+                $purchase->grand_total,
+                $purchase->tax_amount ?? 0
+            );
+        @endphp
+        @if($qrData)
+            <img src="{{ $qrData }}" style="position: absolute; left: 20px; top: 20px; width: 100px; height: 100px;">
+        @endif
+
         <h1>{{ $arabicService->shape($store->name) }}</h1>
         <div class="store-info">
             {{ $arabicService->shape($store->address) }} <br>

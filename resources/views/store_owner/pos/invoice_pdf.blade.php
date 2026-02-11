@@ -126,6 +126,22 @@
         @if($logo)
             <img src="{{ $logo }}" class="logo">
         @endif
+        
+        {{-- QR Code Injection --}}
+        @inject('qrService', 'App\Services\ZatcaQrService')
+        @php
+            $qrData = $qrService->generate(
+                $store->name,
+                $store->tax_number ?? '000000000000000',
+                $sale->created_at->toIso8601String(),
+                $sale->total,
+                $sale->tax ?? 0
+            );
+        @endphp
+        @if($qrData)
+            <img src="{{ $qrData }}" style="position: absolute; left: 20px; top: 20px; width: 100px; height: 100px;">
+        @endif
+
         <h1>{{ $arabicService->shape($store->name) }}</h1>
         <div class="store-info">
             {{ $arabicService->shape($store->address) }} <br>

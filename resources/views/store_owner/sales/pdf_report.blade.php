@@ -19,6 +19,14 @@
             margin-bottom: 25px;
             border-bottom: 3px solid #198754;
             padding-bottom: 20px;
+            position: relative;
+        }
+        .header img.qr-code {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80px;
+            height: 80px;
         }
         .store-name {
             font-size: 26px;
@@ -183,6 +191,23 @@
 </head>
 <body>
     <div id="top" class="header">
+        {{-- QR Code Injection (Report Summary) --}}
+        @inject('qrService', 'App\Services\ZatcaQrService')
+        @php
+            $qrData = $qrService->generate(
+                $store->name,
+                $store->tax_number ?? '000000000000000',
+                now()->toIso8601String(),
+                $totals['sum_total'] ?? 0,
+                // Assuming tax is 15% if not present, or just 0 for report summary
+                // Since this is a report, strict ZATCA validation isn't applied like e-invoicing
+                0 
+            );
+        @endphp
+        @if($qrData)
+            <img src="{{ $qrData }}" class="qr-code">
+        @endif
+
         <div class="store-name">{{ $arabicService->shape($store->name) }}</div>
         <div class="report-title">{{ $arabicService->shape('سجل المبيعات التفصيلي') }}</div>
         <div style="font-size: 10px; color: #888;">{{ $arabicService->shape('وقت التقرير:') }} {{ now()->format('Y-m-d H:i') }}</div>
