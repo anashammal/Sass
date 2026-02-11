@@ -28,21 +28,21 @@ class NotificationController extends Controller
     public function runQueueWorker()
     {
         // 1. منع التكرار باستخدام Cache Lock
-        // نستخدم Lock لمدة 60 ثانية، لضمان عدم تشغيل نفس الأمر مرتين
-        $lock = \Illuminate\Support\Facades\Cache::lock('queue_worker_lock', 60);
+        // نستخدم Lock لمدة 120 ثانية، لضمان عدم تشغيل نفس الأمر مرتين
+        $lock = \Illuminate\Support\Facades\Cache::lock('queue_worker_lock', 120);
 
         if ($lock->get()) {
             try {
                 // 2. زيادة وقت التنفيذ لتجنب Timeout
-                set_time_limit(60); 
+                set_time_limit(120); 
 
                 // 3. تشغيل الأمر (يعمل على Local و Online بنفس الكفاءة)
                 // --stop-when-empty: يتوقف عند انتهاء المهام (مناسب للـ HTTP Request)
-                // --max-time=50: أقصى مدة للتنفيذ 50 ثانية (أقل من الـ lock)
+                // --max-time=110: أقصى مدة للتنفيذ (أقل من الـ lock)
                 \Illuminate\Support\Facades\Artisan::call('queue:work', [
                     '--stop-when-empty' => true,
-                    '--max-time' => 50,
-                    '--memory' => 128
+                    '--max-time' => 110,
+                    '--memory' => 512
                 ]);
                 
                 return response()->json([

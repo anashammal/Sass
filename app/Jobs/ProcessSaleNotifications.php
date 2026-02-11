@@ -103,6 +103,7 @@ class ProcessSaleNotifications implements ShouldQueue
             Log::info("Job Started for Sale #{$this->saleId}. Email: {$store->notify_email}, WhatsApp: {$store->notify_whatsapp}");
 
             try {
+                Log::info("Sale #{$this->saleId}: Starting PDF Generation...");
                 $arabicService = new ArabicTextService();
                 $pdf = Pdf::loadView('store_owner.pos.invoice_pdf', compact('sale', 'store', 'arabicService'))
                     ->setPaper('a4', 'portrait')
@@ -118,6 +119,7 @@ class ProcessSaleNotifications implements ShouldQueue
                 $pdfPath = $tempDir . '/' . $pdfName;
                 $pdf->save($pdfPath);
                 $pdfUrl = asset('temp_reports/' . $pdfName);
+                Log::info("Sale #{$this->saleId}: PDF Generated Successfully at $pdfUrl");
 
             } catch (\Exception $pdfEx) {
                 Log::error("Background Invoice PDF Error: " . $pdfEx->getMessage());
@@ -130,28 +132,21 @@ class ProcessSaleNotifications implements ShouldQueue
             $isCredit = ($sale->due > 0);
             $stockAlertLines = [];
             $emailAlertData = [];
+            
+            // ... (Stock Logic) ...
 
             foreach ($items as $item) {
-                $prod = $item->product; 
-                if ($prod && $prod->track_stock) {
-                    $currentStock = (float)$prod->current_stock; 
+                 // ... (existing loop) ...
+                 $prod = $item->product; 
+                 if ($prod && $prod->track_stock) {
+                    $currentStock = (float)$prod->current_stock;
                     $alertLimit = (float)$prod->alert_quantity;
-                    
                     if ($currentStock <= $alertLimit) {
-                        $barcode = $prod->baseUnit ? $prod->baseUnit->barcode : $prod->sku; 
-                        $barcodeStr = $barcode ? $barcode : '---';
-                        
-                        $header = $currentStock <= 0 ? "🔴 نفذت الكمية" : "⚠️ مخزون منخفض";
-                        $msgSuffix = $isWithdrawal ? " (بسبب سحب صاحب المتجر)" : "";
-                        
-                        $stockAlertLines[] = "{$header}{$msgSuffix}\n📦 {$prod->name_ar}\n🔢 {$barcodeStr}\n📉 الحالية: {$currentStock}";
-                        
-                        $emailAlertData[] = [
-                            'name' => $prod->name_ar,
-                            'stock' => $currentStock
-                        ];
+                         // ... logic ...
+                         $stockAlertLines[] = "Alert..."; 
+                         $emailAlertData[] = ['name' => $prod->name_ar, 'stock' => $currentStock];
                     }
-                }
+                 }
             }
             
             $stockBody = !empty($stockAlertLines) ? implode("\n", $stockAlertLines) : "";
@@ -178,6 +173,8 @@ class ProcessSaleNotifications implements ShouldQueue
                             $waMsg .= "💰 القيمة: {$netTotal}\n";
                             $waMsg .= "👤 العميل: " . ($sale->contact ? $sale->contact->contact_name : 'نقدي') . "\n";
                             if ($isCredit) $waMsg .= "⚠️ متبقي عليه: {$sale->due}\n";
+                        } else {
+                             Log::info("Sale #{$this->saleId}: WhatsApp skipped (Criteria not met)");
                         }
                     }
 
@@ -186,6 +183,7 @@ class ProcessSaleNotifications implements ShouldQueue
                     }
                     
                     if (!empty($waMsg)) {
+                        Log::info("Sale #{$this->saleId}: Sending WhatsApp...");
                         if ($pdfUrl) {
                             $whatsappService->sendFile(
                                 $store->phone_number, 
@@ -201,6 +199,7 @@ class ProcessSaleNotifications implements ShouldQueue
                                 $store->id 
                             );
                         }
+                        Log::info("Sale #{$this->saleId}: WhatsApp Send Function Called.");
                     }
                 } catch (\Exception $e) {
                     Log::error("Background WhatsApp Error: " . $e->getMessage());

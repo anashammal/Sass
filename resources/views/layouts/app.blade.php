@@ -2454,8 +2454,8 @@
                         console.log("Queue worker pause/error");
                     },
                     complete: function() {
-                        // Schedule next run after 15 seconds (prevent request flooding)
-                        setTimeout(runQueueWorker, 15000);
+                        // Schedule next run after 20 seconds (prevent request flooding)
+                        setTimeout(runQueueWorker, 20000);
                     }
                 });
             }
