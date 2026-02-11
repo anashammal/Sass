@@ -175,7 +175,7 @@
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" {{ $base->is_sale ? 'checked' : '' }}>
-                                        <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+                                        <label class="form-check-label small fw-bold" for="base_is_sale">قابل للبيع</label>
                                     </div>
                                 </div>
 
@@ -396,58 +396,91 @@
         let catDiv = document.getElementById('category_div');
         let catInput = document.getElementById('category_id');
 
+        // Helper to control visibility
+        const setDisplay = (el, show) => el.style.display = show ? 'block' : 'none';
+        const setCheckDisplay = (el, show) => el.parentElement.style.display = show ? 'block' : 'none';
+
         if (type === 'meal') {
             section.style.display = 'block';
             if(extraUnitsSection) extraUnitsSection.style.display = 'none';
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
             catDiv.style.display = 'block';
+            tradeDiv.style.display = 'flex'; 
+
             catInput.required = true;
-            isSale.checked = true;
-            isPurchase.checked = false;
+            
+            // Meal: Sale Only
+            // Don't force check on Edit, respect saved value? 
+            // Actually, for consistency with Create logic and user intent ("Meal is sell only"), we can force it or at least show/hide.
+            setCheckDisplay(isSale, true); 
+            setCheckDisplay(isPurchase, false);
 
             document.getElementById('purchase_label').innerText = 'تكلفة المكونات (آلي)';
             document.getElementById('purchase_price').readOnly = true;
+
         } else if (type === 'ingredient') {
             section.style.display = 'none';
             if(extraUnitsSection) extraUnitsSection.style.display = 'none';
-            sellDiv.style.display = 'none';
-            marginDiv.style.display = 'none';
+            
             catDiv.style.display = 'none';
             catInput.required = false;
-            isSale.checked = false;
-            isPurchase.checked = true;
+            tradeDiv.style.display = 'flex';
+
+            // Purchase: Yes (Forced/Hidden or Visible/Checked) - User said "Cancel purchase box"
+            setCheckDisplay(isPurchase, false); 
+            // Ensure checked if not already? The backend might handle it, but safer to assume 'ingredient' implies purchase.
+             if(!isPurchase.checked) isPurchase.checked = true;
+
+            // Sale: Optional (Show box)
+            setCheckDisplay(isSale, true);
+            
+            // Visibility of Sell/Margin handled by toggleBaseSaleFields
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
 
             document.getElementById('purchase_label').innerText = 'سعر الشراء';
             document.getElementById('purchase_price').readOnly = false;
-        } else if (type === 'compound') { // New Compound Type
-            section.style.display = 'block'; // Shows Recipe
+
+        } else if (type === 'compound') { 
+            section.style.display = 'block'; 
             if(extraUnitsSection) extraUnitsSection.style.display = 'none';
-            sellDiv.style.display = 'none'; // No Selling Price
-            marginDiv.style.display = 'none';
             catDiv.style.display = 'none';
             catInput.required = false;
-            isSale.checked = false;
-            isPurchase.checked = false; // Internal Use
+            tradeDiv.style.display = 'flex';
+
+            // Compound: Sale (Optional), Purchase (No)
+            setCheckDisplay(isPurchase, false);
+            if(isPurchase.checked) isPurchase.checked = false; // Force uncheck
+
+            setCheckDisplay(isSale, true);
+            
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
 
             document.getElementById('purchase_label').innerText = 'تكلفة التحضير (آلي)';
             document.getElementById('purchase_price').readOnly = true;
+
         } else {
-            // Standard (Ready Product)
+            // Standard
             section.style.display = 'none';
             if(extraUnitsSection) extraUnitsSection.style.display = 'block';
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
-            catDiv.style.display = 'none'; // Hide Category for Ready Products per user request
+            catDiv.style.display = 'none'; 
             catInput.required = false;
-            isSale.checked = true;
-            isPurchase.checked = true;
+            tradeDiv.style.display = 'flex';
+
+            setCheckDisplay(isSale, true);
+            setCheckDisplay(isPurchase, true);
 
             document.getElementById('purchase_label').innerText = 'سعر الشراء';
             document.getElementById('purchase_price').readOnly = false;
         }
 
-        // Toggle Inventory Settings
+        // Trigger visibility update
+        toggleBaseSaleFields();
+        
         let invDiv = document.getElementById('inventory_settings_div');
         if (type === 'standard') {
             invDiv.style.display = 'block';

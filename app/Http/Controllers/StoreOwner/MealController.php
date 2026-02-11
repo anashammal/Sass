@@ -240,6 +240,9 @@ class MealController extends Controller
             $isLiter = in_array(strtolower($baseNameLower), ['ليتر', 'liter', 'l']) || $baseNameLower === 'ليتر';
             $isMl = in_array(strtolower($baseNameLower), ['مل', 'ml', 'milliliter']) || $baseNameLower === 'مل';
 
+            $baseIsPurchase = $request->has('base_is_purchase');
+            $baseIsSale = $request->has('base_is_sale');
+
             if ($isKg) {
                 // Base is Kg -> Create/Update Gram (Factor 0.001)
                 $product->units()->updateOrCreate(
@@ -251,8 +254,8 @@ class MealController extends Controller
                         'selling_price' => ((float)$request->base_selling_price) * 0.001,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
-                        'is_purchase' => true,
-                        'is_sale' => true
+                        'is_purchase' => $baseIsPurchase,
+                        'is_sale' => $baseIsSale
                     ]
                 );
             } elseif ($isGram) {
@@ -266,8 +269,8 @@ class MealController extends Controller
                         'selling_price' => ((float)$request->base_selling_price) * 1000,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
-                        'is_purchase' => true,
-                        'is_sale' => true
+                        'is_purchase' => $baseIsPurchase,
+                        'is_sale' => $baseIsSale
                     ]
                 );
             } elseif ($isLiter) {
@@ -281,8 +284,8 @@ class MealController extends Controller
                         'selling_price' => ((float)$request->base_selling_price) * 0.001,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
-                        'is_purchase' => true,
-                        'is_sale' => true
+                        'is_purchase' => $baseIsPurchase,
+                        'is_sale' => $baseIsSale
                     ]
                 );
             } elseif ($isMl) {
@@ -296,8 +299,8 @@ class MealController extends Controller
                         'selling_price' => ((float)$request->base_selling_price) * 1000,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
-                        'is_purchase' => true,
-                        'is_sale' => true
+                        'is_purchase' => $baseIsPurchase,
+                        'is_sale' => $baseIsSale
                     ]
                 );
             }
@@ -486,6 +489,9 @@ class MealController extends Controller
             $isLiter = in_array(strtolower($baseNameLower), ['ليتر', 'liter', 'l']) || $baseNameLower === 'ليتر';
             $isMl = in_array(strtolower($baseNameLower), ['مل', 'ml', 'milliliter']) || $baseNameLower === 'مل';
 
+            $baseIsPurchase = $request->has('base_is_purchase');
+            $baseIsSale = $request->has('base_is_sale');
+
             if ($isKg) {
                 $meal->units()->updateOrCreate(
                     ['unit_name' => 'غرام', 'product_id' => $meal->id],
@@ -496,8 +502,8 @@ class MealController extends Controller
                         'selling_price' => ((float)$request->base_selling_price) * 0.001,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
-                        'is_purchase' => true,
-                        'is_sale' => true
+                        'is_purchase' => $baseIsPurchase,
+                        'is_sale' => $baseIsSale
                     ]
                 );
             } elseif ($isGram) {
@@ -510,8 +516,8 @@ class MealController extends Controller
                         'selling_price' => ((float)$request->base_selling_price) * 1000,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
-                        'is_purchase' => true,
-                        'is_sale' => true
+                        'is_purchase' => $baseIsPurchase,
+                        'is_sale' => $baseIsSale
                     ]
                 );
             } elseif ($isLiter) {
@@ -524,8 +530,8 @@ class MealController extends Controller
                         'selling_price' => ((float)$request->base_selling_price) * 0.001,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
-                        'is_purchase' => true,
-                        'is_sale' => true
+                        'is_purchase' => $baseIsPurchase,
+                        'is_sale' => $baseIsSale
                     ]
                 );
             } elseif ($isMl) {
@@ -538,8 +544,8 @@ class MealController extends Controller
                         'selling_price' => ((float)$request->base_selling_price) * 1000,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
-                        'is_purchase' => true,
-                        'is_sale' => true
+                        'is_purchase' => $baseIsPurchase,
+                        'is_sale' => $baseIsSale
                     ]
                 );
             }

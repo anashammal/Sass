@@ -635,6 +635,9 @@ class PurchaseController extends Controller
                       });
                 })
                 ->whereIn('product_type', ['standard', 'ingredient', 'meal', 'compound'])
+                ->whereHas('units', function($q) {
+                    $q->where('is_purchase', true);
+                })
                 ->with(['units:id,product_id,unit_name,barcode,cost_price,selling_price,conversion_factor,is_base_unit,is_purchase,profit_percent']) 
                 ->take(20)
                 ->get();

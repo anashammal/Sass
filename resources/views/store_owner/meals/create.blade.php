@@ -168,7 +168,7 @@
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" checked>
-                                        <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+                                        <label class="form-check-label small fw-bold" for="base_is_sale">قابل للبيع</label>
                                     </div>
                                 </div>
                                 
@@ -341,57 +341,101 @@
         let catDiv = document.getElementById('category_div');
         let catInput = document.getElementById('category_id');
 
+        // Helper to control visibility
+        const setDisplay = (el, show) => el.style.display = show ? 'block' : 'none';
+        const setCheckDisplay = (el, show) => el.parentElement.style.display = show ? 'block' : 'none';
+
         if (type === 'meal') {
             section.style.display = 'block';
             extraUnitsSection.style.display = 'none';
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
             catDiv.style.display = 'block';
+            tradeDiv.style.display = 'flex'; // Ensure container is visible
+            
             catInput.required = true;
+            
+            // Meal: Sale Only
             isSale.checked = true;
+            setCheckDisplay(isSale, true); // Show Sale Checkbox (Optional to uncheck? Usually meals are for sale)
+            
             isPurchase.checked = false;
+            setCheckDisplay(isPurchase, false); // Hide Purchase Checkbox
 
             document.getElementById('purchase_label').innerText = 'تكلفة المكونات (آلي)';
             document.getElementById('purchase_price').readOnly = true;
+
         } else if (type === 'ingredient') {
             section.style.display = 'none';
             extraUnitsSection.style.display = 'none';
-            sellDiv.style.display = 'none';
-            marginDiv.style.display = 'none';
+            
+            // Ingredient: Purchase (Forced), Sale (Optional)
             catDiv.style.display = 'none';
             catInput.required = false;
-            isSale.checked = false;
+            tradeDiv.style.display = 'flex';
+
+            // Purchase: Yes, but hide box (User request)
             isPurchase.checked = true;
+            setCheckDisplay(isPurchase, false); 
+
+            // Sale: Default No, but Show box
+            isSale.checked = false;
+            setCheckDisplay(isSale, true);
+            
+            // Visibility of Sell/Margin depends on isSale check (handled by toggleBaseSaleFields)
+            // But we need to trigger it initially
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
 
             document.getElementById('purchase_label').innerText = 'سعر الشراء';
             document.getElementById('purchase_price').readOnly = false;
-        } else if (type === 'compound') { // New Compound Type
-            section.style.display = 'block'; // Shows Recipe
+
+        } else if (type === 'compound') { 
+            section.style.display = 'block'; 
             extraUnitsSection.style.display = 'none';
-            sellDiv.style.display = 'none'; // No Selling Price
-            marginDiv.style.display = 'none';
             catDiv.style.display = 'none';
             catInput.required = false;
+            tradeDiv.style.display = 'flex';
+
+            // Compound: Sale (Optional), Purchase (No)
+            
+            // Purchase: No, Hide box
+            isPurchase.checked = false;
+            setCheckDisplay(isPurchase, false);
+
+            // Sale: Default No, Show box
             isSale.checked = false;
-            isPurchase.checked = false; // Internal Use
+            setCheckDisplay(isSale, true);
+
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
 
             document.getElementById('purchase_label').innerText = 'تكلفة التحضير (آلي)';
             document.getElementById('purchase_price').readOnly = true;
+
         } else {
             // Standard (Ready Product)
             section.style.display = 'none';
             extraUnitsSection.style.display = 'block';
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
-            catDiv.style.display = 'none'; // Hide Category for Ready Products per user request
+            catDiv.style.display = 'none'; 
             catInput.required = false;
+            tradeDiv.style.display = 'flex';
+
             isSale.checked = true;
+            setCheckDisplay(isSale, true);
+
             isPurchase.checked = true;
+            setCheckDisplay(isPurchase, true);
 
             document.getElementById('purchase_label').innerText = 'سعر الشراء';
             document.getElementById('purchase_price').readOnly = false;
         }
 
+        // Trigger visibility update for Sale fields based on the new isSale state
+        toggleBaseSaleFields();
+        
         // Toggle Inventory Settings
         let invDiv = document.getElementById('inventory_settings_div');
         if (type === 'standard') {

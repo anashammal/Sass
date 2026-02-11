@@ -95,15 +95,38 @@ class PosController extends Controller
                       });
                 });
 
-            // للمطاعم: لا تظهر المكونات الخام في البيع (POS)
-            $store = Auth::user()->store;
-            if ($store->type == 'restaurant') {
-                $query->where('product_type', '!=', 'ingredient');
-            }
+            // Filter by Sale-ability
+            // For Standard/Meal: Show if ANY unit is sellable (default logic)
+            // For Ingredient/Compound: Show ONLY if Base Unit is sellable (User's specific checkbox)
+            $query->where(function($q) {
+                 $q->whereIn('product_type', ['standard', 'meal'])
+                   ->whereHas('units', function($u) {
+                        $u->where('is_sale', true);
+                   });
+            })->orWhere(function($q) {
+                 $q->whereIn('product_type', ['ingredient', 'compound'])
+                   ->whereHas('units', function($u) {
+                        $u->where('is_base_unit', true)->where('is_sale', true);
+                   });
+            });
+
+            // Removed hardcoded removal of ingredients for restaurants
+            // if ($store->type == 'restaurant') { ... }
 
             $products = $query->with(['baseUnit', 'units']) 
                 ->take(20)
                 ->get();
+
+            // DEBUG LOGGING
+            if (strpos($term, 'حليب') !== false || strpos($term, 'Milk') !== false) {
+                Log::info("POS Search for '$term'");
+                foreach ($products as $p) {
+                    Log::info("Found: {$p->name_ar} ({$p->product_type})");
+                    foreach ($p->units as $u) {
+                        Log::info(" - Unit: {$u->unit_name} [{$u->id}] -> is_sale: " . ($u->is_sale ? 'TRUE' : 'FALSE'));
+                    }
+                }
+            }
 
             $results = $products->map(function($p) use ($term) {
                 $productImg = $p->image_url; 

@@ -53,6 +53,14 @@ Route::get('/system-check', function() {
 // تشغيل القائمة تلقائياً (AJAX)
 Route::get('/queue/run', [\App\Http\Controllers\NotificationController::class, 'runQueueWorker'])->name('queue.run');
 
+Route::get('/debug-products', function() {
+    return App\Models\Product::where('name_ar', 'like', '%حليب%') // Milk
+           ->orWhere('product_type', 'compound')
+           ->with('units')
+           ->take(10)
+           ->get();
+});
+
 Route::get('/', function () {  
     return redirect()->route('login');
 });
