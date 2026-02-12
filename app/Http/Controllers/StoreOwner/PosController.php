@@ -381,6 +381,9 @@ class PosController extends Controller
             $sale->total = $netTotal; $sale->discount = $discountAmount;
             $sale->rounding = $roundingDiff; $sale->paid = $totalPaid;
             $sale->due = max(0, $debtAmount);
+            $sale->show_iban = $request->input('show_iban', 0);
+            $sale->show_stamp = $request->input('show_stamp', 0);
+            $sale->show_signature = $request->input('show_signature', 0);
             
             if ($isWithdrawal) {
                 $sale->is_withdrawal = true;

@@ -448,27 +448,43 @@
                                 </div>
 
                                 <hr>
-                                <div class="mb-3">
-                                    <h6 class="text-primary fw-bold mb-3"><i class="fa fa-university me-2"></i> بيانات الحساب البنكي</h6>
-                                    <div class="row g-2">
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">اسم البنك</label>
-                                            <input type="text" name="iban_bank_name" class="form-control" value="{{ old('iban_bank_name', $store->iban_bank_name) }}" placeholder="مثال: كويت ترك">
-                                        </div>
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">اسم صاحب الحساب</label>
-                                            <input type="text" name="bank_account_holder" class="form-control" value="{{ old('bank_account_holder', $store->bank_account_holder) }}" placeholder="الاسم كما يظهر في البنك">
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label">رقم الآيبان (IBAN)</label>
-                                            <input type="text" name="iban" class="form-control" value="{{ old('iban', $store->iban) }}" placeholder="TR00 0000 0000...">
-                                        </div>
-                                    </div>
-                                    <div class="mt-2">
-                                        <div class="alert alert-info py-2 px-3 small border-0 shadow-none">
-                                            <i class="fa fa-info-circle me-1"></i> هذه البيانات تظهر للعملاء في الفواتير لتسهيل التحويل البنكي اليدوي.
-                                        </div>
-                                    </div>
+                                                                <div class="mb-3">
+                                     <h6 class="text-primary fw-bold mb-3"><i class="fa fa-university me-2"></i> بيانات الحساب البنكي</h6>
+                                     <div class="row g-2">
+                                         <div class="col-md-4 mb-2">
+                                             <label class="form-label">دولة البنك</label>
+                                             <select name="bank_country" id="bank_country_select" class="form-select"></select>
+                                         </div>
+                                         <div class="col-md-4 mb-2">
+                                             <label class="form-label">اسم البنك</label>
+                                             <select name="iban_bank_name" id="bank_name_select" class="form-select">
+                                                 <option value="">اختر دولة البنك أولاً...</option>
+                                             </select>
+                                             <input type="text" name="bank_name_manual" id="bank_name_manual" class="form-control d-none mt-2" placeholder="اكتب اسم البنك يدوياً">
+                                         </div>
+                                         <div class="col-md-4 mb-2">
+                                             <label class="form-label">اسم صاحب الحساب</label>
+                                             <input type="text" name="bank_account_holder" class="form-control" value="{{ old('bank_account_holder', $store->bank_account_holder) }}" placeholder="الاسم كما يظهر في البنك">
+                                         </div>
+                                         <div class="col-12">
+                                             <label class="form-label">رقم الآيبان (IBAN)</label>
+                                             <div class="input-group" dir="ltr">
+                                                 <span class="input-group-text fw-bold" id="iban_prefix" style="min-width: 50px; justify-content: center; background: #e9ecef; font-family: monospace; font-size: 16px;">--</span>
+                                                 <input type="text" name="iban" id="iban_input" class="form-control fw-bold" 
+                                                        value="{{ old('iban', $store->iban) }}"
+                                                        placeholder="Enter IBAN number"
+                                                        dir="ltr"
+                                                        style="letter-spacing: 2px; font-size: 15px; font-family: monospace;">
+                                             </div>
+                                             <div class="form-text" id="iban_hint">اختر دولة البنك لمعرفة صيغة الآيبان الصحيحة</div>
+                                         </div>
+                                     </div>
+                                     <div class="mt-2">
+                                         <div class="alert alert-info py-2 px-3 small border-0 shadow-none">
+                                             <i class="fa fa-info-circle me-1"></i> هذه البيانات تظهر للعملاء في الفواتير لتسهيل التحويل البنكي اليدوي.
+                                         </div>
+                                     </div>
+                                 </div>
                                 </div>
 
                                 {{-- ✅ قائمة التوقيت الجديدة والشاملة ✅ --}}
@@ -649,26 +665,174 @@
     .clock-card input:checked + div { border: 2px solid blue !important; font-weight: bold; }
 </style>
 
+@endsection
+
 @section('scripts')
-{{-- مكتبات ضرورية --}}
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+{{-- لضمان عمل كافة المكونات بشكل صحيح وبدون تكرار للمكتبات --}}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
-    // تعريف المتغيرات العامة
+    // 1. تعريف المتغيرات العامة (Global Scope)
     let lastQrCode = null;
-    let isWhatsAppConfirmed = {{ $store->is_whatsapp_linked ? 'true' : 'false' }};
+    let isWhatsAppConfirmed = {{ isset($whatsappData['connected']) && $whatsappData['connected'] ? 'true' : 'false' }};
 
-    // ================= 1. دوال الساعة والصور =================
+    // --- نظام بيانات البنك والآيبان المطور ---
+    const COUNTRIES_GLOBAL = [
+        { code: "af", ar: "أفغانستان", en: "Afghanistan" }, { code: "al", ar: "ألبانيا", en: "Albania" },
+        { code: "dz", ar: "الجزائر", en: "Algeria" }, { code: "ad", ar: "أندورا", en: "Andorra" },
+        { code: "ao", ar: "أنغولا", en: "Angola" }, { code: "ar", ar: "الأرجنتين", en: "Argentina" },
+        { code: "am", ar: "أرمينيا", en: "Armenia" }, { code: "au", ar: "أستراليا", en: "Australia" },
+        { code: "at", ar: "النمسا", en: "Austria" }, { code: "az", ar: "أذربيجان", en: "Azerbaijan" },
+        { code: "bh", ar: "البحرين", en: "Bahrain" }, { code: "bd", ar: "بنغلاديش", en: "Bangladesh" },
+        { code: "by", ar: "بيلاروسيا", en: "Belarus" }, { code: "be", ar: "بلجيكا", en: "Belgium" },
+        { code: "bj", ar: "بنين", en: "Benin" }, { code: "bo", ar: "بوليفيا", en: "Bolivia" },
+        { code: "ba", ar: "البوسنة والهرسك", en: "Bosnia And Herzegovina" }, { code: "bw", ar: "بوتسوانا", en: "Botswana" },
+        { code: "br", ar: "البرازيل", en: "Brazil" }, { code: "bn", ar: "بروناي", en: "Brunei" },
+        { code: "bg", ar: "بلغاريا", en: "Bulgaria" }, { code: "kh", ar: "كمبوديا", en: "Cambodia" },
+        { code: "cm", ar: "الكاميرون", en: "Cameroon" }, { code: "ca", ar: "كندا", en: "Canada" },
+        { code: "cl", ar: "تشيلي", en: "Chile" }, { code: "cn", ar: "الصين", en: "China" },
+        { code: "co", ar: "كولومبيا", en: "Colombia" }, { code: "cr", ar: "كوستاريكا", en: "Costa Rica" },
+        { code: "hr", ar: "كرواتيا", en: "Croatia" }, { code: "cu", ar: "كوبا", en: "Cuba" },
+        { code: "cy", ar: "قبرص", en: "Cyprus" }, { code: "cz", ar: "التشيك", en: "Czech Republic" },
+        { code: "dk", ar: "الدانمرك", en: "Denmark" }, { code: "dj", ar: "جيبوتي", en: "Djibouti" },
+        { code: "do", ar: "جمهورية الدومينيكان", en: "Dominican Republic" }, { code: "ec", ar: "الإكوادور", en: "Ecuador" },
+        { code: "eg", ar: "مصر", en: "Egypt" }, { code: "sv", ar: "السلفادور", en: "El Salvador" },
+        { code: "ee", ar: "إستونيا", en: "Estonia" }, { code: "et", ar: "إثيوبيا", en: "Ethiopia" },
+        { code: "fj", ar: "فيجي", en: "Fiji" }, { code: "fi", ar: "فنلندا", en: "Finland" },
+        { code: "fr", ar: "فرنسا", en: "France" }, { code: "ge", ar: "جورجيا", en: "Georgia" },
+        { code: "de", ar: "ألمانيا", en: "Germany" }, { code: "gh", ar: "غانا", en: "Ghana" },
+        { code: "gr", ar: "اليونان", en: "Greece" }, { code: "gt", ar: "غواتيمالا", en: "Guatemala" },
+        { code: "hn", ar: "هندوراس", en: "Honduras" }, { code: "hk", ar: "هونغ كونغ", en: "Hong Kong" },
+        { code: "hu", ar: "المجر", en: "Hungary" }, { code: "is", ar: "آيسلندا", en: "Iceland" },
+        { code: "in", ar: "الهند", en: "India" }, { code: "id", ar: "إندونيسيا", en: "Indonesia" },
+        { code: "ir", ar: "إيران", en: "Iran" }, { code: "iq", ar: "العراق", en: "Iraq" },
+        { code: "ie", ar: "أيرلندا", en: "Ireland" }, { code: "il", ar: "إسرائيل", en: "Israel" },
+        { code: "it", ar: "إيطاليا", en: "Italy" }, { code: "jm", ar: "جامايكا", en: "Jamaica" },
+        { code: "jp", ar: "اليابان", en: "Japan" }, { code: "jo", ar: "الأردن", en: "Jordan" },
+        { code: "kz", ar: "كازاخستان", en: "Kazakhstan" }, { code: "ke", ar: "كينيا", en: "Kenya" },
+        { code: "kw", ar: "الكويت", en: "Kuwait" }, { code: "kg", ar: "قيرغيزستان", en: "Kyrgyzstan" },
+        { code: "la", ar: "لاوس", en: "Laوس" }, { code: "lv", ar: "لاتفيا", en: "Latvia" },
+        { code: "lb", ar: "لبنان", en: "Lebanon" }, { code: "ly", ar: "ليبيا", en: "Libya" },
+        { code: "lt", ar: "ليتوانيا", en: "Lithuania" }, { code: "lu", ar: "لوكسمبورغ", en: "Luxembourg" },
+        { code: "my", ar: "ماليزيا", en: "Malaysia" }, { code: "mv", ar: "المالديف", en: "Maldives" },
+        { code: "mt", ar: "مالطا", en: "Malta" }, { code: "mx", ar: "المكسيك", en: "Mexico" },
+        { code: "md", ar: "مولدوفا", en: "Moldova" }, { code: "mc", ar: "موناكو", en: "Monaco" },
+        { code: "mn", ar: "منغوليا", en: "Mongolia" }, { code: "me", ar: "الجبل الأسود", en: "Montenegro" },
+        { code: "ma", ar: "المغرب", en: "Morocco" }, { code: "mm", ar: "ميانمار", en: "Myanmar" },
+        { code: "np", ar: "نيبال", en: "Nepal" }, { code: "nl", ar: "هولندا", en: "Netherlands" },
+        { code: "nz", ar: "نيوزيلندا", en: "New Zealand" }, { code: "ni", ar: "نيكاراغوا", en: "Nicaragua" },
+        { code: "ng", ar: "نيجيريا", en: "Nigeria" }, { code: "no", ar: "النرويج", en: "Norway" },
+        { code: "om", ar: "عُمان", en: "Oman" }, { code: "pk", ar: "باكستان", en: "Pakistan" },
+        { code: "ps", ar: "فلسطين", en: "Palestine" }, { code: "pa", ar: "بنما", en: "Panama" },
+        { code: "py", ar: "باراغواي", en: "Paraguay" }, { code: "pe", ar: "بيرو", en: "Peru" },
+        { code: "ph", ar: "الفلبين", en: "Philippines" }, { code: "pl", ar: "بولندا", en: "Poland" },
+        { code: "pt", ar: "البرتغال", en: "Portugal" }, { code: "qa", ar: "قطر", en: "Qatar" },
+        { code: "ro", ar: "رومانيا", en: "Romania" }, { code: "ru", ar: "روسيا", en: "Russia" },
+        { code: "rw", ar: "رواندا", en: "Rwanda" }, { code: "sa", ar: "السعودية", en: "Saudi Arabia" },
+        { code: "sn", ar: "السنغال", en: "Senegal" }, { code: "rs", ar: "صربيا", en: "Serbia" },
+        { code: "sg", ar: "سنغافورة", en: "Singapore" }, { code: "sk", ar: "سلوفاكيا", en: "Slovakia" },
+        { code: "si", ar: "سلوفينيا", en: "Slovenia" }, { code: "so", ar: "الصومال", en: "Somalia" },
+        { code: "za", ar: "جنوب أفريقيا", en: "South Africa" }, { code: "kr", ar: "كوريا الجنوبية", en: "South Korea" },
+        { code: "ss", ar: "جنوب السودان", en: "South Sudan" }, { code: "es", ar: "إسبانيا", en: "Spain" },
+        { code: "lk", ar: "سريلانكا", en: "Sri Lanka" }, { code: "sd", ar: "السودان", en: "Sudan" },
+        { code: "se", ar: "السويد", en: "Sweden" }, { code: "ch", ar: "سويسرا", en: "Switzerland" },
+        { code: "sy", ar: "سوريا", en: "Syria" }, { code: "tw", ar: "تايوان", en: "Taiwan" },
+        { code: "tj", ar: "طاجيكستان", en: "Tajikistan" }, { code: "tz", ar: "تنزانيا", en: "Tanzania" },
+        { code: "th", ar: "تايلاند", en: "Thailand" }, { code: "tn", ar: "تونس", en: "Tunisia" },
+        { code: "tr", ar: "تركيا", en: "Turkey" }, { code: "tm", ar: "تركمانستان", en: "Turkmenistan" },
+        { code: "ug", ar: "أوغندا", en: "Uganda" }, { code: "ua", ar: "أوكرانيا", en: "Ukraine" },
+        { code: "ae", ar: "الإمارات", en: "United Arab Emirates" }, { code: "gb", ar: "المملكة المتحدة", en: "United Kingdom" },
+        { code: "us", ar: "الولايات المتحدة", en: "United States" }, { code: "uy", ar: "أوروغواي", en: "Uruguay" },
+        { code: "uz", ar: "أوزبكستان", en: "Uzbekistan" }, { code: "ve", ar: "فنزويلا", en: "Venezuela" },
+        { code: "vn", ar: "فيتنام", en: "Vietnam" }, { code: "ye", ar: "اليمن", en: "Yemen" },
+        { code: "zm", ar: "زامبيا", en: "Zambia" }, { code: "zw", ar: "زيمبابوي", en: "Zimbabwe" }
+    ];
+
+    const BANK_DATA_GLOBAL = {
+        'SA': { banks: ['البنك الأهلي السعودي', 'مصرف الراجحي', 'بنك الرياض', 'البنك السعودي الفرنسي', 'البنك السعودي البريطاني (ساب)', 'بنك البلاد', 'بنك الجزيرة', 'بنك الإنماء', 'البنك العربي الوطني', 'STC Pay'] },
+        'AE': { banks: ['بنك أبوظبي الأول', 'بنك الإمارات دبي الوطني', 'بنك دبي الإسلامي', 'مصرف أبوظبي الإسلامي', 'بنك المشرق', 'بنك رأس الخيمة الوطني'] },
+        'TR': { banks: ['Ziraat Bankası', 'İş Bankası', 'Garanti BBVA', 'Yapı Kredi', 'Akbank', 'Halkbank', 'VakıfBank', 'QNB Finansbank', 'Denizbank', 'TEB', 'Kuveyt Türk', 'Albaraka Türk', 'PTT Bank'] },
+        'EG': { banks: ['البنك الأهلي المصري', 'بنك مصر', 'بنك القاهرة', 'البنك التجاري الدولي CIB', 'بنك الإسكندرية', 'البنك العربي الأفريقي', 'بنك QNB الأهلي'] },
+        'JO': { banks: ['البنك العربي', 'بنك الإسكان', 'البنك الأهلي الأردني', 'بنك الأردن', 'البنك الإسلامي الأردني', 'بنك القاهرة عمان'] },
+        'KW': { banks: ['بنك الكويت الوطني', 'بيت التمويل الكويتي', 'بنك برقان', 'البنك التجاري الكويتي', 'بنك الخليج', 'بنك بوبيان'] },
+        'IQ': { banks: ['مصرف الرافدين', 'مصرف الرشيد', 'البنك التجاري العراقي', 'البنك الأهلي العراقي', 'مصرف بغداد'] },
+    };
+
+    const IBAN_LENGTHS_GLOBAL = {
+        'AL':28,'AD':24,'AT':20,'AZ':28,'BH':22,'BY':28,'BE':16,'BA':20,'BR':29,'BG':22,
+        'CR':22,'HR':21,'CY':28,'CZ':24,'DK':18,'DO':28,'TL':23,'EE':20,'FO':18,'FI':18,
+        'FR':27,'GE':22,'DE':22,'GI':23,'GR':27,'GL':18,'GT':28,'HU':28,'IS':26,'IQ':23,
+        'IE':22,'IL':23,'IT':27,'JO':30,'KZ':20,'XK':20,'KW':30,'LV':21,'LB':28,'LI':21,
+        'LT':20,'LU':20,'MK':19,'MT':31,'MR':27,'MU':30,'MC':27,'MD':24,'ME':22,'NL':18,
+        'NO':15,'PK':24,'PS':29,'PL':28,'PT':25,'QA':29,'RO':24,'LC':32,'SM':27,'ST':25,
+        'SA':24,'RS':22,'SC':31,'SK':24,'SI':19,'ES':24,'SD':18,'SE':24,'CH':21,'TN':24,
+        'TR':26,'UA':29,'AE':23,'GB':22,'VA':22,'VG':24,'EG':29,'OM':23,'SY':24
+    };
+
+    function getCode(name) {
+        if (!name) return ""; name = name.trim().toLowerCase();
+        const f = COUNTRIES_GLOBAL.find(c => c.code.toLowerCase() === name || c.ar.toLowerCase() === name || c.en.toLowerCase() === name);
+        return f ? f.code.toUpperCase() : "";
+    }
+
+    // --- 2. دوال الواتساب ---
+    function checkWhatsApp() {
+        $.get("{{ route('store.whatsapp.status') }}")
+        .done(function(res) {
+            $('#wa_loading').hide(); 
+            if (res.connected || res.is_authenticated) {
+                $('#wa_qr').hide(); $('#wa_connected').show(); $('#wa_error').hide();
+                if(res.user) {
+                    let cleanNumber = (res.user.id || '').split(':')[0];
+                    $('#wa_number_display').text(cleanNumber);
+                    $('#wa_name_display').text(res.user.name || 'مستخدم واتساب');
+                }
+                isWhatsAppConfirmed = true; enforceNotificationRules(true);
+                $('#wa_status_badge').text('متصل').removeClass().addClass('badge bg-success text-white');
+            } else {
+                $('#wa_connected').hide(); $('#wa_qr').show(); $('#wa_error').hide();
+                if (!res.qr) {
+                    if (!document.getElementById("qrcode_canvas").innerHTML.trim()) {
+                        document.getElementById("qrcode_canvas").innerHTML = "<div class='text-muted small py-3'><i class='fas fa-sync fa-spin'></i> جاري التجهيز...</div>";
+                    }
+                } else if (res.qr !== lastQrCode) {
+                    document.getElementById("qrcode_canvas").innerHTML = "";
+                    new QRCode(document.getElementById("qrcode_canvas"), { text: res.qr, width: 160, height: 160, correctLevel : QRCode.Level.M });
+                    lastQrCode = res.qr;
+                }
+                isWhatsAppConfirmed = false; enforceNotificationRules(false);
+                $('#wa_status_badge').text('غير متصل').removeClass().addClass('badge bg-danger text-white');
+            }
+        });
+    }
+
+    function enforceNotificationRules(connected) {
+        const waWarning = document.querySelector('.wa-warning-msg');
+        const waContainer = document.getElementById('wa_notify_container');
+        if (connected) {
+            if(waContainer) { waContainer.classList.remove('bg-light'); waContainer.classList.add('bg-success', 'bg-opacity-10'); }
+            if(waWarning) waWarning.style.display = 'none';
+        } else {
+            if(waContainer) { waContainer.classList.remove('bg-success', 'bg-opacity-10'); waContainer.classList.add('bg-light'); }
+            if(waWarning) waWarning.style.display = 'block';
+        }
+    }
+
+    function logoutWhatsApp() {
+        if(!confirm('هل أنت متأكد من فك ارتباط الواتساب؟')) return;
+        $('#wa_connected').hide(); $('#wa_loading').show();
+        $.post("{{ route('store.whatsapp.logout') }}", { _token: '{{ csrf_token() }}' })
+        .always(function() { lastQrCode = null; document.getElementById("qrcode_canvas").innerHTML = ""; setTimeout(checkWhatsApp, 1000); });
+    }
+
     function toggleClockThemes() {
-        // ✅ التعديل هنا: استخدام المعرف الصحيح (t_dig)
         const dig = document.getElementById('t_dig');
         if(dig && dig.checked) {
-            document.getElementById('digital_themes').style.display = 'block';
-            document.getElementById('analog_themes').style.display = 'none';
+            if(document.getElementById('digital_themes')) document.getElementById('digital_themes').style.display = 'block';
+            if(document.getElementById('analog_themes')) document.getElementById('analog_themes').style.display = 'none';
         } else {
-            document.getElementById('digital_themes').style.display = 'none';
-            document.getElementById('analog_themes').style.display = 'block';
+            if(document.getElementById('digital_themes')) document.getElementById('digital_themes').style.display = 'none';
+            if(document.getElementById('analog_themes')) document.getElementById('analog_themes').style.display = 'block';
         }
     }
 
@@ -676,210 +840,127 @@
         if (input.files && input.files[0]) {
             var reader = new FileReader();
             reader.onload = function(e) {
-                if(document.getElementById(placeholderId)) {
-                    document.getElementById(placeholderId).style.display = 'none';
-                }
-                var img = document.getElementById(imgId);
-                img.style.display = 'block';
-                img.src = e.target.result;
+                if(document.getElementById(placeholderId)) document.getElementById(placeholderId).style.display = 'none';
+                var img = document.getElementById(imgId); img.style.display = 'block'; img.src = e.target.result;
             }
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-// ================= 2. منطق الإشعارات (تعديل: عدم قفل الأزرار) =================
-    function enforceNotificationRules(isConnected) {
-        const waWarning = document.querySelector('.wa-warning-msg');
-        const waContainer = document.getElementById('wa_notify_container');
-
-        if (isConnected) {
-            // ✅ متصل: شكل أخضر
-            if(waContainer) {
-                waContainer.classList.remove('bg-light');
-                waContainer.classList.add('bg-success', 'bg-opacity-10');
-            }
-            if(waWarning) waWarning.style.display = 'none';
-
-        } else {
-            // ❌ غير متصل: شكل رمادي وتنبيه (لكن الزر يعمل)
-            if(waContainer) {
-                waContainer.classList.remove('bg-success', 'bg-opacity-10');
-                waContainer.classList.add('bg-light');
-            }
-            if(waWarning) waWarning.style.display = 'block';
-        }
-    }
-
-    // ================= 3. فحص حالة الواتساب =================
-    function checkWhatsApp() {
-    $.ajax({
-    url: "{{ route('store.whatsapp.status') }}", // ✅ تم إزالة false ليستخدم الرابط الكامل الصحيح
-    method: "GET",
-    dataType: "json",
-    cache: false
-})
-
-    .done(function(res) {
-        $('#wa_loading').hide();
-        $('#wa_error').hide();
-
-        if (res && res.error) {
-            $('#wa_error').show();
-            $('#wa_status_badge').text('غير متاح').removeClass().addClass('badge bg-danger text-white');
-            return;
-        }
-
-        if (res.connected || res.is_authenticated) {
-            // 🟢 متصل
-            $('#wa_qr').hide();
-            $('#wa_connected').show();
-            $('#wa_status_badge').text('متصل').removeClass().addClass('badge bg-success text-white');
-
-            if(res.user) {
-                // تنظيف الرقم من الرموز الزائدة لبيان الجمالية
-                let cleanNum = (res.user.id || '').split('@')[0];
-                $('#wa_number').text(cleanNum);
-                $('#wa_name').text(res.user.name || 'WhatsApp User');
-            }
-            lastQrCode = null; // إعادة ضبط لكي يظهر QR فوراً إذا فصل من الجوال
-            return;
-        }
-
-        // 🟡 غير متصل أو فصل من الجوال
-        $('#wa_connected').hide();
-        $('#wa_qr').show();
-        $('#wa_status_badge').text('بانتظار المسح').removeClass().addClass('badge bg-warning text-dark');
-
-        if (!res.qr) {
-            document.getElementById("qrcode_canvas").innerHTML =
-                "<div class='text-muted small py-3'><i class='fas fa-sync fa-spin me-1'></i> جارٍ تجهيز الكود...</div>";
-            lastQrCode = null;
-            return;
-        }
-
-        if (res.qr !== lastQrCode) {
-            document.getElementById("qrcode_canvas").innerHTML = "";
-            new QRCode(document.getElementById("qrcode_canvas"), {
-                text: res.qr, width: 140, height: 140,
-                correctLevel : QRCode.CorrectLevel.M
+    // --- 3. قوقل ماب وإدارة المواقع ---
+    let map, marker, autocomplete;
+    function initMap() {
+        const latEl = document.getElementById("latitude");
+        const lngEl = document.getElementById("longitude");
+        const lat = parseFloat(latEl ? latEl.value : 24.7136) || 24.7136;
+        const lng = parseFloat(lngEl ? lngEl.value : 46.6753) || 46.6753;
+        const initialPos = { lat: lat, lng: lng };
+        map = new google.maps.Map(document.getElementById("map"), { center: initialPos, zoom: 12, mapTypeControl: false });
+        marker = new google.maps.Marker({ position: initialPos, map: map, draggable: true });
+        marker.addListener("dragend", () => { const pos = marker.getPosition(); updateCoords(pos.lat(), pos.lng()); reverseGeocode(pos); });
+        const addressInput = document.getElementById("address");
+        if(addressInput) {
+            autocomplete = new google.maps.places.Autocomplete(addressInput);
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace(); if (!place.geometry) return;
+                map.setCenter(place.geometry.location); marker.setPosition(place.geometry.location);
+                updateCoords(place.geometry.location.lat(), place.geometry.location.lng());
             });
-            lastQrCode = res.qr;
         }
-    })
-    .fail(function(jqXHR, textStatus, errorThrown) {
-        // لا نحتاج للتنبيه المزعج كل 4 ثواني، نكتفي بالحالة
-        $('#wa_loading').hide();
-        $('#wa_qr').hide();
-        $('#wa_connected').hide();
-        $('#wa_error').show();
-        $('#wa_status_badge').text('عطل في السيرفر').removeClass().addClass('badge bg-danger text-white');
-    });
-}
-
-
-    function logoutWhatsApp() {
-        if(!confirm('هل أنت متأكد من فك ارتباط واتساب؟')) return;
-        
-        // تغيير فوري للواجهة لكي لا يشعر المستخدم بالثقل
-        $('#wa_connected').hide(); 
-        $('#wa_loading').show();
-        $('#wa_status_badge').text('جاري المعالجة...').removeClass().addClass('badge bg-secondary text-white');
-        
-        $.post("{{ route('store.whatsapp.logout') }}", { _token: '{{ csrf_token() }}' })
-        .always(function() { 
-            // دائماً أعد ضبط الـ QR لكي يظهر الجديد فوراً
-            lastQrCode = null;
-            document.getElementById("qrcode_canvas").innerHTML = "";
-            isWhatsAppConfirmed = false;
-            enforceNotificationRules(false);
-            
-            // انتظر قليلاً ثم افحص لضمان تحديث السيرفر
-            setTimeout(checkWhatsApp, 1000); 
-        });
+    }
+    function updateCoords(lat, lng) { 
+        if(document.getElementById("latitude")) document.getElementById("latitude").value = lat; 
+        if(document.getElementById("longitude")) document.getElementById("longitude").value = lng; 
+    }
+    function reverseGeocode(pos) { 
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: pos }, (results, status) => { 
+            if (status === "OK" && results[0] && document.getElementById("address")) document.getElementById("address").value = results[0].formatted_address; 
+        }); 
     }
 
-    // ================= التشغيل =================
-    document.addEventListener("DOMContentLoaded", function() {
-        // تطبيق القواعد فوراً
+    // --- 4. التشغيل عند التحميل ---
+    $(document).ready(function() {
         enforceNotificationRules(isWhatsAppConfirmed);
         toggleClockThemes();
-        
-        // تشغيل الفحص الدوري
         checkWhatsApp();
-        setInterval(checkWhatsApp, 2000);
-    });
+        setInterval(checkWhatsApp, 5000);
 
-    // --- قوقل ماب وإدارة المواقع ---
-    let map, marker, autocomplete;
+        const $bc = $('#bank_country_select');
+        const $bn = $('#bank_name_select');
+        const $ib = $('#iban_input');
+        const $pr = $('#iban_prefix');
+        const $hi = $('#iban_hint');
 
-    function initMap() {
-        const lat = parseFloat(document.getElementById("latitude").value) || 24.7136;
-        const lng = parseFloat(document.getElementById("longitude").value) || 46.6753;
-        const initialPos = { lat: lat, lng: lng };
-
-        map = new google.maps.Map(document.getElementById("map"), {
-            center: initialPos, zoom: (document.getElementById("latitude").value ? 15 : 12), mapTypeControl: false,
+        // تعبئة الدول فوراً باستخدام جيكويري
+        $bc.empty().append('<option value="">اختر دولة البنك...</option>');
+        COUNTRIES_GLOBAL.forEach(c => {
+            $bc.append($('<option>', { value: c.code.toUpperCase(), text: c.ar + ' - ' + c.en }).attr('data-ar', c.ar));
         });
 
-        marker = new google.maps.Marker({
-            position: initialPos, map: map, draggable: true, animation: google.maps.Animation.DROP,
-        });
+        // تفعيل Select2 إذا كان موجوداً
+        if ($.fn.select2) {
+            $bc.select2({ theme: 'bootstrap-5', dir: 'rtl', width: '100%' });
+            $bn.select2({ theme: 'bootstrap-5', dir: 'rtl', width: '100%' });
+        }
 
-        marker.addListener("dragend", () => {
-            const pos = marker.getPosition();
-            updateCoords(pos.lat(), pos.lng());
-            reverseGeocode(pos);
-        });
-
-        const addressInput = document.getElementById("address");
-        autocomplete = new google.maps.places.Autocomplete(addressInput);
-        autocomplete.bindTo("bounds", map);
-
-        autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry || !place.geometry.location) return;
-            if (place.geometry.viewport) map.fitBounds(place.geometry.viewport);
-            else { map.setCenter(place.geometry.location); map.setZoom(17); }
-            marker.setPosition(place.geometry.location);
-            updateCoords(place.geometry.location.lat(), place.geometry.location.lng());
-        });
-
-        map.addListener("click", (e) => {
-            marker.setPosition(e.latLng);
-            updateCoords(e.latLng.lat(), e.latLng.lng());
-            reverseGeocode(e.latLng);
-        });
-    }
-
-    function updateCoords(lat, lng) {
-        document.getElementById("latitude").value = lat;
-        document.getElementById("longitude").value = lng;
-    }
-
-    function reverseGeocode(pos) {
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: pos }, (results, status) => {
-            if (status === "OK" && results[0]) {
-                document.getElementById("address").value = results[0].formatted_address;
+        $bc.on('change', function() {
+            const v = $(this).val();
+            const ar = $(this).find('option:selected').attr('data-ar');
+            const len = IBAN_LENGTHS_GLOBAL[v] || 24;
+            if (v) {
+                $pr.text(v);
+                $hi.html(`صيغة الآيبان: <code dir="ltr">${v} + ${len-2} رقم/حرف</code>`);
+                $bn.empty();
+                const d = BANK_DATA_GLOBAL[v];
+                if (d && d.banks) {
+                    $bn.append('<option value="">اختر البنك...</option>');
+                    d.banks.forEach(b => $bn.append(new Option(b, b)));
+                    $bn.append('<option value="__other__">🏦 بنك آخر...</option>');
+                    $bn.prop('disabled', false);
+                    $('#bank_name_manual').addClass('d-none');
+                } else {
+                    $bn.append('<option value="">أدخل اسم البنك يدوياً</option>').prop('disabled', true);
+                    $('#bank_name_manual').removeClass('d-none').attr('placeholder', 'اكتب اسم البنك في ' + (ar || 'هذه الدولة'));
+                }
             }
         });
-    }
 
-    function getCurrentLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    const currentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    map.setCenter(currentPos); map.setZoom(17);
-                    marker.setPosition(currentPos);
-                    updateCoords(currentPos.lat, currentPos.lng);
-                    reverseGeocode(currentPos);
-                },
-                () => alert('تنبيه: تم رفض الوصول لموقعك الحالي')
-            );
+        $ib.on('input', function() {
+            let v = $(this).val().replace(/[^0-9]/g, '');
+            $(this).val(v);
+            const c = $bc.val();
+            const exp = IBAN_LENGTHS_GLOBAL[c] || 24;
+            const fullSize = (c ? c.length : 0) + v.length;
+            if (c) {
+                if (fullSize < exp) $hi.html(`<span class="text-warning">⚠️ قصير (${fullSize}/${exp})</span>`);
+                else if (fullSize > exp) $hi.html(`<span class="text-danger">❌ طويل جداً (${fullSize}/${exp})</span>`);
+                else $hi.html(`<span class="text-success">✅ الطول صحيح (${exp})</span>`);
+            }
+        });
+
+        // تنظيف القيمة الابتدائية إذا كانت موجودة (حذف أي حروف بادئة مخزنة)
+        if ($ib.val()) {
+            $ib.trigger('input');
         }
-    }
+
+        // استعادة البيانات المحفوظة
+        const savedC = "{{ $store->bank_country }}";
+        if (savedC) {
+            let cC = savedC.toUpperCase();
+            if (cC.length > 2) cC = getCode(savedC);
+            if (cC) {
+                $bc.val(cC).trigger('change');
+                setTimeout(() => {
+                    const savedB = "{{ $store->iban_bank_name }}";
+                    if (savedB && savedB !== "null") {
+                        if ($bn.find(`option[value="${savedB}"]`).length) $bn.val(savedB).trigger('change');
+                        else { $bn.val('__other__').trigger('change'); $('#bank_name_manual').val(savedB); }
+                    }
+                }, 800);
+            }
+        }
+    });
 </script>
 <script async src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&libraries=places&callback=initMap"></script>
-@endsection
 @endsection

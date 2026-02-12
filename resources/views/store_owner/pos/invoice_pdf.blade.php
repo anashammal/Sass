@@ -224,14 +224,14 @@
         @endif
     </div>
 
-    @if($stamp)
+    @if($sale->show_stamp && $stamp)
     <div class="stamp-box">
         <div style="margin-bottom: 5px; font-weight: bold; text-decoration: underline;">{{ $arabicService->shape('ختم المتجر') }}</div>
         <img src="{{ $stamp }}" width="120">
     </div>
     @endif
 
-    @if($signature)
+    @if($sale->show_signature && $signature)
     <div class="signature-box">
         <div style="margin-bottom: 5px; font-weight: bold; text-decoration: underline;">{{ $arabicService->shape('توقيع المسؤول') }}</div>
         <img src="{{ $signature }}" width="120">
@@ -239,6 +239,15 @@
     @endif
 
     <div class="footer">
+        @if($sale->show_iban && $store->iban)
+            <div style="margin-bottom: 10px; padding: 10px; border: 1px dashed #ccc; display: inline-block; text-align: right; width: 80%;">
+                <strong>{{ $arabicService->shape('تفاصيل الدفع البنكي:') }}</strong><br>
+                {{ $arabicService->shape('البنك:') }} {{ $arabicService->shape($store->iban_bank_name) }}
+                @if($store->bank_country) - {{ $arabicService->shape($store->bank_country) }} @endif <br>
+                {{ $arabicService->shape('صاحب الحساب:') }} {{ $arabicService->shape($store->bank_account_holder) }} <br>
+                {{ $arabicService->shape('IBAN:') }} <span dir="ltr">{{ $store->iban }}</span>
+            </div>
+        @endif
         <p>{{ $arabicService->shape('شكرًا لتعاملكم معنا!') }}</p>
         <p>{{ $store->website ?? '' }}</p>
     </div>

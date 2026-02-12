@@ -14,19 +14,14 @@ class AddBankAccountHolderToStoresTable extends Migration
     public function up()
     {
         Schema::table('stores', function (Blueprint $table) {
-            //
+            $table->string('bank_account_holder')->nullable()->after('iban_bank_name');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::table('stores', function (Blueprint $table) {
-            //
+            $table->dropColumn('bank_account_holder');
         });
     }
 }

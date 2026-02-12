@@ -346,6 +346,30 @@
                 <div id="paypal-button-container" class="mt-2" style="display: none;"></div>
             </div>
 
+            {{-- خيارات الفاتورة المضافة (ايبان، ختم، توقيع) --}}
+            <div class="mb-2 p-2 rounded border border-secondary" style="background: rgba(0,0,0,0.2);">
+                <div class="row g-1 text-center">
+                    <div class="col-4">
+                        <div class="form-check form-switch d-inline-block p-0">
+                            <input class="form-check-input ms-0" type="checkbox" id="pos_show_iban" checked>
+                            <label class="form-check-label text-white-50 small d-block mt-1" for="pos_show_iban">IBAN</label>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="form-check form-switch d-inline-block p-0">
+                            <input class="form-check-input ms-0" type="checkbox" id="pos_show_stamp" checked>
+                            <label class="form-check-label text-white-50 small d-block mt-1" for="pos_show_stamp">ختم</label>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="form-check form-switch d-inline-block p-0">
+                            <input class="form-check-input ms-0" type="checkbox" id="pos_show_signature" checked>
+                            <label class="form-check-label text-white-50 small d-block mt-1" for="pos_show_signature">توقيع</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- المتبقي وزر الحفظ --}}
             <div class="mt-auto pt-2 border-top border-secondary">
                 <div class="d-flex justify-content-between align-items-end mb-2">
@@ -1611,6 +1635,9 @@
             let data = {
                 items: cart, total: total, customer_id: selectedCustomer?.id, 
                 payments: pay, discount_amount: $('#discountValue').val(), _token: '{{ csrf_token() }}',
+                show_iban: $('#pos_show_iban').is(':checked') ? 1 : 0,
+                show_stamp: $('#pos_show_stamp').is(':checked') ? 1 : 0,
+                show_signature: $('#pos_show_signature').is(':checked') ? 1 : 0,
                 ...extraData, ...finalData
             };
 

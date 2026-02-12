@@ -116,6 +116,7 @@ class SettingsController extends Controller
             'iban' => 'nullable|string|max:100',
             'iban_bank_name' => 'nullable|string|max:100',
             'bank_account_holder' => 'nullable|string|max:100',
+            'bank_country' => 'nullable|string|max:100',
             
             // تحقق القيم المالية (إيميل)
             'email_sales_min' => 'nullable|numeric|min:0',
@@ -139,8 +140,16 @@ class SettingsController extends Controller
         $store->country_code = $request->country_code;
         $store->invoice_mode = $request->invoice_mode;
         $store->iban = $request->iban;
-        $store->iban_bank_name = $request->iban_bank_name;
+        
+        // Handling bank name from dropdown or manual input
+        $bankName = $request->iban_bank_name;
+        if ($bankName === '__other__' && $request->filled('bank_name_manual')) {
+            $bankName = $request->bank_name_manual;
+        }
+        $store->iban_bank_name = $bankName;
+        
         $store->bank_account_holder = $request->bank_account_holder;
+        $store->bank_country = $request->bank_country;
         if($request->has('timezone')) $store->timezone = $request->timezone;
         if($request->has('clock_type')) $store->clock_type = $request->clock_type;
         if($request->has('clock_theme')) $store->clock_theme = $request->clock_theme;
