@@ -39,6 +39,17 @@ class SystemSettingController extends Controller
             );
         }
 
+        // معالجة بيانات البنك
+        $bankFields = ['system_bank_name', 'system_iban', 'system_bank_account_holder'];
+        foreach ($bankFields as $field) {
+            if ($request->has($field)) {
+                SystemSetting::updateOrCreate(
+                    ['key' => $field],
+                    ['value' => $request->get($field)]
+                );
+            }
+        }
+
         return redirect()->back()->with('success', 'تم تحديث إعدادات النظام بنجاح.');
     }
 }

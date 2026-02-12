@@ -43,6 +43,31 @@
                         </div>
 
                         <hr>
+                        {{-- ================= قسم حساب بنك النظام ================= --}}
+                        <div class="mb-5 text-start">
+                            <h5 class="fw-bold mb-3"><i class="fa fa-university text-primary me-2"></i> بيانات حساب بنك النظام (الرئيسي)</h5>
+                            <p class="text-muted small">هذه البيانات تظهر للمتاجر عند رغبتهم في شحن أرصدتهم أو دفع رسوم الاشتراك عبر التحويل البنكي.</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">اسم البنك</label>
+                                    <input type="text" name="system_bank_name" class="form-control" 
+                                           value="{{ $settings['system_bank_name'] ?? '' }}" placeholder="مثال: زراعت بنك">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">اسم صاحب الحساب</label>
+                                    <input type="text" name="system_bank_account_holder" class="form-control" 
+                                           value="{{ $settings['system_bank_account_holder'] ?? '' }}" placeholder="اسم الشركة أو المدير">
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">رقم الآيبان (IBAN)</label>
+                                    <input type="text" name="system_iban" class="form-control" 
+                                           value="{{ $settings['system_iban'] ?? '' }}" placeholder="TR00 0000...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
                         {{-- ================= قسم بوابة واتساب ================= --}}
                         <div class="mb-4 text-start">
                             <h5 class="fw-bold mb-3"><i class="fab fa-whatsapp text-success me-2"></i> بوابة واتساب النظام (TechSys)</h5>

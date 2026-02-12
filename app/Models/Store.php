@@ -37,6 +37,8 @@ class Store extends Model
         'address',
         'latitude',
         'longitude',
+        'iban_bank_name',
+        'bank_account_holder',
     ];
 
     // علاقة مع صاحب المتجر (User)

@@ -447,6 +447,30 @@
                                            placeholder="0,5,15">
                                 </div>
 
+                                <hr>
+                                <div class="mb-3">
+                                    <h6 class="text-primary fw-bold mb-3"><i class="fa fa-university me-2"></i> بيانات الحساب البنكي</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">اسم البنك</label>
+                                            <input type="text" name="iban_bank_name" class="form-control" value="{{ old('iban_bank_name', $store->iban_bank_name) }}" placeholder="مثال: كويت ترك">
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">اسم صاحب الحساب</label>
+                                            <input type="text" name="bank_account_holder" class="form-control" value="{{ old('bank_account_holder', $store->bank_account_holder) }}" placeholder="الاسم كما يظهر في البنك">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">رقم الآيبان (IBAN)</label>
+                                            <input type="text" name="iban" class="form-control" value="{{ old('iban', $store->iban) }}" placeholder="TR00 0000 0000...">
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <div class="alert alert-info py-2 px-3 small border-0 shadow-none">
+                                            <i class="fa fa-info-circle me-1"></i> هذه البيانات تظهر للعملاء في الفواتير لتسهيل التحويل البنكي اليدوي.
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {{-- ✅ قائمة التوقيت الجديدة والشاملة ✅ --}}
                                 <div class="form-group mb-3">
                                     <label class="form-label fw-bold">توقيت النظام (Timezone)</label>

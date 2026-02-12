@@ -113,6 +113,9 @@ class SettingsController extends Controller
             'address' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'iban' => 'nullable|string|max:100',
+            'iban_bank_name' => 'nullable|string|max:100',
+            'bank_account_holder' => 'nullable|string|max:100',
             
             // تحقق القيم المالية (إيميل)
             'email_sales_min' => 'nullable|numeric|min:0',
@@ -135,6 +138,9 @@ class SettingsController extends Controller
         $store->tax_rates = $request->tax_rates;
         $store->country_code = $request->country_code;
         $store->invoice_mode = $request->invoice_mode;
+        $store->iban = $request->iban;
+        $store->iban_bank_name = $request->iban_bank_name;
+        $store->bank_account_holder = $request->bank_account_holder;
         if($request->has('timezone')) $store->timezone = $request->timezone;
         if($request->has('clock_type')) $store->clock_type = $request->clock_type;
         if($request->has('clock_theme')) $store->clock_theme = $request->clock_theme;
