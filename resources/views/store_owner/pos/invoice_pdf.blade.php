@@ -246,6 +246,11 @@
                 @if($store->bank_country) - {{ $arabicService->shape($store->bank_country) }} @endif <br>
                 {{ $arabicService->shape('صاحب الحساب:') }} {{ $arabicService->shape($store->bank_account_holder) }} <br>
                 {{ $arabicService->shape('IBAN:') }} <span dir="ltr">{{ $store->iban }}</span>
+                <div style="margin-top: 5px; color: #2980b9; font-weight: bold;">
+                    {{ $arabicService->shape('في حال أي سداد، يرجى إرسال إشعار السداد لرقم الواتساب') }} ({{ $store->phone_number }})
+                    <br>
+                    <span style="color: #000; font-size: 8px;">{{ $arabicService->shape('ايبان') }}</span>
+                </div>
             </div>
         @endif
         <p>{{ $arabicService->shape('شكرًا لتعاملكم معنا!') }}</p>

@@ -149,7 +149,7 @@ class PaymentController extends Controller
                 $contact->increment('balance', $amount);
             }
 
-            Payment::create([
+            $payment = Payment::create([
                 'store_id' => $storeId,
                 'contact_id' => $request->contact_id,
                 'method' => $request->method,
@@ -160,6 +160,14 @@ class PaymentController extends Controller
             ]);
 
             DB::commit();
+
+            // إرسال إشعار الدفعة
+            try {
+                \App\Jobs\ProcessPaymentNotification::dispatch($payment->id);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Payment Notification Dispatch Error: " . $e->getMessage());
+            }
+
             return back()->with('success', 'تم تسجيل الدفعة وتحديث الرصيد بنجاح');
         } catch (\Exception $e) {
             DB::rollBack();

@@ -346,30 +346,6 @@
                 <div id="paypal-button-container" class="mt-2" style="display: none;"></div>
             </div>
 
-            {{-- خيارات الفاتورة المضافة (ايبان، ختم، توقيع) --}}
-            <div class="mb-2 p-2 rounded border border-secondary" style="background: rgba(0,0,0,0.2);">
-                <div class="row g-1 text-center">
-                    <div class="col-4">
-                        <div class="form-check form-switch d-inline-block p-0">
-                            <input class="form-check-input ms-0" type="checkbox" id="pos_show_iban" checked>
-                            <label class="form-check-label text-white-50 small d-block mt-1" for="pos_show_iban">IBAN</label>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="form-check form-switch d-inline-block p-0">
-                            <input class="form-check-input ms-0" type="checkbox" id="pos_show_stamp" checked>
-                            <label class="form-check-label text-white-50 small d-block mt-1" for="pos_show_stamp">ختم</label>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="form-check form-switch d-inline-block p-0">
-                            <input class="form-check-input ms-0" type="checkbox" id="pos_show_signature" checked>
-                            <label class="form-check-label text-white-50 small d-block mt-1" for="pos_show_signature">توقيع</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {{-- المتبقي وزر الحفظ --}}
             <div class="mt-auto pt-2 border-top border-secondary">
                 <div class="d-flex justify-content-between align-items-end mb-2">
@@ -547,6 +523,10 @@
             <div class="modal-body bg-light">
                 <div class="card mb-3 p-2 d-print-none">
                     <div class="d-flex gap-4 justify-content-center">
+                        <div class="form-check" id="ibanOptionDiv" style="display:none;">
+                            <input class="form-check-input" type="checkbox" id="showIban" onchange="toggleOfficialMarks()">
+                            <label class="form-check-label fw-bold" for="showIban">إضافة بيانات الآيبان</label>
+                        </div>
                         <div class="form-check" id="stampOptionDiv" style="display:none;">
                             <input class="form-check-input" type="checkbox" id="showStamp" onchange="toggleOfficialMarks()">
                             <label class="form-check-label fw-bold" for="showStamp">إضافة ختم المتجر</label>
@@ -599,6 +579,19 @@
                             </tr>
                         </tfoot>
                     </table>
+
+                    {{-- سطر الآيبان المضاف --}}
+                    <div id="ibanBox" style="display:none; margin-top: 20px; padding: 10px; border: 1px dashed #ccc; text-align: right; background: #fcfcfc;">
+                        <p class="mb-1 fw-bold text-decoration-underline">تفاصيل الدفع البنكي:</p>
+                        <p class="mb-1">البنك: <span id="invIbanBank"></span></p>
+                        <p class="mb-1">صاحب الحساب: <span id="invIbanHolder"></span></p>
+                        <p class="mb-1">الآيبان: <span id="invIbanNumber" dir="ltr" class="fw-bold"></span></p>
+                        <div id="paymentNotice" class="mt-2 text-primary fw-bold" style="font-size: 0.9rem;">
+                            في حال أي سداد، يرجى إرسال إشعار السداد لرقم الواتساب (<span id="invStoreWhatsapp"></span>)
+                            <br>
+                            <span class="text-dark" style="font-size: 0.8rem;">ايبان</span>
+                        </div>
+                    </div>
                     <div class="row mt-5 pt-5" id="officialMarksArea">
                         <div class="col-6 text-center position-relative">
                             <div id="stampBox" style="display:none;">
@@ -2107,8 +2100,10 @@
     window.viewInvoice = function(id) {
         currentViewedInvoiceId = id;
         $('#invItemsBody').html('<tr><td colspan="6" class="text-center py-3">جاري التحميل...</td></tr>');
+        $('#showIban').prop('checked', false);
         $('#showStamp').prop('checked', false);
         $('#showSignature').prop('checked', false);
+        $('#ibanBox').hide();
         $('#stampBox').hide();
         $('#signatureBox').hide();
         $('#invoiceModal').modal('show');
@@ -2131,6 +2126,17 @@
                 if (st.logo_url) $('#invLogo').attr('src', st.logo_url).show(); else $('#invLogo').hide();
                 if (st.stamp_url) { $('#stampOptionDiv').show(); $('#invStamp').attr('src', st.stamp_url); } else { $('#stampOptionDiv').hide(); }
                 if (st.signature_url) { $('#signatureOptionDiv').show(); $('#invSignature').attr('src', st.signature_url); } else { $('#signatureOptionDiv').hide(); }
+
+                // خيار الآيبان المشروط (فقط إذا كان هناك متبقي)
+                if (s.due > 0.01 && st.iban) {
+                    $('#ibanOptionDiv').show();
+                    $('#invIbanBank').text(st.iban_bank_name || '-');
+                    $('#invIbanHolder').text(st.bank_account_holder || '-');
+                    $('#invIbanNumber').text(st.iban || '-');
+                    $('#invStoreWhatsapp').text(st.phone_number || '-');
+                } else {
+                    $('#ibanOptionDiv').hide();
+                }
 
                 let h = ''; 
                 items.forEach((i, x) => {
@@ -2209,6 +2215,7 @@
     };
 
     window.toggleOfficialMarks = function() {
+        $('#ibanBox').toggle($('#showIban').is(':checked'));
         $('#stampBox').toggle($('#showStamp').is(':checked'));
         $('#signatureBox').toggle($('#showSignature').is(':checked'));
     };

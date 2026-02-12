@@ -451,8 +451,9 @@ class PosController extends Controller
                 $msgBody .= implode("\n", $itemsLines) . "\n";
                 $msgBody .= "--------------------------\n";
                 $msgBody .= "*الإجمالي:* " . number_format($sale->total, 2) . " د.أ\n";
-                if($sale->due > 0) $msgBody .= "*المتبقي:* " . number_format($sale->due, 2) . " د.أ\n";
+                $msgBody .= "*المدفوع:* " . number_format($sale->paid, 2) . " د.أ\n";
                 $msgBody .= "شكرًا لتعاملكم معنا 🙏\n";
+                $msgBody .= "📞 للتواصل معنا واتساب: " . ($store->phone_number ?? '-') . "\n";
                 $msgBody .= "*" . $store->name . "*";
 
                 $whatsappData = [
@@ -721,6 +722,10 @@ class PosController extends Controller
                 'logo_url'      => $store->logo_url,
                 'stamp_url'     => $store->stamp_url,
                 'signature_url' => $store->signature_url,
+                'iban'          => $store->iban,
+                'iban_bank_name' => $store->iban_bank_name,
+                'bank_account_holder' => $store->bank_account_holder,
+                'phone_number'  => $store->phone_number,
             ];
 
             $items = $sale->items->map(function($item) {
@@ -758,6 +763,7 @@ class PosController extends Controller
             $saleData = [
                 'id' => $sale->id,
                 'total' => (float)$sale->total,
+                'due'   => (float)$sale->due,
                 'created_at' => $sale->created_at->toDateTimeString(),
                 'contact' => $sale->contact ? [ 'contact_name' => $sale->contact->contact_name ] : null,
             ];

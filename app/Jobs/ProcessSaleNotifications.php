@@ -171,8 +171,11 @@ class ProcessSaleNotifications implements ShouldQueue
                         if ($sendInv) {
                             $waMsg .= "🧾 *فاتورة جديدة #{$sale->id}*\n";
                             $waMsg .= "💰 القيمة: {$netTotal}\n";
+                            $waMsg .= "✅ المدفوع: " . ($sale->paid ?? 0) . "\n";
                             $waMsg .= "👤 العميل: " . ($sale->contact ? $sale->contact->contact_name : 'نقدي') . "\n";
                             if ($isCredit) $waMsg .= "⚠️ متبقي عليه: {$sale->due}\n";
+                            $waMsg .= "\n📞 للتواصل معنا واتساب: " . ($store->phone_number ?? '-') . "\n";
+                            $waMsg .= "شكراً لتعاملكم معنا 🙏\n";
                         } else {
                              Log::info("Sale #{$this->saleId}: WhatsApp skipped (Criteria not met)");
                         }
