@@ -390,7 +390,18 @@ class PosController extends Controller
             $sale->save();
 
             if (!$isWithdrawal) {
-                foreach ($payments as $pay) Payment::create(['sale_id' => $sale->id, 'method' => $pay['method'], 'amount' => $pay['amount']]);
+                foreach ($payments as $pay) {
+                    $note = null;
+                    if ($pay['method'] === 'paypal' && $request->has('paypal_order_id')) {
+                        $note = 'PayPal Order ID: ' . $request->paypal_order_id;
+                    }
+                    Payment::create([
+                        'sale_id' => $sale->id, 
+                        'method' => $pay['method'], 
+                        'amount' => $pay['amount'],
+                        'note' => $note
+                    ]);
+                }
             }
 
             foreach ($items as $index => $item) {

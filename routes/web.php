@@ -222,6 +222,10 @@ Route::middleware(['auth'])->group(function () {
         // التحقق من جهات الاتصال
         Route::post('contacts/verify/send', [ContactVerificationController::class, 'sendCode'])->name('contacts.verify.send');
         Route::post('contacts/verify/confirm', [ContactVerificationController::class, 'verifyCode'])->name('contacts.verify.confirm');
+
+        // PayPal Integration
+        Route::post('paypal/create-order', [\App\Http\Controllers\StoreOwner\PayPalController::class, 'createOrder'])->name('paypal.create');
+        Route::post('paypal/capture-order', [\App\Http\Controllers\StoreOwner\PayPalController::class, 'captureOrder'])->name('paypal.capture');
     // صفحة إدارة المنتجات المنتهية وقريبة الانتهاء
 Route::get('products/expired-manager', [ProductController::class, 'expiredManager'])->name('products.expired_manager');
 

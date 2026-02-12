@@ -336,11 +336,14 @@
                             <option value="cash">💵 نقدي</option>
                             <option value="card">💳 شبكة</option>
                             <option value="bank">🏦 تحويل</option>
+                            <option value="paypal">💳 PayPal / Cards</option>
                         </select>
                         <input type="number" class="form-control pay-input amount-input" placeholder="0.00" oninput="calculateRemaining()">
                         <button class="btn-add-pay" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
+                {{-- حاوية أزرار باي بال تظهر فقط عند اختيار باي بال --}}
+                <div id="paypal-button-container" class="mt-2" style="display: none;"></div>
             </div>
 
             {{-- المتبقي وزر الحفظ --}}
@@ -909,6 +912,7 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 {{-- Bootstrap Bundle already loaded in layout --}}
+<script src="https://www.paypal.com/sdk/js?client-id={{ env('PAYPAL_CLIENT_ID') }}&currency=USD"></script>
 
 <script>
     // ✅ الحل الجذري والنهائي: اكتشاف الرابط تلقائياً من المتصفح (Auto-Detect)
@@ -1455,7 +1459,21 @@
         document.getElementById('footerTotal').innerText = netTotal.toFixed(2);
 
         let totalPaid = 0;
-        document.querySelectorAll('.amount-input').forEach(input => totalPaid += parseFloat(input.value) || 0);
+        let hasPaypal = false;
+        document.querySelectorAll('.pay-row').forEach(row => {
+            let method = row.querySelector('.method-select').value;
+            let amount = parseFloat(row.querySelector('.amount-input').value) || 0;
+            totalPaid += amount;
+            if (method === 'paypal' && amount > 0.01) hasPaypal = true;
+        });
+
+        // إظهار/إخفاء أزرار باي بال
+        if (hasPaypal) {
+            $('#paypal-button-container').show();
+            initializePaypal();
+        } else {
+            $('#paypal-button-container').hide();
+        }
 
         let diff = netTotal - totalPaid;
         let label = "المتبقي:";
@@ -1501,10 +1519,11 @@
         let div = document.createElement('div');
         div.className = 'pay-row';
         div.innerHTML = `
-            <select class="form-select pay-select method-select">
+            <select class="form-select pay-select method-select" onchange="calculateRemaining()">
                 <option value="cash">💵 نقدي</option>
                 <option value="card">💳 شبكة / كرت</option>
                 <option value="bank">🏦 تحويل بنكي</option>
+                <option value="paypal">💳 PayPal / Cards</option>
             </select>
             <input type="number" class="form-control pay-input amount-input" placeholder="0.00" value="${val}" oninput="calculateRemaining()">
             <button class="btn-add-pay" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
@@ -1512,6 +1531,49 @@
         document.getElementById('paymentRowsContainer').appendChild(div);
         calculateRemaining();
         div.querySelector('input').focus();
+    }
+
+    let paypalInitialized = false;
+    function initializePaypal() {
+        if (paypalInitialized) return;
+        paypalInitialized = true;
+
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                let { diff, totalBill } = calculateRemaining();
+                // نأخذ مبلغ الباي بال فقط
+                let paypalAmount = 0;
+                document.querySelectorAll('.pay-row').forEach(row => {
+                    if (row.querySelector('.method-select').value === 'paypal') {
+                        paypalAmount += parseFloat(row.querySelector('.amount-input').value) || 0;
+                    }
+                });
+
+                return fetch(fixUrl("{{ route('store.paypal.create') }}"), {
+                    method: 'post',
+                    headers: { 'content-type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ amount: paypalAmount, currency: 'USD' })
+                }).then(res => res.json()).then(order => order.id);
+            },
+            onApprove: function(data, actions) {
+                return fetch(fixUrl("{{ route('store.paypal.capture') }}"), {
+                    method: 'post',
+                    headers: { 'content-type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ orderID: data.orderID })
+                }).then(res => res.json()).then(details => {
+                    if (details.success) {
+                        toastr.success('تم الدفع عبر PayPal بنجاح!');
+                        submitInvoice({ paypal_order_id: data.orderID });
+                    } else {
+                        toastr.error('فشل تأكيد الدفع');
+                    }
+                });
+            },
+            onError: function(err) {
+                toastr.error('حدث خطأ أثناء الدفع عبر PayPal');
+                paypalInitialized = false;
+            }
+        }).render('#paypal-button-container');
     }
 
     window.removePaymentRow = (btn) => {
