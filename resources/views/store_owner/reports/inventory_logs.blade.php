@@ -12,15 +12,12 @@
                 <button onclick="window.print()" class="btn btn-sm btn-light">
                     <i class="fas fa-print me-1"></i> طباعة
                 </button>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-share-alt me-1"></i> مشاركة
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#" onclick="shareViaWhatsApp()"><i class="fab fa-whatsapp text-success me-2"></i> واتساب</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="shareViaEmail()"><i class="fas fa-envelope text-primary me-2"></i> بريد إلكتروني</a></li>
-                    </ul>
-                </div>
+                <button onclick="shareViaWhatsApp()" class="btn btn-sm btn-success shadow-sm">
+                    <i class="fab fa-whatsapp me-1"></i> واتساب
+                </button>
+                <button onclick="shareViaEmail()" class="btn btn-sm btn-info text-white shadow-sm">
+                    <i class="fas fa-envelope me-1"></i> بريد إلكتروني
+                </button>
             </div>
         </div>
         <div class="card-body">

@@ -1855,7 +1855,7 @@
     @yield('scripts')
 
         {{-- نافذة المعالجة السريعة للمخزون المنخفض --}}
-<div class="modal fade" id="lowStockModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="lowStockModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-warning">
@@ -2318,8 +2318,7 @@
     document.addEventListener("DOMContentLoaded", function() {
         const phoneInputEl = document.getElementById('gw_phone');
         
-        const basePath = window.location.pathname.split('/store-owner/')[0];
-        const searchUrl = `${window.location.origin}${basePath}/store-owner/whatsapp/contacts/search`;
+        const searchUrl = "{{ route('store.whatsapp.contacts.search') }}";
         
         setupSearch(
             'gw_phone',
@@ -2388,7 +2387,7 @@
 </script>
 
 <!-- Global Email Confirmation Modal -->
-<div class="modal fade" id="globalEmailModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="globalEmailModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white border-0">
@@ -2428,7 +2427,7 @@
 </div>
 
 <!-- Global Expiry Action Modal (Dispose/Extend) -->
-<div class="modal fade" id="expiryActionModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="expiryActionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-light">
@@ -2436,18 +2435,27 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
-                <ul class="nav nav-pills nav-fill p-3 bg-white border-bottom" role="tablist">
-                    <li class="nav-item">
-                        <button class="nav-link active text-danger" id="ea_dispose_tab" data-bs-toggle="pill" data-bs-target="#ea_dispose_pane">
+                <ul class="nav nav-pills nav-fill p-2 bg-light rounded-top border-bottom" role="tablist">
+                    <li class="nav-item p-1">
+                        <button class="nav-link active fw-bold py-2" id="ea_dispose_tab" data-bs-toggle="pill" data-bs-target="#ea_dispose_pane" style="transition: all 0.3s;">
                             <i class="fas fa-trash-alt me-1"></i> إتلاف مخزون
                         </button>
                     </li>
-                    <li class="nav-item">
-                        <button class="nav-link text-primary" id="ea_extend_tab" data-bs-toggle="pill" data-bs-target="#ea_extend_pane">
+                    <li class="nav-item p-1">
+                        <button class="nav-link fw-bold py-2" id="ea_extend_tab" data-bs-toggle="pill" data-bs-target="#ea_extend_pane" style="transition: all 0.3s;">
                             <i class="fas fa-calendar-plus me-1"></i> تمديد/تصحيح تاريخ
                         </button>
                     </li>
                 </ul>
+                <style>
+                    #expiryActionModal .nav-pills .nav-link.active {
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    }
+                    #ea_dispose_tab.active { background-color: #dc3545 !important; color: white !important; }
+                    #ea_extend_tab.active { background-color: #0d6efd !important; color: white !important; }
+                    #ea_dispose_tab:not(.active) { color: #dc3545; }
+                    #ea_extend_tab:not(.active) { color: #0d6efd; }
+                </style>
 
                 <div class="tab-content p-4">
                     {{-- TAB 1: DISPOSE --}}
@@ -2504,7 +2512,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-primary fw-bold">تاريخ الصلاحية الجديد:</label>
-                                    <input type="date" name="new_date" class="form-control enhanced-date-input" required min="{{ date('Y-m-d') }}">
+                                    <input type="date" name="new_date" class="form-control" required min="{{ date('Y-m-d') }}" style="position: relative; z-index: 10;">
                                 </div>
                             </div>
 
@@ -2530,7 +2538,7 @@
 </div>
 
 <!-- Global WhatsApp Confirmation Modal -->
-<div class="modal fade" id="globalWhatsappModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="globalWhatsappModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-success text-white border-0">

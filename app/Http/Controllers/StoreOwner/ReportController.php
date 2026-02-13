@@ -9,6 +9,7 @@ use App\Models\Sale;
 use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
 {
@@ -201,6 +202,10 @@ class ReportController extends Controller
         $user = Auth::user();
         $store = $user->store;
         $storeId = $store->id;
+        
+        // زيادة الزمن والذاكرة للتقارير الكبيرة
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
 
         $query = \App\Models\InventoryActionLog::where('store_id', $storeId)
                     ->with(['product', 'user', 'batch'])
