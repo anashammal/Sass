@@ -2172,7 +2172,13 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get(fixUrl("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}").replace(':id', currentViewedInvoiceId))
+        let params = $.param({
+            show_iban: $('#showIban').is(':checked') ? 1 : 0,
+            show_stamp: $('#showStamp').is(':checked') ? 1 : 0,
+            show_signature: $('#showSignature').is(':checked') ? 1 : 0
+        });
+
+        $.get(fixUrl("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}").replace(':id', currentViewedInvoiceId) + '?' + params)
          .done(function(res) {
              Swal.close();
              if(res.success) {
@@ -2197,7 +2203,13 @@
             didOpen: () => Swal.showLoading()
         });
 
-        $.get(fixUrl("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}").replace(':id', currentViewedInvoiceId))
+        let params = $.param({
+            show_iban: $('#showIban').is(':checked') ? 1 : 0,
+            show_stamp: $('#showStamp').is(':checked') ? 1 : 0,
+            show_signature: $('#showSignature').is(':checked') ? 1 : 0
+        });
+
+        $.get(fixUrl("{{ route('store.pos.invoice.pdf', ['id' => ':id']) }}").replace(':id', currentViewedInvoiceId) + '?' + params)
          .done(function(res) {
              Swal.close();
              if(res.success) {

@@ -1222,6 +1222,11 @@ class PosController extends Controller
                 ->with(['contact', 'items.product', 'items.unit', 'user'])
                 ->firstOrFail();
 
+            // تخصيص الخيارات بناءً على الطلب (للمشاركة من نافذة المعاينة)
+            if (request()->has('show_iban'))      $sale->show_iban = request('show_iban');
+            if (request()->has('show_stamp'))     $sale->show_stamp = request('show_stamp');
+            if (request()->has('show_signature')) $sale->show_signature = request('show_signature');
+
             $store = Auth::user()->store;
             
             // استخدام خدمة معالجة النص العربي
