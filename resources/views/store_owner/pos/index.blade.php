@@ -581,18 +581,16 @@
                     </table>
 
                     {{-- سطر الآيبان المضاف --}}
-                    <div id="ibanBox" style="display:none; margin-top: 20px; padding: 10px; border: 1px dashed #ccc; text-align: right; background: #fcfcfc;">
+                    <div id="ibanBox" style="display:none; margin-top: 20px; padding: 10px; border: 1px dashed #ccc; text-align: right; background: #fcfcfc; direction: rtl;">
                         <p class="mb-1 fw-bold text-decoration-underline">تفاصيل الدفع البنكي:</p>
                         <p class="mb-1">البنك: <span id="invIbanBank"></span></p>
                         <p class="mb-1">صاحب الحساب: <span id="invIbanHolder"></span></p>
                         <p class="mb-1">الآيبان: <span id="invIbanNumber" dir="ltr" class="fw-bold"></span></p>
                         <div id="paymentNotice" class="mt-2 text-primary fw-bold" style="font-size: 0.9rem;">
                             في حال أي سداد، يرجى إرسال إشعار السداد لرقم الواتساب (<span id="invStoreWhatsapp"></span>)
-                            <br>
-                            <span class="text-dark" style="font-size: 0.8rem;">ايبان</span>
                         </div>
                     </div>
-                    <div class="row mt-5 pt-5" id="officialMarksArea">
+                    <div class="row mt-4" id="officialMarksArea">
                         <div class="col-6 text-center position-relative">
                             <div id="stampBox" style="display:none;">
                                 <p class="mb-2 fw-bold text-decoration-underline">ختم المتجر</p>
