@@ -194,6 +194,10 @@ class ReportController extends Controller
 
         $users = \App\Models\User::where('store_id', $storeId)->get();
 
+        if ($request->ajax()) {
+            return view('store_owner.reports.partials.inventory_logs_table', compact('logs'))->render();
+        }
+
         return view('store_owner.reports.inventory_logs', compact('logs', 'users'));
     }
 
