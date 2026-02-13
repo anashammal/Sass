@@ -149,20 +149,85 @@
 @section('scripts')
 <script>
     function shareViaWhatsApp() {
-        // سيتم تحويل الجدول إلى نص بسيط أو رابط للتقرير مع الفلاتر
-        let text = "تقرير سجل تعديلات المخزون\n";
-        text += "تم التوليد في: " + new Date().toLocaleString() + "\n";
-        text += "رابط التقرير: " + window.location.href;
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('output', 'url');
         
-        let url = "https://wa.me/?text=" + encodeURIComponent(text);
-        window.open(url, '_blank');
+        const fetchUrl = "{{ route('reports.inventory_logs.pdf') }}?" + urlParams.toString();
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'جاري تجهيز تقرير المخزون...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                if (data.url) {
+                    const message = `*تقرير سجل تعديلات المخزون*\n` +
+                                    `المتجر: {{ auth()->user()->store->name }}\n` +
+                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
+                                    `مرفق لكم التقرير التفصيلي للتعديلات اليدوية.`;
+                    
+                    const filename = data.filename || "inventory_log_report.pdf";
+                    if (typeof triggerWhatsappPrompt === 'function') {
+                        triggerWhatsappPrompt('', message, "إرسال سجل التعديلات كمرفق PDF", data.url, filename);
+                    } else {
+                        alert('حدث خطأ: وظيفة إرسال الواتساب غير متوفرة');
+                    }
+                } else {
+                    alert('فشل تجهيز ملف التقرير');
+                }
+            })
+            .catch(err => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                console.error(err);
+                alert('حدث خطأ أثناء التواصل مع السيرفر');
+            });
     }
 
     function shareViaEmail() {
-        let subject = "طلب مراجعة سجل تعديلات المخزون";
-        let body = "مرحباً،\n\nيرجى مراجعة سجل تعديلات المخزون من خلال الرابط التالي:\n" + window.location.href;
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('output', 'url');
         
-        window.location.href = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+        const fetchUrl = "{{ route('reports.inventory_logs.pdf') }}?" + urlParams.toString();
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'جاري تجهيز طلب الإرسال...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                if (data.url) {
+                    const message = `*تقرير سجل تعديلات المخزون*\n` +
+                                    `المتجر: {{ auth()->user()->store->name }}\n` +
+                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
+                                    `مرفق لكم التقرير التفصيلي للتعديلات اليدوية.`;
+                    
+                    const filename = data.filename || "inventory_log_report.pdf";
+                    if (typeof triggerEmailPrompt === 'function') {
+                        triggerEmailPrompt('', message, "إرسال سجل التعديلات كمرفق PDF", data.url, filename);
+                    } else {
+                        alert('حدث خطأ: وظيفة إرسال البريد غير متوفرة');
+                    }
+                } else {
+                    alert('فشل تجهيز ملف التقرير');
+                }
+            })
+            .catch(err => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                console.error(err);
+                alert('حدث خطأ أثناء التواصل مع السيرفر');
+            });
     }
     
     $(document).ready(function() {

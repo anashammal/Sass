@@ -241,6 +241,7 @@ Route::post('products/expired/renew', [ProductController::class, 'renewExpiry'])
     // التقارير
     Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
     Route::get('/reports/inventory-logs', [ReportController::class, 'inventoryLogReport'])->name('reports.inventory_logs');
+    Route::get('/reports/inventory-logs/pdf', [ReportController::class, 'inventoryLogPdf'])->name('reports.inventory_logs.pdf');
 
 }); // <-- نهاية مجموعة auth
 

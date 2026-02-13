@@ -481,7 +481,22 @@ class PosController extends Controller
         $request->validate([ 'product_id' => 'required|exists:products,id', 'new_qty' => 'required|numeric|min:0' ]);
         $product = Product::where('store_id', Auth::user()->store->id)->where('id', $request->product_id)->firstOrFail();
         $oldQty = $product->current_stock;
-        $product->current_stock = $request->new_qty; $product->quantity = $request->new_qty; $product->save();
+        $product->current_stock = $request->new_qty; 
+        $product->quantity = $request->new_qty; 
+        $product->save();
+
+        // توثيق التعديل اليدوي من نقطة البيع
+        \App\Models\InventoryActionLog::create([
+            'store_id' => $product->store_id,
+            'product_id' => $product->id,
+            'user_id' => Auth::id(),
+            'action' => 'manual_adjustment',
+            'quantity' => abs($request->new_qty - $oldQty),
+            'old_quantity' => $oldQty,
+            'new_quantity' => $request->new_qty,
+            'reason' => 'تعديل مخزون سريع من نقطة البيع',
+        ]);
+
         return response()->json(['success' => true, 'message' => 'تم تعديل المخزون بنجاح']);
     }
 

@@ -195,4 +195,61 @@ class ReportController extends Controller
 
         return view('store_owner.reports.inventory_logs', compact('logs', 'users'));
     }
+
+    public function inventoryLogPdf(Request $request)
+    {
+        $user = Auth::user();
+        $store = $user->store;
+        $storeId = $store->id;
+
+        $query = \App\Models\InventoryActionLog::where('store_id', $storeId)
+                    ->with(['product', 'user', 'batch'])
+                    ->latest();
+
+        // فلاتر مماثلة للموجودة في العرض
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('product', function($q) use ($search) {
+                $q->where('name_ar', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $logs = $query->get();
+
+        $arabicService = new \App\Services\ArabicTextService();
+        
+        $pdf = Pdf::loadView('store_owner.reports.pdf_inventory_logs', compact('logs', 'store', 'arabicService'))
+                  ->setPaper('a4', 'portrait')
+                  ->setOptions([
+                      'isHtml5ParserEnabled' => true,
+                      'isRemoteEnabled' => true,
+                      'isFontSubsettingEnabled' => true,
+                      'defaultFont' => 'DejaVu Sans'
+                  ]);
+        
+        if ($request->get('output') == 'url') {
+            $filename = 'inventory_log_' . date('Ymd_His') . '_' . uniqid() . '.pdf';
+            $path = public_path('temp_reports');
+            if (!file_exists($path)) mkdir($path, 0777, true);
+            $pdf->save($path . '/' . $filename);
+            return response()->json([
+                'url' => asset('temp_reports/' . $filename),
+                'filename' => $filename
+            ]);
+        }
+
+        return $pdf->download('inventory_log_report.pdf');
+    }
 }
