@@ -155,4 +155,44 @@ class ReportController extends Controller
 
         return view('store_owner.reports.shifts', compact('shifts', 'users', 'summary'));
     }
+
+    public function inventoryLogReport(Request $request)
+    {
+        $storeId = Auth::user()->store->id;
+        $query = \App\Models\InventoryActionLog::where('store_id', $storeId)
+                    ->with(['product', 'user', 'batch'])
+                    ->latest();
+
+        // 1. الفلاتر
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('product', function($q) use ($search) {
+                $q->where('name_ar', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // 2. التنقل (Pagination)
+        $perPage = $request->input('per_page', 10);
+        if ($perPage == 'all') {
+            $logs = $query->get();
+        } else {
+            $logs = $query->paginate($perPage)->withQueryString();
+        }
+
+        $users = \App\Models\User::where('store_id', $storeId)->get();
+
+        return view('store_owner.reports.inventory_logs', compact('logs', 'users'));
+    }
 }

@@ -238,10 +238,9 @@ Route::post('products/expired/renew', [ProductController::class, 'renewExpiry'])
     }); // <-- نهاية مجموعة store-owner
 
     // تقارير الصناديق (خارج مجموعة store-owner ليتطابق مع الاسم في القائمة الجانبية إذا لزم الأمر)
+    // التقارير
     Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
-
-    // تقارير الصناديق (خارج مجموعة store-owner ليتطابق مع الاسم في القائمة الجانبية إذا لزم الأمر)
-    Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
+    Route::get('/reports/inventory-logs', [ReportController::class, 'inventoryLogReport'])->name('reports.inventory_logs');
 
 }); // <-- نهاية مجموعة auth
 

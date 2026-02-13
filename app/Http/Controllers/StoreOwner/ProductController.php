@@ -524,6 +524,8 @@ class ProductController extends Controller
                 'user_id' => Auth::id(),
                 'action' => 'dispose',
                 'quantity' => $request->quantity,
+                'old_quantity' => $batch->quantity + $request->quantity, // الكمية قبل الخصم
+                'new_quantity' => $batch->quantity, // الكمية بعد الخصم
                 'old_date' => $batch->expiry_date,
                 'reason' => $request->reason,
                 'proof_image' => $imagePath,
@@ -604,6 +606,8 @@ class ProductController extends Controller
                 'user_id' => Auth::id(),
                 'action' => 'extend_expiry',
                 'quantity' => $request->quantity,
+                'old_quantity' => $batch->quantity, 
+                'new_quantity' => $batch->quantity, 
                 'old_date' => $originalDate,
                 'new_date' => $request->new_date,
                 'reason' => $request->reason,
@@ -684,6 +688,18 @@ class ProductController extends Controller
         $oldStock = $product->current_stock;
         $product->current_stock = $request->new_stock;
         $product->save();
+
+        // توثيق التعديل اليدوي
+        \App\Models\InventoryActionLog::create([
+            'store_id' => $product->store_id,
+            'product_id' => $product->id,
+            'user_id' => Auth::id(),
+            'action' => 'manual_adjustment',
+            'quantity' => abs($request->new_stock - $oldStock),
+            'old_quantity' => $oldStock,
+            'new_quantity' => $request->new_stock,
+            'reason' => 'تعديل مخزون سريع',
+        ]);
 
         return response()->json([
             'status' => 'success',

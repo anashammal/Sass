@@ -1646,6 +1646,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('reports.inventory_logs') ? 'active' : '' }}" href="{{ route('reports.inventory_logs') }}">
+                    <i class="fas fa-history"></i> 
+                    <span>سجل تعديلات المخزون</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('store.pos.withdrawals') ? 'active' : '' }}" href="{{ route('store.pos.withdrawals') }}">
                     <i class="fas fa-hand-holding-usd"></i> 
                     <span>مسحوبات المالك</span>

@@ -86,28 +86,26 @@ class PosController extends Controller
             $storeId = Auth::user()->store->id;
 
             $query = Product::where('store_id', $storeId)
-                ->where('is_active', true)
-                ->where(function($q) use ($term) {
-                    $q->where('name_ar', 'LIKE', "%{$term}%")
-                      ->orWhere('sku', 'LIKE', "%{$term}%")
-                      ->orWhereHas('units', function($q2) use ($term) {
-                          $q2->where('barcode', 'LIKE', "%{$term}%");
-                      });
+            ->where('is_active', true)
+            ->where(function($q) use ($term) {
+                $q->where('name_ar', 'LIKE', "%{$term}%")
+                  ->orWhere('sku', 'LIKE', "%{$term}%")
+                  ->orWhereHas('units', function($q2) use ($term) {
+                      $q2->where('barcode', 'LIKE', "%{$term}%");
+                  });
+            })
+            ->where(function($q) {
+                $q->where(function($qStandard) {
+                    $qStandard->whereIn('product_type', ['standard', 'meal'])
+                              ->whereHas('units', function($u) {
+                                  $u->where('is_sale', true);
+                              });
+                })->orWhere(function($qIngredient) {
+                    $qIngredient->whereIn('product_type', ['ingredient', 'compound'])
+                                ->whereHas('units', function($u) {
+                                    $u->where('is_base_unit', true)->where('is_sale', true);
+                                });
                 });
-
-            // Filter by Sale-ability
-            // For Standard/Meal: Show if ANY unit is sellable (default logic)
-            // For Ingredient/Compound: Show ONLY if Base Unit is sellable (User's specific checkbox)
-            $query->where(function($q) {
-                 $q->whereIn('product_type', ['standard', 'meal'])
-                   ->whereHas('units', function($u) {
-                        $u->where('is_sale', true);
-                   });
-            })->orWhere(function($q) {
-                 $q->whereIn('product_type', ['ingredient', 'compound'])
-                   ->whereHas('units', function($u) {
-                        $u->where('is_base_unit', true)->where('is_sale', true);
-                   });
             });
 
             // Removed hardcoded removal of ingredients for restaurants
