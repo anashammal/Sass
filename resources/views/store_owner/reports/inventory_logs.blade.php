@@ -1,13 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-@php
-    $arabicService = app(App\Services\ArabicTextService::class);
-@endphp
 <div class="container-fluid py-4">
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center bg-primary text-white">
-            <h5 class="m-0 fw-bold"><i class="fas fa-history me-2"></i>{{ $arabicService->shape('سجل تعديلات المخزون') }}</h5>
+            <h5 class="m-0 fw-bold"><i class="fas fa-history me-2"></i>سجل تعديلات المخزون</h5>
             <div class="d-flex gap-2 no-print">
                 <button onclick="window.print()" class="btn btn-sm btn-light">
                     <i class="fas fa-print me-1"></i> طباعة
