@@ -138,15 +138,11 @@ Route::middleware(['auth'])->group(function () {
         
         // 1. الروابط المخصصة (يجب أن تكون في الأعلى لتجنب تضارب الـ ID)
         Route::get('core/lookup', [PurchaseController::class, 'searchProducts'])->name('core.lookup'); // ✅ Safe Alias
-        Route::get('products/expired-manager', [ProductController::class, 'expiredManager'])->name('products.expired_manager');
         
         // New Routes for Advanced Expiry Management
         Route::post('products/dispose-stock', [ProductController::class, 'disposeStock'])->name('products.dispose');
         Route::post('products/extend-expiry', [ProductController::class, 'extendExpiry'])->name('products.extend');
         
-        // Legacy routes (kept for safety if old links exist, though UI is updated)
-        Route::post('products/expired/dispose', [ProductController::class, 'disposeExpired'])->name('products.expired.dispose');
-        Route::post('products/expired/renew', [ProductController::class, 'renewExpiry'])->name('products.expired.renew');
         
         // روابط التحديث السريع (من الجرس)
         Route::post('/products/quick-update-stock', [ProductController::class, 'quickUpdateStock'])->name('products.quick_update_stock');
@@ -226,14 +222,6 @@ Route::middleware(['auth'])->group(function () {
         // PayPal Integration
         Route::post('paypal/create-order', [\App\Http\Controllers\StoreOwner\PayPalController::class, 'createOrder'])->name('paypal.create');
         Route::post('paypal/capture-order', [\App\Http\Controllers\StoreOwner\PayPalController::class, 'captureOrder'])->name('paypal.capture');
-    // صفحة إدارة المنتجات المنتهية وقريبة الانتهاء
-Route::get('products/expired-manager', [ProductController::class, 'expiredManager'])->name('products.expired_manager');
-
-// إجراء الإتلاف (إنقاص الكمية من الدفعة المحددة فقط)
-Route::post('products/expired/dispose', [ProductController::class, 'disposeExpired'])->name('products.expired.dispose');
-
-// إجراء تجديد الصلاحية (تحديث التاريخ للدفعة المحددة)
-Route::post('products/expired/renew', [ProductController::class, 'renewExpiry'])->name('products.expired.renew');
    
     }); // <-- نهاية مجموعة store-owner
 

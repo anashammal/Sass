@@ -437,45 +437,6 @@ class ProductController extends Controller
     // 🔥 إدارة الدفعات (Batches) المتقدمة - الإصدار الجديد 🔥
     // =========================================================
 
-    public function expiredManager()
-    {
-        $storeId = Auth::user()->store_id;
-
-        // جلب المنتجات التي لديها دفعات منتهية أو قريبة للانتهاء
-        // سنقوم بتجميعها حسب المنتج لعرض الحالة الكاملة (منتهي، قريب، سليم)
-        $productsWithIssues = Product::where('store_id', $storeId)
-            ->whereHas('batches', function($q) {
-                $q->where('quantity', '>', 0)
-                  ->where('expiry_date', '<=', \Carbon\Carbon::now()->addDays(30));
-            })
-            ->with(['batches' => function($q) {
-                $q->where('quantity', '>', 0)->orderBy('expiry_date', 'asc');
-            }])
-            ->get();
-
-        // تجهيز بيانات العرض
-        $productGroups = $productsWithIssues->map(function($product) {
-            $batches = $product->batches;
-            $today = \Carbon\Carbon::now()->startOfDay();
-            $warningDate = $today->copy()->addDays($product->expiry_warning_days ?? 30);
-
-            return [
-                'product' => $product,
-                'expired' => $batches->filter(fn($b) => $b->expiry_date < $today),
-                'near_expiry' => $batches->filter(fn($b) => $b->expiry_date >= $today && $b->expiry_date <= $warningDate),
-                'valid' => $batches->filter(fn($b) => $b->expiry_date > $warningDate),
-                'total_stock' => $product->batches->sum('quantity'),
-            ];
-        });
-
-        // 2. جلب المنتجات منخفضة المخزون
-        $lowStockProducts = Product::where('store_id', $storeId)
-            ->whereColumn('current_stock', '<=', 'alert_quantity')
-            ->orderBy('current_stock', 'asc')
-            ->get();
-
-        return view('store_owner.products.expired_manager', compact('productGroups', 'lowStockProducts'));
-    }
 
     // إتلاف (جزئي أو كلي)
     public function disposeStock(Request $request)

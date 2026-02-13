@@ -1462,12 +1462,13 @@
             @if($expiryAlerts['expired']->count() > 0)
                 <div class="px-2 py-1 bg-danger text-white small fw-bold"><i class="fas fa-skull-crossbones me-1"></i> منتهي الصلاحية</div>
                 @foreach($expiryAlerts['expired'] as $batch)
-                    <a class="dropdown-item p-2 border-bottom bg-danger bg-opacity-10" href="{{ route('store.products.expired_manager') }}">
+                    <a class="dropdown-item p-2 border-bottom bg-danger bg-opacity-10" href="javascript:void(0)" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name_ar ?? 'منتج') }}', '{{ $batch->product->baseUnit->unit_name ?? 'قطعة' }}', {{ $batch->quantity }}, '{{ $batch->expiry_date->format('Y-m-d') }}')">
                         <div class="d-flex align-items-center">
                             <div class="flex-grow-1" style="white-space: normal;">
                                 <div class="fw-bold text-danger small">{{ $batch->product->name_ar ?? 'منتج' }}</div>
                                 <small class="text-muted" style="font-size: 0.7rem">انتهى: {{ $batch->expiry_date->format('Y-m-d') }}</small>
                             </div>
+                            <i class="fas fa-cog text-danger ms-2"></i>
                         </div>
                     </a>
                 @endforeach
@@ -1503,14 +1504,15 @@
                 <div class="px-2 py-1 bg-warning bg-opacity-25 text-dark small fw-bold"><i class="fas fa-hourglass-half me-1"></i> تنبيهات الصلاحية</div>
                 @foreach($expiryAlerts['near'] as $batch)
                     @php $days = $batch->days_remaining_calculated ?? 0; @endphp
-                    <a class="dropdown-item p-2 border-bottom bg-warning bg-opacity-10" href="{{ route('store.products.expired_manager') }}">
+                    <a class="dropdown-item p-2 border-bottom bg-warning bg-opacity-10" href="javascript:void(0)" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name_ar ?? 'منتج') }}', '{{ $batch->product->baseUnit->unit_name ?? 'قطعة' }}', {{ $batch->quantity }}, '{{ $batch->expiry_date->format('Y-m-d') }}')">
                         <div class="d-flex align-items-center">
                             <div class="flex-grow-1" style="white-space: normal;">
                                 <div class="fw-bold text-dark small">{{ $batch->product->name_ar ?? 'منتج' }}</div>
                                 <small class="text-warning fw-bold" style="font-size: 0.7rem">
-                                    بقي {{ $days }} يوم
+                                    بقي {{ $days }} يوم ({{ (float)$batch->quantity }})
                                 </small>
                             </div>
+                            <i class="fas fa-cog text-warning ms-2"></i>
                         </div>
                     </a>
                 @endforeach
@@ -1942,6 +1944,34 @@
             alert(data.message);
             location.reload(); // تحديث الصفحة
         });
+    }
+
+    function openExpiryActionModal(batchId, productName, unitName, currentQty, expiryDate) {
+        // Fill Dispose Form
+        document.getElementById('ea_dispose_batch_id').value = batchId;
+        document.getElementById('ea_dispose_product_info').innerHTML = `<strong>${productName}</strong> <br> <small>تنتهي في: ${expiryDate}</small>`;
+        document.getElementById('ea_dispose_max_display').innerText = parseFloat(currentQty);
+        document.getElementById('ea_dispose_qty').max = currentQty;
+        document.getElementById('ea_dispose_qty').value = currentQty;
+
+        // Fill Extend Form
+        document.getElementById('ea_extend_batch_id').value = batchId;
+        document.getElementById('ea_extend_product_info').innerHTML = `<strong>${productName}</strong> <br> <small>الكمية الحالية: ${parseFloat(currentQty)} ${unitName}</small>`;
+        document.getElementById('ea_extend_max_display').innerText = parseFloat(currentQty);
+        document.getElementById('ea_extend_qty').max = currentQty;
+        document.getElementById('ea_extend_qty').value = currentQty;
+
+        // Update Title
+        document.getElementById('ea_modal_title').innerText = "إدارة الصلاحية: " + productName;
+
+        // Set step for fractions if needed (Kilo/Kg)
+        const isKilo = /kilo|kg|كيلو|كغ/i.test(unitName);
+        const step = isKilo ? "0.001" : "1";
+        document.getElementById('ea_dispose_qty').step = step;
+        document.getElementById('ea_extend_qty').step = step;
+
+        var myModal = new bootstrap.Modal(document.getElementById('expiryActionModal'));
+        myModal.show();
     }
 
 
@@ -2392,6 +2422,108 @@
                 <button type="button" id="ge_send_btn" class="btn btn-primary px-5 shadow fw-bold" onclick="sendGlobalEmail()">
                     <i class="fas fa-paper-plane me-2"></i> إرسال الآن
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Global Expiry Action Modal (Dispose/Extend) -->
+<div class="modal fade" id="expiryActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="ea_modal_title">إدارة الصلاحية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <ul class="nav nav-pills nav-fill p-3 bg-white border-bottom" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active text-danger" id="ea_dispose_tab" data-bs-toggle="pill" data-bs-target="#ea_dispose_pane">
+                            <i class="fas fa-trash-alt me-1"></i> إتلاف مخزون
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link text-primary" id="ea_extend_tab" data-bs-toggle="pill" data-bs-target="#ea_extend_pane">
+                            <i class="fas fa-calendar-plus me-1"></i> تمديد/تصحيح تاريخ
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content p-4">
+                    {{-- TAB 1: DISPOSE --}}
+                    <div class="tab-pane fade show active" id="ea_dispose_pane">
+                        <form action="{{ route('store.products.dispose') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="batch_id" id="ea_dispose_batch_id">
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">المنتج والتاريخ:</label>
+                                <div id="ea_dispose_product_info" class="alert alert-secondary py-2 mb-0"></div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">الكمية للإتلاف:</label>
+                                    <input type="number" name="quantity" id="ea_dispose_qty" class="form-control" step="0.01" min="0.01" required>
+                                    <div class="form-text text-muted">الحد الأقصى المتوفر: <span id="ea_dispose_max_display">0</span></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">السبب:</label>
+                                    <input type="text" name="reason" class="form-control" placeholder="مثلاً: انتهاء الصلاحية، تلف، كسر.." required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-danger fw-bold star">صورة إثبات الإتلاف (مطلوب):</label>
+                                <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                                <div class="form-text small">يرجى تصوير المنتجات لتوثيق الحالة.</div>
+                            </div>
+
+                            <button type="submit" class="btn btn-danger w-100" onclick="return confirm('هل أنت متأكد؟ هذا الإجراء سيخصم الكمية ويسجلها كتالف.')">
+                                تأكيد الإتلاف
+                            </button>
+                        </form>
+                    </div>
+
+                    {{-- TAB 2: EXTEND --}}
+                    <div class="tab-pane fade" id="ea_extend_pane">
+                        <form action="{{ route('store.products.extend') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="batch_id" id="ea_extend_batch_id">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">المنتج والكمية:</label>
+                                <div id="ea_extend_product_info" class="alert alert-secondary py-2 mb-0"></div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">الكمية للتصحيح:</label>
+                                    <input type="number" name="quantity" id="ea_extend_qty" class="form-control" step="0.01" min="0.01" required>
+                                    <div class="form-text text-muted">الحد الأقصى: <span id="ea_extend_max_display">0</span></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-primary fw-bold">تاريخ الصلاحية الجديد:</label>
+                                    <input type="date" name="new_date" class="form-control enhanced-date-input" required min="{{ date('Y-m-d') }}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">صورة المنتج/التاريخ الجديد (إثبات):</label>
+                                <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">سبب التعديل:</label>
+                                <input type="text" name="reason" class="form-control" placeholder="مثلاً: خطأ في الإدخال، تمديد من الشركة.." required>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                حفظ التعديلات
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
