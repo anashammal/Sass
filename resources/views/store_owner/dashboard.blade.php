@@ -13,9 +13,9 @@
                     <div>
                         <div class="kpi-label">
                             @if(Auth::user()->store->type == 'restaurant')
-                                إجمالي قائمة الطعام (المنيو)
+                                {{ __('إجمالي قائمة الطعام (المنيو)') }}
                             @else
-                                إجمالي المنتجات
+                                {{ __('إجمالي المنتجات') }}
                             @endif
                         </div>
                         <div class="kpi-value english-num">{{ $stats['products_count'] ?? 0 }}</div>
@@ -33,9 +33,9 @@
                     <div>
                         <div class="kpi-label">
                             @if(Auth::user()->store->type == 'restaurant')
-                                خامات ومواد ناقصة
+                                {{ __('خامات ومواد ناقصة') }}
                             @else
-                                نواقص المخزون
+                                {{ __('نواقص المخزون') }}
                             @endif
                         </div>
                         <div class="kpi-value english-num">{{ $stats['low_stock_count'] ?? 0 }}</div>
@@ -53,9 +53,9 @@
                     <div>
                         <div class="kpi-label">
                             @if(Auth::user()->store->type == 'restaurant')
-                                تنبيهات الصلاحية (الخامات)
+                                {{ __('تنبيهات الصلاحية (الخامات)') }}
                             @else
-                                منتجات منتهية/قريبة
+                                {{ __('منتجات منتهية/قريبة') }}
                             @endif
                         </div>
                         <div class="kpi-value english-num">{{ $expiredBatches->count() ?? 0 }}</div>
@@ -70,7 +70,7 @@
         <div class="col-md-12">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white fw-bold">
-                    <i class="fas fa-home me-2 text-primary"></i> لوحة تحكم المتجر: {{ Auth::user()->store->name }}
+                    <i class="fas fa-home me-2 text-primary"></i> {{ __('لوحة تحكم المتجر:') }} {{ Auth::user()->store->name }}
                 </div>
 
                 <div class="card-body text-center py-5">
@@ -81,8 +81,8 @@
                     @endif
 
                     <img src="{{ Auth::user()->store->logo_url }}" alt="Logo" class="mb-3" style="max-height: 100px;">
-                    <h3>أهلاً بك في متجرك!</h3>
-                    <p class="text-muted">هذه الصفحة خاصة بالدومين الفرعي: <code>{{ request()->route('subdomain') }}</code></p>
+                    <h3>{{ __('أهلاً بك في متجرك!') }}</h3>
+                    <p class="text-muted">{{ __('هذه الصفحة خاصة بالدومين الفرعي:') }} <code>{{ request()->route('subdomain') }}</code></p>
                     
                     <hr>
                     
@@ -90,18 +90,18 @@
                         <a href="{{ route('store.pos.index') }}" class="btn btn-lg btn-primary">
                             <i class="fas fa-cash-register me-2"></i> 
                             @if(Auth::user()->store->type == 'restaurant')
-                                نقطة البيع (الكاشير)
+                                {{ __('نقطة البيع (الكاشير)') }}
                             @else
-                                نقطة البيع (POS)
+                                {{ __('نقطة البيع (POS)') }}
                             @endif
                         </a>
                         @if(strtolower(Auth::user()->store->type) == 'restaurant')
                             <a href="{{ route('store.meals.index') }}" class="btn btn-lg btn-outline-dark">
-                                <i class="fas fa-utensils me-2"></i> إدارة المنيو والوجبات
+                                <i class="fas fa-utensils me-2"></i> {{ __('إدارة المنيو والوجبات') }}
                             </a>
                         @else
                             <a href="{{ route('store.products.index') }}" class="btn btn-lg btn-outline-dark">
-                                <i class="fas fa-box-open me-2"></i> إدارة المنتجات
+                                <i class="fas fa-boxes me-2"></i> {{ __('إدارة المنتجات') }}
                             </a>
                         @endif
                     </div>

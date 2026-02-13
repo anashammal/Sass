@@ -13,7 +13,9 @@ class LocaleController extends Controller
     public function switch($locale)
     {
         // 1. التحقق من أن اللغة مدعومة
-        $supportedLocales = ['ar', 'en', 'tr', 'es', 'de', 'fr', 'zh', 'ja'];
+        $supportedLocales = [
+            'ar', 'en', 'fr', 'tr', 'de', 'ru', 'zh', 'ja', 'pt-BR', 'pt', 'hr'
+        ];
         if (in_array($locale, $supportedLocales)) {
             // 2. حفظ اللغة المختارة في الجلسة
             Session::put('locale', $locale);

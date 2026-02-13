@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>{{ $arabicService->shape('فاتورة ضريبية') }} #{{ $sale->id }}</title>
+    <title>{{ $arabicService->shape('فاتورة ضريبية مبسطة') }} / Simplified Tax Invoice #{{ $sale->id }}</title>
     <style>
         body { 
             font-family: 'DejaVu Sans', sans-serif; 
@@ -150,23 +150,24 @@
         <h1 style="margin: 0;">{{ $arabicService->shape($store->name) }}</h1>
         <div class="store-info" style="margin-bottom: 5px;">
             {{ $arabicService->shape($store->address) }} <br>
-            @if($store->phone_number) {{ $store->phone_number }} {{ $arabicService->shape('هاتف:') }} @endif | 
-            @if($store->tax_number) {{ $store->tax_number }} {{ $arabicService->shape('الرقم الضريبي:') }} @endif
+            @if($store->phone_number) {{ $store->phone_number }} {{ $arabicService->shape('هاتف:') }} / Phone: @endif | 
+            @if($store->tax_number) {{ $store->tax_number }} {{ $arabicService->shape('الرقم الضريبي:') }} / VAT No: @endif
         </div>
-        <h2 style="margin: 5px 0;">{{ $arabicService->shape('فاتورة ضريبية') }}</h2>
+        <h2 style="margin: 5px 0;">{{ $arabicService->shape('فاتورة ضريبية مبسطة') }}</h2>
+        <h3 style="margin: 0; font-size: 14px; color: #555;">Simplified Tax Invoice</h3>
     </div>
 
     <table class="meta-table">
         <tr>
             <td width="50%">
-                INV-{{ $sale->id }} <strong>{{ $arabicService->shape('رقم الفاتورة:') }}</strong><br>
-                {{ $sale->created_at->format('Y-m-d h:i A') }} <strong>{{ $arabicService->shape('التاريخ:') }}</strong><br>
-                {{ $arabicService->shape($sale->user->name ?? '---') }} <strong>{{ $arabicService->shape('بواسطة:') }}</strong>
+                <strong>{{ $arabicService->shape('رقم الفاتورة:') }} / Invoice No:</strong> INV-{{ $sale->id }}<br>
+                <strong>{{ $arabicService->shape('التاريخ:') }} / Date:</strong> {{ $sale->created_at->format('Y-m-d h:i A') }}<br>
+                <strong>{{ $arabicService->shape('بواسطة:') }} / Cashier:</strong> {{ $arabicService->shape($sale->user->name ?? '---') }}
             </td>
             <td width="50%">
-                {{ $arabicService->shape($sale->contact ? $sale->contact->contact_name : 'عميل نقدي') }} <strong>{{ $arabicService->shape('العميل:') }}</strong><br>
-                @if($sale->contact && $sale->contact->phone) {{ $sale->contact->phone }} <strong>{{ $arabicService->shape('الهاتف:') }}</strong><br> @endif
-                @if($sale->contact && $sale->contact->tax_number) {{ $sale->contact->tax_number }} <strong>{{ $arabicService->shape('الرقم الضريبي:') }}</strong> @endif
+                <strong>{{ $arabicService->shape('العميل:') }} / Customer:</strong> {{ $arabicService->shape($sale->contact ? $sale->contact->contact_name : 'عميل نقدي') }}<br>
+                @if($sale->contact && $sale->contact->phone) <strong>{{ $arabicService->shape('الهاتف:') }} / Phone:</strong> {{ $sale->contact->phone }}<br> @endif
+                @if($sale->contact && $sale->contact->tax_number) <strong>{{ $arabicService->shape('الرقم الضريبي:') }} / Customer VAT:</strong> {{ $sale->contact->tax_number }} @endif
             </td>
         </tr>
     </table>
@@ -174,10 +175,10 @@
     <table class="table">
         <thead>
             <tr>
-                <th width="25%">{{ $arabicService->shape('الإجمالي') }}</th>
-                <th width="15%">{{ $arabicService->shape('السعر') }}</th>
-                <th width="10%">{{ $arabicService->shape('الكمية') }}</th>
-                <th width="45%">{{ $arabicService->shape('المنتج') }}</th>
+                <th width="20%">{{ $arabicService->shape('الإجمالي') }} / Total</th>
+                <th width="15%">{{ $arabicService->shape('السعر') }} / Price</th>
+                <th width="10%">{{ $arabicService->shape('الكمية') }} / Qty</th>
+                <th width="50%">{{ $arabicService->shape('المنتج') }} / Product</th>
                 <th width="5%">#</th>
             </tr>
         </thead>
@@ -197,30 +198,35 @@
     <div style="page-break-inside: avoid;">
         <div class="total-area">
             <div class="total-row">
-                <span>{{ $arabicService->shape('المجموع الفرحي:') }}</span>
-                <span>{{ number_format($sale->total + $sale->discount, 2) }}</span>
+                <span>{{ $arabicService->shape('المجموع الفرعي:') }} / Subtotal:</span>
+                <span>{{ number_format(($sale->total + $sale->discount) - ($sale->tax ?? 0), 2) }}</span>
                 <div class="clearfix"></div>
             </div>
             @if($sale->discount > 0)
             <div class="total-row" style="color: #c0392b;">
-                <span>{{ $arabicService->shape('الخصم:') }}</span>
+                <span>{{ $arabicService->shape('الخصم:') }} / Discount:</span>
                 <span>-{{ number_format($sale->discount, 2) }}</span>
                 <div class="clearfix"></div>
             </div>
             @endif
+            <div class="total-row">
+                <span>{{ $arabicService->shape('ضريبة القيمة المضافة (15%):') }} / VAT (15%):</span>
+                <span>{{ number_format($sale->tax ?? 0, 2) }}</span>
+                <div class="clearfix"></div>
+            </div>
             <div class="total-row final">
-                <span>{{ $arabicService->shape('الإجمالي النهائي:') }}</span>
+                <span>{{ $arabicService->shape('الإجمالي النهائي:') }} / Total:</span>
                 <span>{{ number_format($sale->total, 2) }} {{ $store->currency ?? 'SAR' }}</span>
                 <div class="clearfix"></div>
             </div>
             <div class="total-row">
-                <span>{{ $arabicService->shape('المدفوع:') }}</span>
+                <span>{{ $arabicService->shape('المدفوع:') }} / Paid:</span>
                 <span>{{ number_format($sale->paid, 2) }}</span>
                 <div class="clearfix"></div>
             </div>
             @if($sale->due > 0)
             <div class="total-row" style="color: #d35400;">
-                <span>{{ $arabicService->shape('المتبقي (آجل):') }}</span>
+                <span>{{ $arabicService->shape('المتبقي (آجل):') }} / Due:</span>
                 <span>{{ number_format($sale->due, 2) }}</span>
                 <div class="clearfix"></div>
             </div>

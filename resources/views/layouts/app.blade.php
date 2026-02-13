@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="rtl">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -1450,9 +1450,9 @@
 
     <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0" style="width: 340px; max-height: 450px; overflow-y: auto; z-index: 9999;">
         <div class="p-2 border-bottom fw-bold bg-light d-flex justify-content-between align-items-center sticky-top">
-            <span>التنبيهات</span>
+            <span>{{ __('التنبيهات') }}</span>
             @if($totalAlerts > 0)
-                <small class="text-muted">{{ $totalAlerts }} إشعار</small>
+                <small class="text-muted">{{ $totalAlerts }} {{ __('إشعار') }}</small>
             @endif
         </div>
         
@@ -1460,7 +1460,7 @@
             
             {{-- 1. قسم الصلاحية المنتهية (الأخطر) --}}
             @if($expiryAlerts['expired']->count() > 0)
-                <div class="px-2 py-1 bg-danger text-white small fw-bold"><i class="fas fa-skull-crossbones me-1"></i> منتهي الصلاحية</div>
+                <div class="px-2 py-1 bg-danger text-white small fw-bold"><i class="fas fa-skull-crossbones me-1"></i> {{ __('منتهي الصلاحية') }}</div>
                 @foreach($expiryAlerts['expired'] as $batch)
                     <a class="dropdown-item p-2 border-bottom bg-danger bg-opacity-10" href="javascript:void(0)" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name_ar ?? 'منتج') }}', '{{ $batch->product->baseUnit->unit_name ?? 'قطعة' }}', {{ $batch->quantity }}, '{{ $batch->expiry_date->format('Y-m-d') }}')">
                         <div class="d-flex align-items-center">
@@ -1476,7 +1476,7 @@
 
             {{-- 2. قسم نقص المخزون --}}
             @if($expiryAlerts['low_stock']->count() > 0)
-                <div class="px-2 py-1 bg-dark text-warning small fw-bold"><i class="fas fa-boxes me-1"></i> مخزون منخفض</div>
+                <div class="px-2 py-1 bg-dark text-warning small fw-bold"><i class="fas fa-boxes me-1"></i> {{ __('مخزون منخفض') }}</div>
                 @foreach($expiryAlerts['low_stock'] as $prod)
                     {{-- لاحظ: استخدمنا javascript:void(0) واستدعينا دالة الفتح --}}
                     <a class="dropdown-item p-2 border-bottom" href="javascript:void(0)" onclick="openLowStockModal({{ $prod->id }}, '{{ $prod->name_ar }}', {{ $prod->current_stock }}, {{ $prod->alert_quantity }})">
@@ -1501,7 +1501,7 @@
 
             {{-- 3. قسم قرب الانتهاء --}}
             @if($expiryAlerts['near']->count() > 0)
-                <div class="px-2 py-1 bg-warning bg-opacity-25 text-dark small fw-bold"><i class="fas fa-hourglass-half me-1"></i> تنبيهات الصلاحية</div>
+                <div class="px-2 py-1 bg-warning bg-opacity-25 text-dark small fw-bold"><i class="fas fa-hourglass-half me-1"></i> {{ __('تنبيهات الصلاحية') }}</div>
                 @foreach($expiryAlerts['near'] as $batch)
                     @php $days = $batch->days_remaining_calculated ?? 0; @endphp
                     <a class="dropdown-item p-2 border-bottom bg-warning bg-opacity-10" href="javascript:void(0)" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name_ar ?? 'منتج') }}', '{{ $batch->product->baseUnit->unit_name ?? 'قطعة' }}', {{ $batch->quantity }}, '{{ $batch->expiry_date->format('Y-m-d') }}')">
@@ -1529,7 +1529,24 @@
         @endif
     </div>
 </li>
-                        <li class="nav-item"><a class="nav-link text-secondary fw-bold" href="#">AR</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-secondary fw-bold" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-globe me-1"></i> {{ strtoupper(app()->getLocale()) }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="max-height: 300px; overflow-y: auto;">
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'ar') }}">🇸🇦 العربية <span>AR</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'en') }}">🇺🇸 English <span>EN</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'fr') }}">🇫🇷 Français <span>FR</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'tr') }}">🇹🇷 Türkçe <span>TR</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'de') }}">🇩🇪 Deutsch <span>DE</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'ru') }}">🇷🇺 Русский <span>RU</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'zh') }}">🇨🇳 中文 <span>ZH</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'ja') }}">🇯🇵 日本語 <span>JA</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'pt-BR') }}">🇧🇷 Português (BR) <span>PT-BR</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'pt') }}">🇵🇹 Português (PT) <span>PT</span></a></li>
+                                <li><a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('lang.switch', 'hr') }}">🇭🇷 Hrvatski <span>HR</span></a></li>
+                            </ul>
+                        </li>
                         
                         @auth
                         <li class="nav-item dropdown ms-3">
@@ -1541,7 +1558,7 @@
                             </a>
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 <a class="dropdown-item text-danger" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                    <i class="fa fa-sign-out-alt ms-2"></i> تسجيل الخروج
+                                    <i class="fa fa-sign-out-alt ms-2"></i> {{ __('تسجيل الخروج') }}
                                 </a>
                             </div>
                         </li>
@@ -1560,21 +1577,21 @@
                     <div class="position-sticky pt-3">
                         <ul class="nav flex-column">
                             @if(auth()->id() == 1)
-                                <li class="sidebar-heading">الإدارة العامة</li>
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}" href="{{ route('superadmin.dashboard') }}"><i class="fa fa-tachometer-alt"></i> لوحة التحكم</a></li>
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('superadmin.stores.*') ? 'active' : '' }}" href="{{ route('superadmin.stores.index') }}"><i class="fa fa-store"></i> إدارة المتاجر</a></li>
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('superadmin.settings.*') ? 'active' : '' }}" href="{{ route('superadmin.settings.index') }}"><i class="fa fa-cogs"></i> إعدادات النظام</a></li>
+                                <li class="sidebar-heading">{{ __('الإدارة العامة') }}</li>
+                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}" href="{{ route('superadmin.dashboard') }}"><i class="fa fa-tachometer-alt"></i> {{ __('لوحة التحكم') }}</a></li>
+                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('superadmin.stores.*') ? 'active' : '' }}" href="{{ route('superadmin.stores.index') }}"><i class="fa fa-store"></i> {{ __('إدارة المتاجر') }}</a></li>
+                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('superadmin.settings.*') ? 'active' : '' }}" href="{{ route('superadmin.settings.index') }}"><i class="fa fa-cogs"></i> {{ __('إعدادات النظام') }}</a></li>
                             @else
                                 {{-- <li class="sidebar-heading">إدارة المتجر</li> --}}
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.dashboard') ? 'active' : '' }}" href="{{ route('store.dashboard') }}"><i class="fa fa-home"></i> الرئيسية</a></li>
+                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.dashboard') ? 'active' : '' }}" href="{{ route('store.dashboard') }}"><i class="fa fa-home"></i> {{ __('الرئيسية') }}</a></li>
                                 <li class="nav-item">
                                     @if(strtolower(Auth::user()->store->type) == 'restaurant')
                                         <a class="nav-link {{ request()->routeIs('store.meals.*') ? 'active' : '' }}" href="{{ route('store.meals.index') }}">
-                                            <i class="fa fa-box-open"></i> الوجبات والمكونات
+                                            <i class="fa fa-box-open"></i> {{ __('الوجبات والمكونات') }}
                                         </a>
                                     @else
                                         <a class="nav-link {{ request()->routeIs('store.products.*') ? 'active' : '' }}" href="{{ route('store.products.index') }}">
-                                            <i class="fa fa-box-open"></i> المنتجات
+                                            <i class="fa fa-box-open"></i> {{ __('المنتجات') }}
                                         </a>
                                     @endif
                                 </li>
@@ -1582,21 +1599,21 @@
                                     <a class="nav-link {{ request()->routeIs('store.categories.*') ? 'active' : '' }}" href="{{ route('store.categories.index') }}">
                                         <i class="fa fa-tags"></i>
                                         @if(strtolower(Auth::user()->store->type) == 'restaurant')
-                                            تصنيفات المنيو
+                                            {{ __('تصنيفات المنيو') }}
                                         @else
-                                            التصنيفات
+                                            {{ __('التصنيفات') }}
                                         @endif
                                     </a>
                                 </li>
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.contacts.*') ? 'active' : '' }}" href="{{ route('store.contacts.index') }}"><i class="fa fa-users"></i> جهات الاتصال</a></li>
+                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.contacts.*') ? 'active' : '' }}" href="{{ route('store.contacts.index') }}"><i class="fa fa-users"></i> {{ __('جهات الاتصال') }}</a></li>
                                 <li class="nav-item">
                                     <a href="{{ route('store.purchases.index') }}" class="nav-link {{ request()->routeIs('store.purchases.*') ? 'active' : '' }}">
                                         <i class="nav-icon fas fa-shopping-cart"></i>
                                         <p>
                                             @if(strtolower(Auth::user()->store->type) == 'restaurant')
-                                                المواد الخام (المشتريات)
+                                                {{ __('المواد الخام (المشتريات)') }}
                                             @else
-                                                المشتريات
+                                                {{ __('المشتريات') }}
                                             @endif
                                         </p>
                                     </a>
@@ -1604,7 +1621,7 @@
                                 <li class="nav-item">
                                     <a href="{{ route('store.expenses.index') }}" class="nav-link {{ request()->routeIs('store.expenses.*') ? 'active' : '' }}">
                                         <i class="nav-icon fas fa-wallet"></i>
-                                        <p>المصاريف</p>
+                                        <p>{{ __('المصاريف') }}</p>
                                     </a>
                                 </li>
 {{-- قائمة المبيعات --}}
@@ -1613,9 +1630,9 @@
         <i class="nav-icon fas fa-cash-register"></i>
         <span>
             @if(strtolower(Auth::user()->store->type) == 'restaurant')
-                الأوردرات (المبيعات)
+                {{ __('الأوردرات (المبيعات)') }}
             @else
-                المبيعات
+                {{ __('المبيعات') }}
             @endif
         </span>
         <i class="fas fa-angle-left ms-auto"></i>
@@ -1625,18 +1642,18 @@
             <li class="nav-item">
                 <a href="{{ route('store.pos.index') }}" class="nav-link {{ request()->routeIs('store.pos.index') ? 'active' : '' }}">
                     <i class="far fa-circle"></i>
-                    <span>نقطة بيع (POS)</span>
+                    <span>{{ __('نقطة بيع (POS)') }}</span>
                 </a>
             </li>
         </ul>
     </div>
 </li>
-                                <li class="sidebar-heading">الإعدادات</li>
+                                <li class="sidebar-heading">{{ __('الإعدادات') }}</li>
     {{-- قسم التقارير --}}
 <li class="nav-item">
     <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : 'collapsed' }}" href="#" data-bs-toggle="collapse" data-bs-target="#reportsCollapse" aria-expanded="{{ request()->routeIs('reports.*') ? 'true' : 'false' }}">
         <i class="fas fa-chart-line"></i>
-        <span>التقارير</span>
+        <span>{{ __('التقارير') }}</span>
         <i class="fas fa-angle-left ms-auto"></i>
     </a>
     <div id="reportsCollapse" class="collapse {{ request()->routeIs('reports.*') || request()->routeIs('store.pos.withdrawals') ? 'show' : '' }}">
@@ -1644,25 +1661,25 @@
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('reports.shifts') ? 'active' : '' }}" href="{{ route('reports.shifts') }}">
                     <i class="fas fa-cash-register"></i> 
-                    <span>تقرير الصناديق</span>
+                    <span>{{ __('تقرير الصناديق') }}</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('reports.inventory_logs') ? 'active' : '' }}" href="{{ route('reports.inventory_logs') }}">
                     <i class="fas fa-history"></i> 
-                    <span>سجل تعديلات المخزون</span>
+                    <span>{{ __('سجل تعديلات المخزون') }}</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('store.pos.withdrawals') ? 'active' : '' }}" href="{{ route('store.pos.withdrawals') }}">
                     <i class="fas fa-hand-holding-usd"></i> 
-                    <span>مسحوبات المالك</span>
+                    <span>{{ __('مسحوبات المالك') }}</span>
                 </a>
             </li>
         </ul>
     </div>
 </li>
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.settings.*') ? 'active' : '' }}" href="{{ route('store.settings.index') }}"><i class="fa fa-cogs"></i> الإعدادات</a></li>
+                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.settings.*') ? 'active' : '' }}" href="{{ route('store.settings.index') }}"><i class="fa fa-cogs"></i> {{ __('الإعدادات') }}</a></li>
                             @endif
                         </ul>
                     </div>
