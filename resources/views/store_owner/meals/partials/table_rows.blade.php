@@ -31,13 +31,19 @@
     
     <td>
         @php 
-            $price = $product->baseUnit->selling_price ?? 0;
-            $tax = $product->tax_percent ?? 0;
-            $priceWithTax = $price * (1 + $tax / 100);
             $cost = $product->baseUnit ? (float)$product->baseUnit->cost_price : 0;
+            $price = $product->baseUnit->selling_price ?? 0;
             $profit = $price - $cost;
         @endphp
-        <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }}</span>
+        @if($product->baseUnit && $product->baseUnit->is_sale)
+            @php 
+                $tax = $product->tax_percent ?? 0;
+                $priceWithTax = $price * (1 + $tax / 100);
+            @endphp
+            <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }}</span>
+        @else
+            <span class="badge bg-danger">غير قابل للبيع</span>
+        @endif
     </td>
 
     <td class="text-primary fw-bold">
@@ -94,14 +100,20 @@
                             <td>{{ (float)$unit->conversion_factor }}</td>
                             <td class="text-danger fw-bold">{{ (float)$unit->cost_price }}</td>
                             <td class="text-success fw-bold">
-                                @php 
-                                    $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); 
-                                    $uProfit = $unit->selling_price - $unit->cost_price;
-                                @endphp
-                                {{ number_format($uPriceTax, 2) }}
+                                @if($unit->is_sale)
+                                    @php 
+                                        $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); 
+                                    @endphp
+                                    {{ number_format($uPriceTax, 2) }}
+                                @else
+                                    <span class="badge bg-danger">غير قابل للبيع</span>
+                                @endif
                             </td>
                             <td class="text-info fw-bold">
-                                @php $uProfitPercent = $unit->cost_price > 0 ? ($uProfit / $unit->cost_price) * 100 : 0; @endphp
+                                @php 
+                                    $uProfit = $unit->selling_price - $unit->cost_price;
+                                    $uProfitPercent = $unit->cost_price > 0 ? ($uProfit / $unit->cost_price) * 100 : 0; 
+                                @endphp
                                 {{ number_format($uProfit, 2) }}
                                 <small class="text-muted">({{ number_format($uProfitPercent, 1) }}%)</small>
                             </td>

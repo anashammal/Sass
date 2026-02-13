@@ -27,17 +27,21 @@
     <td class="text-danger fw-bold">{{ $product->baseUnit ? (float)$product->baseUnit->cost_price : '0' }}</td>
     
     <td>
-        <div class="d-flex flex-column">
-            @php 
-                $price = $product->baseUnit->selling_price ?? 0;
-                $tax = $product->tax_percent ?? 0;
-                $priceWithTax = $price * (1 + $tax / 100);
-            @endphp
-            <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }}</span>
-            @if($tax > 0)
-                <small class="text-muted" style="font-size: 10px;">(شامل {{ (float)$tax }}%)</small>
-            @endif
-        </div>
+        @php $price = $product->baseUnit->selling_price ?? 0; @endphp
+        @if($product->baseUnit && $product->baseUnit->is_sale)
+            <div class="d-flex flex-column">
+                @php 
+                    $tax = $product->tax_percent ?? 0;
+                    $priceWithTax = $price * (1 + $tax / 100);
+                @endphp
+                <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }}</span>
+                @if($tax > 0)
+                    <small class="text-muted" style="font-size: 10px;">(شامل {{ (float)$tax }}%)</small>
+                @endif
+            </div>
+        @else
+            <span class="badge bg-danger">غير قابل للبيع</span>
+        @endif
     </td>
 
     <td class="text-primary fw-bold">
@@ -112,8 +116,12 @@
                             <td class="text-danger fw-bold">{{ (float)$unit->cost_price }}</td>
                             
 <td class="text-success fw-bold">
-    @php $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); @endphp
-    {{ number_format($uPriceTax, 2) }}
+    @if($unit->is_sale)
+        @php $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); @endphp
+        {{ number_format($uPriceTax, 2) }}
+    @else
+        <span class="badge bg-danger">غير قابل للبيع</span>
+    @endif
 </td>
 
 <td class="text-info fw-bold">

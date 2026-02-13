@@ -136,7 +136,12 @@
                                 <tr>
                                     <td><strong>{{ $batch->product->name_ar }}</strong></td>
                                     <td><span class="badge bg-danger" dir="ltr">{{ $batch->expiry_date }}</span></td>
-                                    <td class="text-muted small">الكمية: {{ $batch->quantity }}</td>
+                                    <td class="text-muted small">الكمية: {{ (float)$batch->quantity }}</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-danger py-0" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name_ar ?? 'منتج') }}', '{{ $batch->product->baseUnit->unit_name ?? 'قطعة' }}', {{ $batch->quantity }}, '{{ $batch->expiry_date }}')">
+                                            <i class="fas fa-cog"></i> معالجة
+                                        </button>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -165,6 +170,11 @@
                                         @endif
                                     </td>
                                     <td class="text-muted small">حد التنبيه: {{ (float)$prod->alert_quantity }}</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-warning text-dark py-0" onclick="openLowStockModal({{ $prod->id }}, '{{ $prod->name_ar }}', {{ $prod->current_stock }}, {{ $prod->alert_quantity }})">
+                                            <i class="fas fa-cog"></i> معالجة
+                                        </button>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -182,9 +192,12 @@
 
       </div>
      <div class="modal-footer bg-light">
-        {{-- ✅ هذا الزر سيأخذك للصفحة المدمجة (صلاحية + مخزون) --}}
-        <a href="{{ route('store.products.expired_manager') }}" class="btn btn-outline-primary btn-sm">
-            عرض المنتجات ومعالجتها
+        {{-- ✅ هذا الزر سيأخذك لصفحة المنتجات --}}
+        @php 
+            $route = (Auth::user()->store->type == 'restaurant') ? route('store.meals.index') : route('store.products.index');
+        @endphp
+        <a href="{{ $route }}" class="btn btn-outline-primary btn-sm">
+            عرض كافة المنتجات
         </a>
         
         {{-- زر فهمت يغلق النافذة فقط --}}

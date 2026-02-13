@@ -151,12 +151,12 @@
                                             <label class="form-check-label small fw-bold" for="base_is_purchase">شراء</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" {{ old('base_is_sale', 'on') == 'on' ? 'checked' : '' }}>
+                                            <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" {{ old('base_is_sale', 'on') == 'on' ? 'checked' : '' }} onchange="toggleSellingFields()">
                                             <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
                                         </div>
                                     </div>
 
-                                                                            <div class="col-md-3">
+                                                                            <div class="col-md-3" id="base_selling_price_div">
                                         <label class="form-label small text-success fw-bold">سعر البيع</label>
                                         <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', 0) }}" required oninput="calculateMargin('base')">
                                     </div>
@@ -168,7 +168,7 @@
                                     </div>
                                      
                                         
-                                    <div class="col-md-2">
+                                    <div class="col-md-2" id="base_margin_div">
                                         <label class="form-label small">الربح %</label>
                                         <input type="number" step="any" name="base_profit_percent" id="base_margin" class="form-control text-center text-primary" value="{{ old('base_profit_percent', 0) }}" oninput="calculatePriceFromMargin('base')">
                                     </div>
@@ -259,7 +259,7 @@
                                 <label class="form-check-label small fw-bold">شراء</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="units[INDEX][is_sale]" checked>
+                                <input class="form-check-input" type="checkbox" name="units[INDEX][is_sale]" checked onchange="toggleExtraUnitSale(this)">
                                 <label class="form-check-label small fw-bold">بيع</label>
                             </div>
                         </div>
@@ -269,12 +269,12 @@
                             <input type="number" name="units[INDEX][cost_price]" class="form-control form-control-sm bg-light unit-cost fw-bold text-danger" readonly>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 unit-profit-div">
                             <label class="small fw-bold text-primary">الربح %</label>
                             <input type="number" step="any" name="units[INDEX][profit_percent]" class="form-control form-control-sm unit-profit fw-bold text-primary" oninput="calcExtraUnitSell(this)">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 unit-sell-div">
                             <label class="small text-success fw-bold">سعر البيع</label>
                             <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success" oninput="calcExtraUnitProfit(this)">
                         </div>
@@ -290,6 +290,7 @@
     // عند تحميل الصفحة، نحسب التكاليف فوراً (لأن القيم قد تكون مسترجعة من old)
     document.addEventListener("DOMContentLoaded", function() {
         calculateBaseCost();
+        toggleSellingFields();
         
         // 🔥 استعادة الوحدات الإضافية القديمة عند الخطأ 🔥
         const oldUnits = @json(old('units', []));
@@ -327,6 +328,39 @@
         } else {
             input.classList.add('d-none');
             input.value = select.value;
+        }
+    }
+
+    function toggleSellingFields() {
+        const isSale = document.getElementById('base_is_sale').checked;
+        const sellDiv = document.getElementById('base_selling_price_div');
+        const marginDiv = document.getElementById('base_margin_div');
+        
+        if (isSale) {
+            sellDiv.style.display = 'block';
+            marginDiv.style.display = 'block';
+            document.getElementById('base_sell').required = true;
+        } else {
+            sellDiv.style.display = 'none';
+            marginDiv.style.display = 'none';
+            document.getElementById('base_sell').required = false;
+        }
+    }
+
+    function toggleExtraUnitSale(checkbox) {
+        const row = checkbox.closest('.unit-row');
+        const profitDiv = row.querySelector('.unit-profit-div');
+        const sellDiv = row.querySelector('.unit-sell-div');
+        const sellInput = row.querySelector('.unit-sell');
+
+        if (checkbox.checked) {
+            profitDiv.style.display = 'block';
+            sellDiv.style.display = 'block';
+            sellInput.required = true;
+        } else {
+            profitDiv.style.display = 'none';
+            sellDiv.style.display = 'none';
+            sellInput.required = false;
         }
     }
 
@@ -449,6 +483,7 @@
             
             // إعادة الحساب
             calculateUnitCost(row.querySelector('.unit-factor'));
+            toggleExtraUnitSale(row.querySelector('[name*="[is_sale]"]'));
         }
         
         unitIndex++;

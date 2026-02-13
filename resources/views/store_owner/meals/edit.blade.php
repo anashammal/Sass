@@ -757,9 +757,11 @@
         if (isSale) {
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
+            document.getElementById('base_sell').required = true;
         } else {
             sellDiv.style.display = 'none';
             marginDiv.style.display = 'none';
+            document.getElementById('base_sell').required = false;
         }
     }
 
@@ -772,9 +774,11 @@
         if (checkbox.checked) {
             sellDiv.style.display = 'block';
             marginDiv.style.display = 'block';
+            row.querySelector('.unit-sell').required = true;
         } else {
             sellDiv.style.display = 'none';
             marginDiv.style.display = 'none';
+            row.querySelector('.unit-sell').required = false;
         }
     }
 
