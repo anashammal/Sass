@@ -27,7 +27,7 @@
         <tbody>
             @foreach($purchase->items as $item)
             <tr>
-                <td>{{ $item->product->name_ar ?? $item->product->name_en }}</td>
+                <td>{{ $item->product->name ?? 'منتج محذوف' }}</td>
                 <td>{{ $item->unit->unit_name ?? '-' }}</td>
                 <td>{{ $item->quantity }}</td>
                 <td>{{ number_format($item->unit_price, 2) }}</td>

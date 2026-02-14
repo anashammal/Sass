@@ -188,7 +188,7 @@
                 <td>{{ number_format($item->total, 2) }}</td>
                 <td>{{ number_format($item->price, 2) }}</td>
                 <td>{{ floatval($item->quantity) }}</td>
-                <td class="text-start">{{ $arabicService->shape($item->product->name_ar ?? 'منتج محذوف') }}</td>
+                <td>{{ $arabicService->shape(optional($item->product)->name ?? '---') }}</td>
                 <td>{{ $index + 1 }}</td>
             </tr>
             @endforeach

@@ -1203,7 +1203,7 @@
             item.innerHTML = `
                 <img src="${p.image}" class="product-thumb me-2">
                 <div class="flex-grow-1">
-                    <div class="fw-bold">${p.name_ar}</div>
+                    <div class="fw-bold">${p.name}</div>
                     <div class="d-flex justify-content-between">
                         <small class="text-muted font-monospace">${p.default_barcode}</small>
                         <small class="${qtyColor}">{{ __('مخزون:') }} ${parseFloat(p.quantity).toFixed(2)}</small>
@@ -1239,7 +1239,7 @@
         }, 0);
         
         if (currentUsage + (1 * factor) > maxStock) {
-            promptStockAdjustment(product.name_ar, product.id, maxStock, function(newStock) {
+            promptStockAdjustment(product.name, product.id, maxStock, function(newStock) {
                 product.quantity = newStock;
                 addToCart(product);
             });
@@ -1252,7 +1252,7 @@
         } else {
             cart.push({
                 id: product.id,
-                name: product.name_ar,
+                name: product.name,
                 sku: product.default_barcode,
                 image: product.image,
                 price: parseFloat(product.default_price),
@@ -2001,7 +2001,7 @@
             title: "{{ __('تحديث صلاحية') }}",
             html: `
                 <div class="mb-3 text-start">
-                    <label>{{ __('المنتج:') }} ${product.name_ar}</label>
+                    <label>{{ __('المنتج:') }} ${product.name}</label>
                     <input type="date" id="newExpiryDate" class="form-control" value="${current}">
                 </div>
                 <div class="mb-3 text-start">
@@ -2423,7 +2423,7 @@
                         results: data.map(function(item) {
                             return {
                                 id: item.id,
-                                text: item.name_ar + ' (' + item.default_barcode + ')'
+                                text: item.name + ' (' + item.default_barcode + ')'
                             };
                         })
                     };
@@ -2478,7 +2478,7 @@
         if (product.alert_status === 'expired') {
             Swal.fire({
                 title: "{{ __('⛔ منتج منتهي الصلاحية!') }}",
-                html: `<h4 class="text-danger my-2">${product.name_ar}</h4>
+                html: `<h4 class="text-danger my-2">${product.name}</h4>
                        <div class="alert alert-danger fw-bold">${product.alert_msg}</div>
                        <p>{{ __('حفاظاً على السلامة، لا يمكن بيع هذا المنتج.') }}</p>`,
                 icon: 'error',
@@ -2514,7 +2514,7 @@
             title: "{{ __('تحديث الصلاحية وتوثيق العملية') }}",
             html: `
                 <div class="text-start bg-light p-3 rounded border">
-                    <label class="fw-bold">{{ __('المنتج:') }} ${product.name_ar}</label>
+                    <label class="fw-bold">{{ __('المنتج:') }} ${product.name}</label>
                     <hr>
                     <label class="mt-2 text-primary fw-bold">{{ __('تاريخ الانتهاء الجديد:') }}</label>
                     <input type="date" id="newExpiryDate" class="form-control mb-3 border-primary">

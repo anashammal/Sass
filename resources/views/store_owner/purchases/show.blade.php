@@ -83,7 +83,7 @@
                         @foreach($purchase->items as $item)
                         <tr>
                             <td>{{ $loop->iteration }}</td>
-                            <td class="text-start fw-bold">{{ $item->product->name_ar }}</td>
+                            <td class="text-start fw-bold">{{ $item->product->name }}</td>
                             <td>
                                 <span class="badge bg-secondary">{{ $item->unit->unit_name ?? '-' }}</span>
                             </td>

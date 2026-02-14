@@ -187,7 +187,7 @@
                         <tbody>
                             @foreach($p->items as $item)
                             <tr class="{{ $loop->even ? 'bg-alternating' : '' }}">
-                                <td>{{ $item->product->name_ar ?? $item->product->name }}</td>
+                                <td>{{ $item->product->name ?? $item->product->name }}</td>
                                 <td class="text-center">{{ $item->quantity }} {{ $item->unit->unit_name ?? '' }}</td>
                                 <td class="text-center">{{ number_format($item->unit_price, 2) }}</td>
                                 <td class="text-end">{{ number_format($item->total_cost, 2) }}</td>

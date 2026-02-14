@@ -30,7 +30,7 @@
         
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-edit me-2"></i> {{ __('تعديل المنتج') }} : {{ $product->name_ar }}</h5>
+                <h5 class="mb-0"><i class="fas fa-edit me-2"></i> {{ __('تعديل المنتج') }} : {{ $product->name }}</h5>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {{ $product->is_active ? 'checked' : '' }}>
                     <label class="form-check-label fw-bold text-white" for="is_active"> {{ __('منتج فعال') }} </label>
@@ -39,13 +39,9 @@
             
             <div class="card-body bg-light">
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold"> {{ __('اسم المنتج (عربي)') }} </label>
-                        <input type="text" name="name_ar" class="form-control" value="{{ old('name_ar', $product->name_ar) }}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label"> {{ __('اسم المنتج (إنجليزي)') }} </label>
-                        <input type="text" name="name_en" class="form-control" value="{{ old('name_en', $product->name_en) }}">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold"> {{ __('اسم المنتج') }} </label>
+                        <input type="text" name="name" class="form-control" value="{{ old('name', $product->name) }}" required>
                     </div>
                     
                     <div class="col-md-6">
@@ -420,7 +416,7 @@
         let options = '<option value="">-- اختر مكون --</option>';
         ingredientsData.forEach(ing => {
             let selected = (data && data.ingredient_product_id == ing.id) ? 'selected' : '';
-            options += `<option value="${ing.id}" data-cost="${ing.base_unit ? ing.base_unit.cost_price : 0}" data-unit="${ing.base_unit ? ing.base_unit.unit_name : ''}" ${selected}>${ing.name_ar}</option>`;
+            options += `<option value="${ing.id}" data-cost="${ing.base_unit ? ing.base_unit.cost_price : 0}" data-unit="${ing.base_unit ? ing.base_unit.unit_name : ''}" ${selected}>${ing.name}</option>`;
         });
 
         let qty = data ? data.quantity : 1;

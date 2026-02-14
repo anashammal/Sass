@@ -238,7 +238,7 @@ function formatNum(num) {
             <td class="text-start">
                 <input type="hidden" name="items[${rowIdx}][product_id]" value="${product.id}">
                 ${savedItem ? `<input type="hidden" name="items[${rowIdx}][item_id]" value="${savedItem.id}">` : ''}
-                <span class="fw-bold small">${product.name_ar}</span>
+                <span class="fw-bold small">${product.name}</span>
             </td>
             <td><input type="text" class="form-control form-control-sm text-center bg-white barcode-display" value="${initialBarcode}" readonly></td>
             <td>
@@ -597,7 +597,7 @@ function formatNum(num) {
                         data.forEach((item, index) => {
                             let div = document.createElement('a');
                             div.className = 'list-group-item list-group-item-action cursor-pointer';
-                            div.innerHTML = item.contact_name || `${item.name_ar} - <small>${item.sku || ''}</small>`;
+                            div.innerHTML = item.contact_name || `${item.name} - <small>${item.sku || ''}</small>`;
                             div.onclick = function() { onSelect(item); results.style.display = 'none'; };
                             results.appendChild(div);
                         });

@@ -631,7 +631,7 @@
             </td>
             <td class="product-col">
                 <input type="hidden" name="items[${rowIdx}][product_id]" value="${product.id}">
-                <div class="fw-bold small">${product.name_ar}</div>
+                <div class="fw-bold small">${product.name}</div>
             </td>
             <td class="col-shrink"><input type="text" class="form-control form-control-sm text-center bg-white barcode-display input-barcode" id="barcode_${rowIdx}" value="${initialBarcode}" readonly></td>
             <td class="col-shrink">

@@ -88,7 +88,7 @@ class PosController extends Controller
             $query = Product::where('store_id', $storeId)
             ->where('is_active', true)
             ->where(function($q) use ($term) {
-                $q->where('name_ar', 'LIKE', "%{$term}%")
+                $q->where('name', 'LIKE', "%{$term}%")
                   ->orWhere('sku', 'LIKE', "%{$term}%")
                   ->orWhereHas('units', function($q2) use ($term) {
                       $q2->where('barcode', 'LIKE', "%{$term}%");
@@ -119,7 +119,7 @@ class PosController extends Controller
             if (strpos($term, 'حليب') !== false || strpos($term, 'Milk') !== false) {
                 Log::info("POS Search for '$term'");
                 foreach ($products as $p) {
-                    Log::info("Found: {$p->name_ar} ({$p->product_type})");
+                    Log::info("Found: {$p->name} ({$p->product_type})");
                     foreach ($p->units as $u) {
                         Log::info(" - Unit: {$u->unit_name} [{$u->id}] -> is_sale: " . ($u->is_sale ? 'TRUE' : 'FALSE'));
                     }
@@ -173,7 +173,7 @@ class PosController extends Controller
 
                 return [
                     'id' => $p->id,
-                    'name_ar' => $p->name_ar,
+                    'name' => $p->name,
                     'image' => $productImg,
                     'base_image' => $productImg, 
                     'quantity' => max(0, $displayQty), 
@@ -439,7 +439,7 @@ class PosController extends Controller
                 $itemsLines = [];
                 foreach($sale->items as $item) {
                     $uName = $item->unit->unit_name ?? ($item->product->baseUnit->unit_name ?? 'قطعة');
-                    $itemsLines[] = "• " . ($item->product->name_ar ?? 'منتج') . " ({$item->quantity} {$uName})";
+                    $itemsLines[] = "• " . ($item->product->name ?? 'منتج') . " ({$item->quantity} {$uName})";
                 }
                 
                 $msgBody = "*فاتورة مبيعات #{$sale->id}*\n";
@@ -525,7 +525,7 @@ class PosController extends Controller
         $batch->expiry_date = $request->new_date;
         $batch->save();
 
-        $message = "قام الموظف ({$user->name}) بتمديد صلاحية المنتج ({$batch->product->name_ar}) من ($oldDate) إلى ({$request->new_date}). السبب: {$request->reason}";
+        $message = "قام الموظف ({$user->name}) بتمديد صلاحية المنتج ({$batch->product->name}) من ($oldDate) إلى ({$request->new_date}). السبب: {$request->reason}";
 
         try {
             DB::table('notifications')->insert([
@@ -762,7 +762,7 @@ class PosController extends Controller
                 }
 
                 return [
-                    'name' => optional($prod)->name_ar ?? 'محذوف',
+                    'name' => optional($prod)->name ?? 'محذوف',
                     'barcode' => $prod ? ($prod->sku ?? (optional($prod->baseUnit)->barcode ?? '---')) : '---',
                     'unit' => $uName,
                     'qty' => (float)$item->quantity,
@@ -855,7 +855,7 @@ class PosController extends Controller
         // 1. نبحث عن المنتجات التي تطابق الاسم أو الباركود
         $productIds = Product::where('store_id', $storeId)
             ->where(function($q) use ($term) {
-                $q->where('name_ar', 'LIKE', "%{$term}%")
+                $q->where('name', 'LIKE', "%{$term}%")
                   ->orWhere('sku', 'LIKE', "%{$term}%")
                   ->orWhereHas('units', function($u) use ($term) {
                       $u->where('barcode', 'LIKE', "%{$term}%");

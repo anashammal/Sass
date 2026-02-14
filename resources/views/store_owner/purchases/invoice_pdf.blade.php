@@ -157,7 +157,7 @@
                 <td>{{ number_format($item->unit_price, 2) }}</td>
                 <td>{{ floatval($item->quantity) }}</td>
                 <td class="text-start">
-                    {{ $arabicService->shape($item->product->name_ar ?? 'منتج محذوف') }}
+                    {{ $arabicService->shape($item->product->name ?? 'منتج محذوف') }}
                     @if($item->unit) <small>({{ $arabicService->shape($item->unit->unit_name) }})</small> @endif
                 </td>
                 <td>{{ $index + 1 }}</td>

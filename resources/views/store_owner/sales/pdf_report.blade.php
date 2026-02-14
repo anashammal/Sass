@@ -327,7 +327,7 @@
                     <td class="fw-bold">{{ number_format($item->total, 2) }}</td>
                     <td>{{ number_format($item->price, 2) }}</td>
                     <td>{{ $item->quantity }}</td>
-                    <td>{{ $arabicService->shape($item->product->name_ar ?? $item->product->name ?? '---') }}</td>
+                    <td>{{ $arabicService->shape($item->product->name ?? $item->product->name ?? '---') }}</td>
                     <td>{{ $loop->iteration }}</td>
                 </tr>
                 @endforeach

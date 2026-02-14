@@ -56,13 +56,9 @@
             
             <div class="card-body bg-light">
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">اسم الوجبة أو المادة الخام (عربي) <span class="text-danger">*</span></label>
-                        <input type="text" name="name_ar" class="form-control" required value="{{ old('name_ar') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">اسم الوجبة/المكون (إنجليزي)</label>
-                        <input type="text" name="name_en" class="form-control" value="{{ old('name_en') }}">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">{{ __('اسم المنتج') }} <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required value="{{ old('name') }}" placeholder="{{ __('مثال: بيتزا مارغريتا') }}">
                     </div>
                     
                     <div class="col-md-6" id="category_div">
@@ -547,7 +543,7 @@
                             let barcodeTxt = ing.barcode ? ` [${ing.barcode}]` : '';
                             
                             // Add new option and select it
-                            let newOption = new Option(ing.name_ar + barcodeTxt, ing.id, true, true);
+                            let newOption = new Option(ing.name + barcodeTxt, ing.id, true, true);
                             $(newOption).attr('data-units', unitsJson);
                             selectEl.empty().append(newOption).trigger('change');
                             
@@ -617,7 +613,7 @@
                 data: function (params) { return { q: params.term }; },
                 processResults: function (data, params) {
                     let results = data.map(ing => {
-                        return { id: ing.id, text: ing.name_ar + (ing.barcode ? ` [${ing.barcode}]` : ''), units: ing.units };
+                        return { id: ing.id, text: ing.name + (ing.barcode ? ` [${ing.barcode}]` : ''), units: ing.units };
                     });
 
                     // Auto-select if exactly 1 result

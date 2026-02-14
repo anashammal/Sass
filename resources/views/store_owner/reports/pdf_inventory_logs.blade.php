@@ -84,7 +84,7 @@
             @foreach($logs as $index => $log)
             <tr>
                 <td>{{ $index + 1 }}</td>
-                <td style="text-align: right;">{{ $arabicService->shape($log->product->name_ar ?? 'منتج محذوف') }}</td>
+                <td style="text-align: right;">{{ $arabicService->shape($log->product->name ?? 'منتج محذوف') }}</td>
                 <td>{{ $log->product->sku ?? '---' }}</td>
                 <td>{{ $log->created_at->format('Y-m-d') }}</td>
                 <td>

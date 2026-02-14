@@ -125,27 +125,7 @@
             <tr>
                 <td>{{ $b->expiry_date }}</td>
                 <td><span class="badge badge-danger">{{ floatval($b->quantity) }}</span></td>
-                <td class="text-start">{{ $arabicService->shape($b->product->name_ar) }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-
-    @if($outOfStock->count() > 0)
-    <div class="section-title">{{ $arabicService->shape('منتجات نفذت من المخزون') }}</div>
-    <table class="table">
-        <thead>
-            <tr>
-                <th width="30%">{{ $arabicService->shape('رقم الباركود') }}</th>
-                <th width="70%">{{ $arabicService->shape('المنتج') }}</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($outOfStock as $p)
-            <tr>
-                <td>{{ $p->sku ?? '---' }}</td>
-                <td class="text-start">{{ $arabicService->shape($p->name_ar) }}</td>
+                <td class="text-start">{{ $arabicService->shape($b->product->name) }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -167,7 +147,7 @@
             <tr>
                 <td><span class="badge badge-warning">{{ floatval($p->current_stock) }}</span></td>
                 <td>{{ floatval($p->alert_quantity) }}</td>
-                <td class="text-start">{{ $arabicService->shape($p->name_ar) }}</td>
+                <td class="text-start">{{ $arabicService->shape($p->name) }}</td>
             </tr>
             @endforeach
         </tbody>

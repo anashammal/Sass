@@ -470,7 +470,7 @@ class PurchaseController extends Controller
                     $itemsLines = [];
                     foreach($purchase->items as $item) {
                         $uName = $item->unit->unit_name ?? ($item->product->baseUnit->unit_name ?? 'قطعة');
-                        $itemsLines[] = "• " . ($item->product->name_ar ?? 'منتج') . " ({$item->quantity} {$uName})";
+                        $itemsLines[] = "• " . ($item->product->name ?? 'منتج') . " ({$item->quantity} {$uName})";
                     }
                     
                     $msgBody = "*أمر شراء / فاتورة مشتريات #{$purchase->invoice_number}*\n";
@@ -627,7 +627,7 @@ class PurchaseController extends Controller
             // Limit the select fields to reduce memory usage and avoid accidental blob loading
             $products = Product::where('store_id', $storeId)
                 ->where(function($q) use ($term) {
-                    $q->where('name_ar', 'like', "%$term%")
+                    $q->where('name', 'like', "%$term%")
                       ->orWhere('name_en', 'like', "%$term%")
                       ->orWhere('sku', 'like', "%$term%") 
                       ->orWhereHas('units', function($q2) use ($term) {
@@ -650,8 +650,8 @@ class PurchaseController extends Controller
                 // Construct a safe, simple object
                 return [
                     'id' => $product->id,
-                    'text' => $product->name_ar . ' (' . $product->sku . ')',
-                    'name_ar' => $product->name_ar,
+                    'text' => $product->name . ' (' . $product->sku . ')',
+                    'name_ar' => $product->name,
                     'sku' => $product->sku,
                     'main_image' => $product->image_url, // Assuming Accessor
                     'scanned_unit_id' => $matchedUnit ? $matchedUnit->id : null,

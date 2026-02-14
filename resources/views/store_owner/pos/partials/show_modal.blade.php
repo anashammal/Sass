@@ -32,7 +32,7 @@
         <tbody>
             @foreach($sale->items as $item)
             <tr>
-                <td>{{ $item->product->name_ar ?? 'منتج محذوف' }}</td>
+                <td>{{ $item->product->name ?? 'منتج محذوف' }}</td>
                 <td>{{ $item->unit->unit_name ?? 'قطعة' }}</td>
                 <td>{{ (float)$item->quantity }}</td>
                 <td>{{ number_format($item->price, 2) }}</td>

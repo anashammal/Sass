@@ -57,7 +57,7 @@
         <tbody>
             @foreach($sale->returns as $ret)
             <tr>
-                <td>{{ $arabicService->shape(optional($ret->product)->name_ar ?? '---') }}</td>
+                <td>{{ $arabicService->shape(optional($ret->product)->name ?? '---') }}</td>
                 <td>{{ $arabicService->shape(optional($ret->unit)->unit_name ?? 'قطعة') }}</td>
                 <td style="color: #dc3545;">{{ number_format($ret->quantity, 2) }}</td>
                 <td>{{ number_format($ret->price, 2) }}</td>
@@ -87,7 +87,7 @@
             @foreach($sale->items as $idx => $item)
             <tr>
                 <td>{{ $idx + 1 }}</td>
-                <td>{{ $arabicService->shape(optional($item->product)->name_ar ?? '---') }}</td>
+                <td>{{ $arabicService->shape(optional($item->product)->name ?? '---') }}</td>
                 <td>{{ $arabicService->shape(optional($item->unit)->unit_name ?? 'قطعة') }}</td>
                 <td>{{ number_format($item->quantity, 2) }}</td>
                 <td>{{ number_format($item->price, 2) }}</td>

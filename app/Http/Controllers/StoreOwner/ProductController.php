@@ -102,8 +102,7 @@ class ProductController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name_ar', 'like', "%{$search}%")
-                  ->orWhere('name_en', 'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%")
                   ->orWhere('sku', 'like', "%{$search}%")
                   ->orWhereHas('units', function($q2) use ($search) {
                       $q2->where('barcode', 'like', "%{$search}%");
@@ -166,7 +165,7 @@ class ProductController extends Controller
         }
 
         $request->validate([
-            'name_ar' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'category_id' => 'required',
             'base_unit_name' => 'required',
             'base_barcode' => 'nullable|unique:product_units,barcode',
@@ -184,8 +183,7 @@ class ProductController extends Controller
 
             $product = Product::create([
                 'store_id' => Auth::user()->store->id,
-                'name_ar' => $request->name_ar,
-                'name_en' => $request->name_en,
+                'name' => $request->name,
                 'category_id' => $request->category_id,
                 'description' => $request->description,
                 'sku' => $barcode,
@@ -300,7 +298,7 @@ class ProductController extends Controller
         }
 
         $request->validate([
-            'name_ar' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'category_id' => 'required',
             'base_unit_name' => 'required',
             'purchase_price' => 'required|numeric|min:0',
@@ -320,8 +318,7 @@ class ProductController extends Controller
             DB::beginTransaction();
 
             $product->update([
-                'name_ar' => $request->name_ar,
-                'name_en' => $request->name_en,
+                'name' => $request->name,
                 'category_id' => $request->category_id,
                 'description' => $request->description,
                 'sku' => $request->base_barcode, 
@@ -598,7 +595,7 @@ class ProductController extends Controller
         if ($exists) {
             return response()->json([
                 'exists' => true,
-                'product_name' => $exists->product->name_ar,
+                'product_name' => $exists->product->name,
                 'product_id' => $exists->product_id
             ]);
         }
@@ -612,7 +609,7 @@ class ProductController extends Controller
 
         $products = Product::where('store_id', $storeId)
             ->where(function($q) use ($term) {
-                $q->where('name_ar', 'LIKE', "%{$term}%")
+                $q->where('name', 'LIKE', "%{$term}%")
                   ->orWhere('sku', 'LIKE', "%{$term}%")
                   ->orWhereHas('units', function($q2) use ($term) {
                       $q2->where('barcode', 'LIKE', "%{$term}%");

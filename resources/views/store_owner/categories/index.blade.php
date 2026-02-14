@@ -120,11 +120,11 @@
                 .then(data => {
                     if (data.products_count === 0 && !data.has_children) {
                         // آمن للحذف المباشر
-                        if (confirm('هل أنت متأكد أنك تريد حذف هذا التصنيف؟')) {
+                        if (confirm("{{ __('هل أنت متأكد أنك تريد حذف هذا التصنيف؟') }}")) {
                             document.getElementById('delete-form-' + id).submit();
                         }
                     } else if (data.has_children) {
-                        alert('لا يمكن حذف التصنيف لأنه يحتوي على تصنيفات فرعية. يرجى حذف الفرعية أولاً.');
+                        alert("{{ __('لا يمكن حذف التصنيف لأنه يحتوي على تصنيفات فرعية. يرجى حذف الفرعية أولاً.') }}");
                     } else {
                         // يوجد منتجات -> فتح المودال
                         currentDeleteId = id;
@@ -145,7 +145,7 @@
                         // إعادة تعيين زر الحذف الإجباري
                         let btn = document.getElementById('forceDeleteBtn');
                         btn.disabled = false;
-                        btn.innerText = 'حذف الكل نهائياً';
+                        btn.innerText = "{{ __('حذف الكل نهائياً') }}";
                         btn.classList.remove('btn-secondary');
                         btn.classList.add('btn-danger'); // Ensure red color
                         btn.onclick = initForceDelete; // Reset handler
@@ -156,7 +156,7 @@
                 })
                 .catch(err => {
                     console.error(err);
-                    alert('حدث خطأ أثناء التحقق من الحالة.');
+                    alert("{{ __('حدث خطأ أثناء التحقق من الحالة.') }}");
                 });
                 
             return false;
@@ -164,9 +164,9 @@
 
         function executeMoveDelete() {
             let targetId = document.getElementById('targetCategorySelect').value;
-            if (!targetId) return alert('يرجى اختيار تصنيف لنقل المنتجات إليه');
+            if (!targetId) return alert("{{ __('يرجى اختيار تصنيف لنقل المنتجات إليه') }}");
 
-            if (!confirm('هل أنت متأكد من نقل المنتجات وحذف هذا التصنيف؟')) return;
+            if (!confirm("{{ __('هل أنت متأكد من نقل المنتجات وحذف هذا التصنيف؟') }}")) return;
 
             fetch("{{ url('store-owner/categories/move-delete') }}/" + currentDeleteId, {
                 method: 'POST',
@@ -181,7 +181,7 @@
                 if(data.success) {
                     location.reload(); 
                 } else {
-                    alert('خطأ: ' + (data.message || 'Unknown error'));
+                    alert("{{ __('خطأ:') }} " + (data.message || 'Unknown error'));
                 }
             });
         }
@@ -195,13 +195,13 @@
             countdownDiv.style.display = 'block';
             
             let interval = setInterval(() => {
-                btn.innerText = `انتظر... (${count})`;
-                countdownDiv.innerText = `سيتم التفعيل خلال ${count} ثواني...`;
+                btn.innerText = `{{ __('انتظر...') }} (${count})`;
+                countdownDiv.innerText = `{{ __('سيتم التفعيل خلال') }} ${count} {{ __('ثواني...') }}`;
                 count--;
                 
                 if (count < 0) {
                     clearInterval(interval);
-                    btn.innerText = 'تأكيد الحذف النهائي الآن!';
+                    btn.innerText = "{{ __('تأكيد الحذف النهائي الآن!') }}";
                     btn.disabled = false;
                     countdownDiv.style.display = 'none';
                     // تغيير وظيفة الزر للتنفيذ الفعلي
@@ -211,7 +211,7 @@
         }
 
         function executeForceDelete() {
-            if (!confirm('تحذير أخير: سيتم مسح المنتجات نهائياً! هل أنت متأكد تماماً؟')) return;
+            if (!confirm("{{ __('تحذير أخير: سيتم مسح المنتجات نهائياً! هل أنت متأكد تماماً؟') }}")) return;
 
             fetch("{{ url('store-owner/categories/force-delete') }}/" + currentDeleteId, {
                 method: 'DELETE',
@@ -224,7 +224,7 @@
                 if(data.success) {
                     location.reload();
                 } else {
-                    alert('خطأ: ' + data.message);
+                    alert("{{ __('خطأ:') }} " + data.message);
                 }
             });
         }

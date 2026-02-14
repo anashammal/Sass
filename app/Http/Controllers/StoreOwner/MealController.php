@@ -29,8 +29,7 @@ class MealController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name_ar', 'like', "%{$search}%")
-                  ->orWhere('name_en', 'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%")
                   ->orWhere('sku', 'like', "%{$search}%")
                   ->orWhereHas('units', function($q2) use ($search) {
                       $q2->where('barcode', 'like', "%{$search}%");
@@ -86,7 +85,7 @@ class MealController extends Controller
         if ($request->has('q')) {
             $q = $request->q;
             $query->where(function($w) use ($q) {
-                $w->where('name_ar', 'like', "%{$q}%")
+                $w->where('name', 'like', "%{$q}%")
                   ->orWhere('sku', 'like', "%{$q}%");
             });
         }
@@ -99,7 +98,7 @@ class MealController extends Controller
             ->map(function($ing) {
                 return [
                     'id' => $ing->id,
-                    'name_ar' => $ing->name_ar,
+                    'name' => $ing->name,
                     'barcode' => $ing->sku,
                     'units' => $ing->units->map(function($u) {
                         return [
@@ -140,7 +139,7 @@ class MealController extends Controller
         }
 
         $request->validate([
-            'name_ar' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'category_id' => 'nullable',
             'base_unit_name' => 'required',
             'base_barcode' => 'nullable|unique:product_units,barcode',
@@ -158,8 +157,7 @@ class MealController extends Controller
 
             $product = Product::create([
                 'store_id' => Auth::user()->store->id,
-                'name_ar' => $request->name_ar,
-                'name_en' => $request->name_en,
+                'name' => $request->name,
                 'category_id' => $request->category_id,
                 'description' => $request->description,
                 'sku' => $barcode,
@@ -359,7 +357,7 @@ class MealController extends Controller
             if (request('iframe') && request('quick_add')) {
                 return view('store_owner.meals.partials.quick_add_success', [
                     'product_id' => $product->id,
-                    'product_name' => $product->name_ar
+                    'product_name' => $product->name
                 ]);
             }
 
@@ -409,8 +407,7 @@ class MealController extends Controller
             DB::beginTransaction();
 
             $meal->update([
-                'name_ar' => $request->name_ar,
-                'name_en' => $request->name_en,
+                'name' => $request->name,
                 'category_id' => $request->category_id,
                 'description' => $request->description,
                 'sku' => $request->base_barcode, 
@@ -612,7 +609,7 @@ class MealController extends Controller
             if (request('iframe') && request('quick_add')) {
                 return view('store_owner.meals.partials.quick_add_success', [
                     'product_id' => $meal->id,
-                    'product_name' => $meal->name_ar
+                    'product_name' => $meal->name
                 ]);
             }
 

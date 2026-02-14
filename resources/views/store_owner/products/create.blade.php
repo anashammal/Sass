@@ -61,18 +61,14 @@
             <div class="card-body bg-light">
                 {{-- البيانات الأساسية --}}
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold"> {{ __('اسم المنتج (عربي)') }} <span class="text-danger">*</span></label>
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold"> {{ __('اسم المنتج') }} <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="text" name="name_ar" class="form-control" required placeholder="{{ __('مثال: شيبس ليز ملح') }}" value="{{ old('name_ar') }}">
+                            <input type="text" name="name" class="form-control" required placeholder="{{ __('مثال: شيبس ليز ملح') }}" value="{{ old('name') }}">
                             <button class="btn btn-outline-primary" type="button" id="google_search_btn" title="{{ __('بحث في جوجل صور') }}">
                                 <i class="fab fa-google"></i>
                             </button>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label"> {{ __('اسم المنتج (إنجليزي)') }} </label>
-                        <input type="text" name="name_en" class="form-control" placeholder="{{ __('Ex: Lays Chips Salt') }}" value="{{ old('name_en') }}">
                     </div>
                     
                     <div class="col-md-6">
@@ -315,7 +311,7 @@
 
     document.getElementById('google_search_btn').addEventListener('click', function(e) {
         e.preventDefault();
-        let name = document.querySelector('input[name="name_ar"]').value;
+        let name = document.querySelector('input[name="name"]').value;
         if(name) window.open('https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(name), '_blank');
         else alert("{{ __('الرجاء كتابة اسم المنتج بالعربي أولاً') }}");
     });
@@ -528,7 +524,7 @@
         let rowId = `recipe_row_${recipeIndex}`;
         let options = '<option value="">-- اختر مكون --</option>';
         ingredientsData.forEach(ing => {
-            options += `<option value="${ing.id}" data-cost="${ing.base_unit ? ing.base_unit.cost_price : 0}" data-unit="${ing.base_unit ? ing.base_unit.unit_name : ''}">${ing.name_ar}</option>`;
+            options += `<option value="${ing.id}" data-cost="${ing.base_unit ? ing.base_unit.cost_price : 0}" data-unit="${ing.base_unit ? ing.base_unit.unit_name : ''}">${ing.name}</option>`;
         });
 
         let html = `

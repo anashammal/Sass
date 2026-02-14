@@ -17,7 +17,7 @@
             @forelse($logs as $index => $log)
             <tr>
                 <td>{{ $logs instanceof \Illuminate\Pagination\LengthAwarePaginator ? ($logs->firstItem() + $index) : ($index + 1) }}</td>
-                <td class="text-start fw-bold">{{ $log->product->name_ar ?? 'منتج محذوف' }}</td>
+                <td class="text-start fw-bold">{{ $log->product->name ?? 'منتج محذوف' }}</td>
                 <td><code class="text-dark">{{ $log->product->sku ?? '---' }}</code></td>
                 <td class="small">{{ $log->created_at->format('Y-m-d h:i A') }}</td>
                 <td>

@@ -134,11 +134,11 @@
                         <tbody>
                             @foreach($expiredBatches as $batch)
                                 <tr>
-                                    <td><strong>{{ $batch->product->name_ar }}</strong></td>
+                                    <td><strong>{{ $batch->product->name }}</strong></td>
                                     <td><span class="badge bg-danger" dir="ltr">{{ $batch->expiry_date }}</span></td>
                                     <td class="text-muted small">{{ __('الكمية:') }} {{ (float)$batch->quantity }}</td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-danger py-0" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name_ar ?? __('منتج')) }}', '{{ $batch->product->baseUnit->unit_name ?? __('قطعة') }}', {{ $batch->quantity }}, '{{ $batch->expiry_date }}')">
+                                        <button class="btn btn-sm btn-outline-danger py-0" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name ?? __('منتج')) }}', '{{ $batch->product->baseUnit->unit_name ?? __('قطعة') }}', {{ $batch->quantity }}, '{{ $batch->expiry_date }}')">
                                             <i class="fas fa-cog"></i> {{ __('معالجة') }}
                                         </button>
                                     </td>
@@ -161,7 +161,7 @@
                         <tbody>
                             @foreach($lowStockProducts as $prod)
                                 <tr>
-                                    <td><strong>{{ $prod->name_ar }}</strong></td>
+                                    <td><strong>{{ $prod->name }}</strong></td>
                                     <td>
                                         @if($prod->current_stock <= 0)
                                             <span class="badge bg-dark">{{ __('نفذت الكمية') }}</span>
@@ -171,7 +171,7 @@
                                     </td>
                                     <td class="text-muted small">{{ __('حد التنبيه:') }} {{ (float)$prod->alert_quantity }}</td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-warning text-dark py-0" onclick="openLowStockModal({{ $prod->id }}, '{{ $prod->name_ar }}', {{ $prod->current_stock }}, {{ $prod->alert_quantity }})">
+                                        <button class="btn btn-sm btn-outline-warning text-dark py-0" onclick="openLowStockModal({{ $prod->id }}, '{{ $prod->name }}', {{ $prod->current_stock }}, {{ $prod->alert_quantity }})">
                                             <i class="fas fa-cog"></i> {{ __('معالجة') }}
                                         </button>
                                     </td>

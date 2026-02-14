@@ -5,7 +5,7 @@
     </td>
     
     <td class="text-start">
-        <div class="fw-bold text-dark">{{ $product->name_ar }}</div>
+        <div class="fw-bold text-dark">{{ $product->name }}</div>
         @if($product->units->where('is_base_unit', false)->count() > 0)
             <button class="btn btn-sm btn-link text-decoration-none p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#units_{{ $product->id }}">
                 <i class="fas fa-chevron-down me-1"></i> أحجام/وحدات تقديم ({{ $product->units->where('is_base_unit', false)->count() }})
