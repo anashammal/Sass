@@ -7,7 +7,13 @@
             @endif
             <div class="col-md-2 text-center">
                 <img id="preview_{{ $index }}" src="{{ isset($unit) && $unit->image ? $unit->image : asset('images/default-product.png') }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: contain;">
-                <input type="file" name="units[{{ $index }}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="previewImage(this, 'preview_{{ $index }}')">
+                <div class="localized-file-wrapper mt-1">
+                    <button type="button" class="btn btn-xs btn-outline-secondary localized-file-btn" style="font-size: 0.7rem; padding: 2px 5px;">
+                        <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                    </button>
+                    <div class="localized-file-name text-start" style="font-size: 0.7rem;"> {{ __('لم يتم اختيار ملف') }} </div>
+                    <input type="file" name="units[{{ $index }}][image]" accept="image/*" onchange="previewImage(this, 'preview_{{ $index }}'); updateFileName(this)">
+                </div>
             </div>
             
             <div class="col-md-10">

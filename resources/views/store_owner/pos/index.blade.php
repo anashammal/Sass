@@ -2027,12 +2027,12 @@
                     reason: result.value.reason,
                     _token: '{{ csrf_token() }}'
                 }).done((res) => {
-                    Swal.fire('تم التوثيق!', res.message, 'success');
+                    Swal.fire("{{ __('تم التوثيق!') }}", res.message, 'success');
                     // الآن نسمح بإضافته للسلة
                     product.alert_status = 'ok'; 
                     addToCart(product);
                 }).fail((xhr) => {
-                    Swal.fire('خطأ', xhr.responseJSON.error || 'حدث خطأ في النظام', 'error');
+                    Swal.fire("{{ __('خطأ') }}", xhr.responseJSON.error || "{{ __('حدث خطأ في النظام') }}", 'error');
                 });
             }
         });
@@ -2333,7 +2333,7 @@
              $('.modal-backdrop').remove();       
              $('body').removeClass('modal-open'); 
              $('body').css('padding-right', ''); 
-             toastr.success('تم فتح الصندوق');
+             toastr.success("{{ __('تم فتح الصندوق') }}");
              isShiftOpen = true;
              $('#btnOpenShift').addClass('d-none');
              $('#btnCloseShift').removeClass('d-none');
@@ -2546,12 +2546,12 @@
                     reason: result.value.reason,
                     _token: '{{ csrf_token() }}'
                 }).done((res) => {
-                    Swal.fire('تم التوثيق!', res.message, 'success');
+                    Swal.fire("{{ __('تم التوثيق!') }}", res.message, 'success');
                     // الآن نسمح بإضافته للسلة
                     product.alert_status = 'ok'; 
                     addToCart(product);
                 }).fail((xhr) => {
-                    Swal.fire('خطأ', xhr.responseJSON.error || 'حدث خطأ في النظام', 'error');
+                    Swal.fire("{{ __('خطأ') }}", xhr.responseJSON.error || "{{ __('حدث خطأ في النظام') }}", 'error');
                 });
             }
         });

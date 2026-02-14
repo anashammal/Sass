@@ -51,8 +51,14 @@
                 @endif
                 
                 <div class="mt-3">
-                    <label for="logo" class="form-label">رفع شعار جديد (اختياري):</label>
-                    <input type="file" name="logo" id="logo" class="form-control @error('logo') is-invalid @enderror">
+                    <label for="logo" class="form-label"> {{ __('رفع شعار جديد (اختياري):') }} </label>
+                    <div class="localized-file-wrapper">
+                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                        </button>
+                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                        <input type="file" name="logo" id="logo" class="@error('logo') is-invalid @enderror" accept="image/*" onchange="updateFileName(this)">
+                    </div>
                 </div>
             </div>
         </div>
@@ -78,8 +84,14 @@
                     </form>
                 @endif
                 <div class="mt-3">
-                    <label for="seal" class="form-label">رفع ختم جديد (اختياري - PNG فقط):</label>
-                    <input type="file" name="seal" id="seal" class="form-control @error('seal') is-invalid @enderror">
+                    <label for="seal" class="form-label"> {{ __('رفع ختم جديد (اختياري - PNG فقط):') }} </label>
+                    <div class="localized-file-wrapper">
+                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                        </button>
+                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                        <input type="file" name="seal" id="seal" class="@error('seal') is-invalid @enderror" accept="image/png" onchange="updateFileName(this)">
+                    </div>
                 </div>
             </div>
         </div>
@@ -105,8 +117,14 @@
                     </form>
                 @endif
                 <div class="mt-3">
-                    <label for="signature" class="form-label">رفع توقيع جديد (اختياري - PNG فقط):</label>
-                    <input type="file" name="signature" id="signature" class="form-control @error('signature') is-invalid @enderror">
+                    <label for="signature" class="form-label"> {{ __('رفع توقيع جديد (اختياري - PNG فقط):') }} </label>
+                    <div class="localized-file-wrapper">
+                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                        </button>
+                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                        <input type="file" name="signature" id="signature" class="@error('signature') is-invalid @enderror" accept="image/png" onchange="updateFileName(this)">
+                    </div>
                 </div>
             </div>
         </div>

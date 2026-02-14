@@ -155,10 +155,16 @@
                                 <input type="text" name="base_barcode" class="form-control" value="{{ old('base_barcode') }}">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small">صورة الوحدة</label>
-                                <input type="file" name="base_unit_image" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'base_preview')">
+                                <label class="form-label small"> {{ __('صورة الوحدة') }} </label>
+                                <div class="localized-file-wrapper">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                                        <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                                    </button>
+                                    <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                                    <input type="file" name="base_unit_image" accept="image/*" onchange="previewImage(this, 'base_preview'); updateFileName(this)">
+                                </div>
                                 <div class="mt-2 text-center">
-                                    <img id="base_preview" src="#" alt="معاينة الصورة" class="img-thumbnail d-none" style="max-height: 80px;">
+                                    <img id="base_preview" src="#" alt="{{ __('معاينة الصورة') }}" class="img-thumbnail d-none" style="max-height: 80px;">
                                 </div>
                             </div>
                                 <div class="col-md-3 d-flex align-items-end justify-content-start gap-3 pb-1" id="trade_checkboxes">
@@ -776,7 +782,13 @@
             <div class="row g-2 align-items-center">
                 <div class="col-md-2 text-center">
                     <img id="preview_INDEX" src="{{ asset('images/default-product.png') }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: contain;">
-                    <input type="file" name="units[INDEX][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="previewImage(this, 'preview_INDEX')">
+                    <div class="localized-file-wrapper mt-1">
+                        <button type="button" class="btn btn-xs btn-outline-secondary localized-file-btn" style="font-size: 0.7rem; padding: 2px 5px;">
+                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                        </button>
+                        <div class="localized-file-name text-start" style="font-size: 0.7rem;"> {{ __('لم يتم اختيار ملف') }} </div>
+                        <input type="file" name="units[INDEX][image]" accept="image/*" onchange="previewImage(this, 'preview_INDEX'); updateFileName(this)">
+                    </div>
                 </div>
                 
                 <div class="col-md-10">

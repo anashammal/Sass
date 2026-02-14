@@ -378,7 +378,13 @@
                                             <img id="preview_logo" src="" height="80" style="display:none; mix-blend-mode: multiply;">
                                         @endif
                                     </div>
-                                    <input type="file" name="logo" class="form-control" onchange="previewImage(this, 'preview_logo', 'placeholder_logo')">
+                                    <div class="localized-file-wrapper">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف الشعار') }}
+                                        </button>
+                                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                                        <input type="file" name="logo" class="form-control" onchange="previewImage(this, 'preview_logo', 'placeholder_logo'); updateFileName(this)">
+                                    </div>
                                 </div>
 
                                 <div class="mb-4 text-center">
@@ -391,7 +397,13 @@
                                             <img id="preview_stamp" src="" height="100" style="display:none; mix-blend-mode: multiply;">
                                         @endif
                                     </div>
-                                    <input type="file" name="stamp" class="form-control" onchange="previewImage(this, 'preview_stamp', 'placeholder_stamp')">
+                                    <div class="localized-file-wrapper">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف الختم') }}
+                                        </button>
+                                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                                        <input type="file" name="stamp" class="form-control" onchange="previewImage(this, 'preview_stamp', 'placeholder_stamp'); updateFileName(this)">
+                                    </div>
                                 </div>
 
                                 <div class="mb-3 text-center">
@@ -404,7 +416,13 @@
                                             <img id="preview_signature" src="" height="60" style="display:none; mix-blend-mode: multiply;">
                                         @endif
                                     </div>
-                                    <input type="file" name="signature" class="form-control" onchange="previewImage(this, 'preview_signature', 'placeholder_sign')">
+                                    <div class="localized-file-wrapper">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف التوقيع') }}
+                                        </button>
+                                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                                        <input type="file" name="signature" class="form-control" onchange="previewImage(this, 'preview_signature', 'placeholder_sign'); updateFileName(this)">
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -162,10 +162,16 @@
                                 <input type="text" name="base_barcode" class="form-control" value="{{ old('base_barcode', $base->barcode) }}">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small">صورة الوحدة</label>
-                                <input type="file" name="base_unit_image" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'base_preview')">
+                                <label class="form-label small"> {{ __('صورة الوحدة') }} </label>
+                                <div class="localized-file-wrapper">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                                        <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                                    </button>
+                                    <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                                    <input type="file" name="base_unit_image" accept="image/*" onchange="previewImage(this, 'base_preview'); updateFileName(this)">
+                                </div>
                                 <div class="mt-2 text-center">
-                                    <img id="base_preview" src="{{ $meal->image_url }}" alt="معاينة الصورة" class="img-thumbnail" style="max-height: 80px;">
+                                    <img id="base_preview" src="{{ $meal->image_url }}" alt="{{ __('معاينة الصورة') }}" class="img-thumbnail" style="max-height: 80px;">
                                 </div>
                             </div>
                                 <div class="col-md-3 d-flex align-items-end justify-content-start gap-3 pb-1" id="trade_checkboxes">

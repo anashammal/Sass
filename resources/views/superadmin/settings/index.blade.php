@@ -36,9 +36,12 @@
                                 @endif
                             </div>
 
-                            <div class="input-group mb-3 w-75 mx-auto">
-                                <input type="file" class="form-control" name="system_default_logo" onchange="previewAdminLogo(this)">
-                                <label class="input-group-text">اختر ملف</label>
+                            <div class="localized-file-wrapper w-75 mx-auto mb-3">
+                                <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                                    <i class="fas fa-upload me-1"></i> {{ __('اختر ملف الشعار') }}
+                                </button>
+                                <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                                <input type="file" class="form-control" name="system_default_logo" onchange="previewAdminLogo(this); updateFileName(this)">
                             </div>
                         </div>
 

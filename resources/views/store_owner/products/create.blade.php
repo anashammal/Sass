@@ -51,10 +51,10 @@
     <form action="{{ route('store.products.store') }}" method="POST" enctype="multipart/form-data" id="productForm" novalidate>
         @csrf
         <div class="card shadow-sm border-0 mb-4">
-                <h5 class="mb-0"><i class="fas fa-box-open me-2"></i> إضافة منتج جديد</h5>
+                <h5 class="mb-0"><i class="fas fa-box-open me-2"></i> {{ __('إضافة منتج جديد') }} </h5>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {{ old('is_active', 'on') == 'on' ? 'checked' : '' }}>
-                    <label class="form-check-label fw-bold text-white" for="is_active">منتج فعال</label>
+                    <label class="form-check-label fw-bold text-white" for="is_active"> {{ __('منتج فعال') }} </label>
                 </div>
             </div>
             
@@ -62,23 +62,23 @@
                 {{-- البيانات الأساسية --}}
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">اسم المنتج (عربي) <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold"> {{ __('اسم المنتج (عربي)') }} <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="text" name="name_ar" class="form-control" required placeholder="مثال: شيبس ليز ملح" value="{{ old('name_ar') }}">
-                            <button class="btn btn-outline-primary" type="button" id="google_search_btn" title="بحث في جوجل صور">
+                            <input type="text" name="name_ar" class="form-control" required placeholder="{{ __('مثال: شيبس ليز ملح') }}" value="{{ old('name_ar') }}">
+                            <button class="btn btn-outline-primary" type="button" id="google_search_btn" title="{{ __('بحث في جوجل صور') }}">
                                 <i class="fab fa-google"></i>
                             </button>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">اسم المنتج (إنجليزي)</label>
-                        <input type="text" name="name_en" class="form-control" placeholder="Ex: Lays Chips Salt" value="{{ old('name_en') }}">
+                        <label class="form-label"> {{ __('اسم المنتج (إنجليزي)') }} </label>
+                        <input type="text" name="name_en" class="form-control" placeholder="{{ __('Ex: Lays Chips Salt') }}" value="{{ old('name_en') }}">
                     </div>
                     
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">التصنيف <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold"> {{ __('التصنيف') }} <span class="text-danger">*</span></label>
                         <select name="category_id" class="form-select" required>
-                            <option value="">-- اختر تصنيف --</option>
+                            <option value=""> {{ __('-- اختر تصنيف --') }} </option>
                             @if(isset($categories))
                                 @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
@@ -88,7 +88,7 @@
                     </div>
                     
                     <div class="col-md-6">
-                        <label class="form-label">الوصف</label>
+                        <label class="form-label"> {{ __('الوصف') }} </label>
                         <input type="text" name="description" class="form-control" value="{{ old('description') }}">
                     </div>
 
@@ -100,81 +100,86 @@
                 {{-- الوحدة الأساسية --}}
                 <div class="card border-success shadow-sm mb-3">
                     <div class="card-header bg-success text-white fw-bold">
-                        <i class="fas fa-cube me-1"></i> الوحدة الأساسية (أصغر وحدة)
-                    </div>
+                        <i class="fas fa-cube me-1"></i> {{ __('الوحدة الأساسية (أصغر وحدة)') }} </div>
                     <div class="card-body">
                         <div class="row g-3 align-items-end">
                             {{-- صورة كبيرة وواضحة --}}
                             <div class="col-md-2 text-center">
-                                <label class="form-label small fw-bold">صورة الوحدة</label>
+                                <label class="form-label small fw-bold"> {{ __('صورة الوحدة') }} </label>
                                 <div class="position-relative">
                                     <img id="base_preview" src="{{ asset('images/default-product.png') }}" class="img-thumbnail mb-2" style="height: 120px; width: 120px; object-fit: contain;">
-                                    <input type="file" name="base_unit_image" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'base_preview')">
+                                    <div class="localized-file-wrapper">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                                        </button>
+                                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                                        <input type="file" name="base_unit_image" accept="image/*" onchange="previewImage(this, 'base_preview'); updateFileName(this)">
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="col-md-10">
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <label class="form-label small">اسم الوحدة</label>
+                                        <label class="form-label small"> {{ __('اسم الوحدة') }} </label>
                                         {{-- استعادة اختيار القائمة --}}
                                         <select name="base_unit_select" class="form-select" id="base_unit_select" onchange="handleBaseUnitChange(this)">
                                             @php $sel = old('base_unit_select', 'قطعة'); @endphp
-                                            <option value="قطعة" {{ $sel == 'قطعة' ? 'selected' : '' }}>قطعة</option>
-                                            <option value="كيلو" {{ $sel == 'كيلو' ? 'selected' : '' }}>كيلو</option>
-                                            <option value="علبة" {{ $sel == 'علبة' ? 'selected' : '' }}>علبة</option>
-                                            <option value="custom" {{ $sel == 'custom' ? 'selected' : '' }}>مخصص..</option>
+                                            <option value="قطعة" {{ $sel == 'قطعة' ? 'selected' : '' }}> {{ __('قطعة') }} </option>
+                                            <option value="كيلو" {{ $sel == 'كيلو' ? 'selected' : '' }}> {{ __('كيلو') }} </option>
+                                            <option value="علبة" {{ $sel == 'علبة' ? 'selected' : '' }}> {{ __('علبة') }} </option>
+                                            <option value="custom" {{ $sel == 'custom' ? 'selected' : '' }}> {{ __('مخصص..') }} </option>
                                         </select>
                                         {{-- استعادة النص المخصص --}}
                                         <input type="text" name="base_unit_name" id="base_unit_input" class="form-control {{ $sel == 'custom' ? '' : 'd-none' }} mt-1" value="{{ old('base_unit_name', 'قطعة') }}">
                                     </div>
 
                                                                             <div class="col-md-2">
-                                        <label class="form-label small text-danger fw-bold">سعر الشراء (للعبوة)</label>
+                                        <label class="form-label small text-danger fw-bold"> {{ __('سعر الشراء (للعبوة)') }} </label>
                                         <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', 0) }}" required oninput="calculateBaseCost()">
                                     </div>
 
 
                                     <div class="col-md-2">
-                                        <label class="form-label small">عدد القطع بالعبوة</label>
+                                        <label class="form-label small"> {{ __('عدد القطع بالعبوة') }} </label>
                                         <input type="number" step="any" name="pieces_per_unit" id="pieces_per_unit" class="form-control text-center" value="{{ old('pieces_per_unit', 1) }}" oninput="calculateBaseCost()">
                                     </div>
 
                                     <div class="col-md-3">
-                                        <label class="form-label small fw-bold">باركود الوحدة</label>
-                                        <input type="text" name="base_barcode" class="form-control" placeholder="تلقائي إذا فارغ" value="{{ old('base_barcode') }}">
+                                        <label class="form-label small fw-bold"> {{ __('باركود الوحدة') }} </label>
+                                        <input type="text" name="base_barcode" class="form-control" placeholder="{{ __('تلقائي إذا فارغ') }}" value="{{ old('base_barcode') }}">
                                     </div>
 
                                     <div class="col-md-3 d-flex align-items-end justify-content-start gap-3">
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="base_is_purchase" id="base_is_purchase" {{ old('base_is_purchase', 'on') == 'on' ? 'checked' : '' }}>
-                                            <label class="form-check-label small fw-bold" for="base_is_purchase">شراء</label>
+                                            <label class="form-check-label small fw-bold" for="base_is_purchase"> {{ __('شراء') }} </label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="base_is_sale" id="base_is_sale" {{ old('base_is_sale', 'on') == 'on' ? 'checked' : '' }} onchange="toggleSellingFields()">
-                                            <label class="form-check-label small fw-bold" for="base_is_sale">بيع</label>
+                                            <label class="form-check-label small fw-bold" for="base_is_sale"> {{ __('بيع') }} </label>
                                         </div>
                                     </div>
 
                                                                             <div class="col-md-3" id="base_selling_price_div">
-                                        <label class="form-label small text-success fw-bold">سعر البيع</label>
+                                        <label class="form-label small text-success fw-bold"> {{ __('سعر البيع') }} </label>
                                         <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', 0) }}" required oninput="calculateMargin('base')">
                                     </div>
                                         
                                     <div class="col-md-2">
-                                        <label class="form-label small text-muted">التكلفة (للقطعة)</label>
+                                        <label class="form-label small text-muted"> {{ __('التكلفة (للقطعة)') }} </label>
                                         <input type="text" id="calculated_base_cost" class="form-control bg-light text-center fw-bold" readonly value="0">
                                         <input type="hidden" name="base_cost_price" id="base_cost" value="0">
                                     </div>
                                      
                                         
                                     <div class="col-md-2" id="base_margin_div">
-                                        <label class="form-label small">الربح %</label>
+                                        <label class="form-label small"> {{ __('الربح %') }} </label>
                                         <input type="number" step="any" name="base_profit_percent" id="base_margin" class="form-control text-center text-primary" value="{{ old('base_profit_percent', 0) }}" oninput="calculatePriceFromMargin('base')">
                                     </div>
                                     
                                     <div class="col-md-3">
-                                        <label class="form-label small">الضريبة المضافة</label>
+                                        <label class="form-label small"> {{ __('الضريبة المضافة') }} </label>
                                         <select name="tax_percent" id="tax_percent" class="form-select bg-warning bg-opacity-10" onchange="calculatePriceWithTax()">
                                             @foreach($taxRates as $rate)
                                                 <option value="{{ $rate }}" {{ old('tax_percent') == $rate ? 'selected' : '' }}>{{ $rate }}%</option>
@@ -183,7 +188,7 @@
                                     </div>
                                     
                                     <div class="col-md-3">
-                                        <label class="form-label small text-muted">السعر مع الضريبة</label>
+                                        <label class="form-label small text-muted"> {{ __('السعر مع الضريبة') }} </label>
                                         <input type="text" id="price_with_tax" class="form-control bg-light fw-bold text-success" readonly>
                                     </div>
                                 </div>
@@ -195,8 +200,8 @@
 
                 {{-- الوحدات الإضافية --}}
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-bold text-dark"><i class="fas fa-layer-group me-1"></i> الوحدات الإضافية (كرتون، درزن...)</h6>
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addExtraUnit()"><i class="fa fa-plus"></i> إضافة وحدة</button>
+                    <h6 class="fw-bold text-dark"><i class="fas fa-layer-group me-1"></i> {{ __('الوحدات الإضافية (كرتون، درزن...)') }} </h6>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addExtraUnit()"><i class="fa fa-plus"></i> {{ __('إضافة وحدة') }} </button>
                 </div>
                 <div id="extra_units_container"></div>
 
@@ -205,12 +210,12 @@
                 <div class="row align-items-center">
                     <div class="col-md-4">
                         <div class="input-group">
-                            <span class="input-group-text bg-warning bg-opacity-25">حد التنبيه للمخزون</span>
+                            <span class="input-group-text bg-warning bg-opacity-25"> {{ __('حد التنبيه للمخزون') }} </span>
                             <input type="number" name="alert_quantity" class="form-control text-center" value="{{ old('alert_quantity', 5) }}">
                         </div>
                     </div>
                     <div class="col-md-8 text-end">
-                        <button type="submit" class="btn btn-success btn-lg px-5 shadow"><i class="fas fa-save me-2"></i> حفظ المنتج</button>
+                        <button type="submit" class="btn btn-success btn-lg px-5 shadow"><i class="fas fa-save me-2"></i> {{ __('حفظ المنتج') }} </button>
                     </div>
                 </div>
 
@@ -227,55 +232,61 @@
             <div class="row g-2 align-items-center">
                 <div class="col-md-2 text-center">
                     <img src="{{ asset('images/default-product.png') }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
-                    <input type="file" name="units[INDEX][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="previewImage(this)">
+                    <div class="localized-file-wrapper mt-1">
+                        <button type="button" class="btn btn-xs btn-outline-secondary localized-file-btn" style="font-size: 0.7rem; padding: 2px 5px;">
+                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                        </button>
+                        <div class="localized-file-name text-start" style="font-size: 0.7rem;"> {{ __('لم يتم اختيار ملف') }} </div>
+                        <input type="file" name="units[INDEX][image]" accept="image/*" onchange="previewImage(this); updateFileName(this)">
+                    </div>
                 </div>
                 
                 <div class="col-md-10">
                     <div class="row g-2">
                         <div class="col-md-3">
-                            <label class="small fw-bold">اسم الوحدة</label>
+                            <label class="small fw-bold"> {{ __('اسم الوحدة') }} </label>
                             <select name="units[INDEX][name_select]" class="form-select form-select-sm unit-select fw-bold" onchange="handleUnitChange(this)">
-                                <option value="كرتون">كرتون</option>
-                                <option value="درزن">درزن</option>
-                                <option value="شريط">شريط</option>
-                                <option value="custom">مخصص..</option>
+                                <option value="كرتون"> {{ __('كرتون') }} </option>
+                                <option value="درزن"> {{ __('درزن') }} </option>
+                                <option value="شريط"> {{ __('شريط') }} </option>
+                                <option value="custom"> {{ __('مخصص..') }} </option>
                             </select>
-                            <input type="text" name="units[INDEX][name]" class="form-control form-control-sm d-none mt-1 unit-custom-input fw-bold" placeholder="اكتب الاسم">
+                            <input type="text" name="units[INDEX][name]" class="form-control form-control-sm d-none mt-1 unit-custom-input fw-bold" placeholder="{{ __('اكتب الاسم') }}">
                         </div>
 
                         <div class="col-md-2">
-                            <label class="small fw-bold">التحويل</label>
+                            <label class="small fw-bold"> {{ __('التحويل') }} </label>
                             <input type="number" name="units[INDEX][factor]" class="form-control form-control-sm unit-factor fw-bold" value="1" oninput="calculateUnitCost(this)">
                         </div>
 
                         <div class="col-md-3">
-                            <label class="small fw-bold">الباركود</label>
+                            <label class="small fw-bold"> {{ __('الباركود') }} </label>
                             <input type="text" name="units[INDEX][barcode]" class="form-control form-control-sm fw-bold">
                         </div>
 
                         <div class="col-md-4 d-flex align-items-end justify-content-start gap-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="units[INDEX][is_purchase]" checked>
-                                <label class="form-check-label small fw-bold">شراء</label>
+                                <label class="form-check-label small fw-bold"> {{ __('شراء') }} </label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="units[INDEX][is_sale]" checked onchange="toggleExtraUnitSale(this)">
-                                <label class="form-check-label small fw-bold">بيع</label>
+                                <label class="form-check-label small fw-bold"> {{ __('بيع') }} </label>
                             </div>
                         </div>
 
                         <div class="col-md-4">
-                            <label class="small text-muted fw-bold">التكلفة (آلي)</label>
+                            <label class="small text-muted fw-bold"> {{ __('التكلفة (آلي)') }} </label>
                             <input type="number" name="units[INDEX][cost_price]" class="form-control form-control-sm bg-light unit-cost fw-bold text-danger" readonly>
                         </div>
 
                         <div class="col-md-4 unit-profit-div">
-                            <label class="small fw-bold text-primary">الربح %</label>
+                            <label class="small fw-bold text-primary"> {{ __('الربح %') }} </label>
                             <input type="number" step="any" name="units[INDEX][profit_percent]" class="form-control form-control-sm unit-profit fw-bold text-primary" oninput="calcExtraUnitSell(this)">
                         </div>
 
                         <div class="col-md-4 unit-sell-div">
-                            <label class="small text-success fw-bold">سعر البيع</label>
+                            <label class="small text-success fw-bold"> {{ __('سعر البيع') }} </label>
                             <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success" oninput="calcExtraUnitProfit(this)">
                         </div>
                     </div>
@@ -306,7 +317,7 @@
         e.preventDefault();
         let name = document.querySelector('input[name="name_ar"]').value;
         if(name) window.open('https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(name), '_blank');
-        else alert('الرجاء كتابة اسم المنتج بالعربي أولاً');
+        else alert("{{ __('الرجاء كتابة اسم المنتج بالعربي أولاً') }}");
     });
 
     function previewImage(input, imgId) {

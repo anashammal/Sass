@@ -267,7 +267,55 @@
         .dropdown-item:hover { background-color: #f8f9fa; color: #4e3a88; }
         a { text-decoration: none; }
         .btn-group .btn { margin-left: 5px; }
+
+        /* 🔥 Localized File Upload Styling 🔥 */
+        .localized-file-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        .localized-file-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .localized-file-btn {
+            white-space: nowrap;
+            z-index: 1;
+        }
+        .localized-file-name {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.85rem;
+            color: #6c757d;
+            border-bottom: 1px dashed #ced4da;
+            padding: 2px 5px;
+            min-height: 24px;
+        }
     </style>
+
+    <script>
+        // Global helper for localized file uploads
+        function updateFileName(input) {
+            const fileName = input.files.length > 0 ? input.files[0].name : "{{ __('لم يتم اختيار ملف') }}";
+            const wrapper = input.closest('.localized-file-wrapper');
+            if (wrapper) {
+                const nameDisplay = wrapper.querySelector('.localized-file-name');
+                if (nameDisplay) {
+                    nameDisplay.textContent = fileName;
+                }
+            }
+        }
+    </script>
 
     <style>
         @media print {

@@ -101,19 +101,19 @@
             <div class="col-lg-12 mb-4">
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i> فاتورة شراء جديدة</h5>
-                        <a href="{{ route('store.purchases.index') }}" class="btn btn-sm btn-light text-primary fw-bold">العودة</a>
+                        <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i> {{ __('فاتورة شراء جديدة') }} </h5>
+                        <a href="{{ route('store.purchases.index') }}" class="btn btn-sm btn-light text-primary fw-bold"> {{ __('العودة') }} </a>
                     </div>
                     <div class="card-body bg-light">
                         <div class="row g-3 align-items-end">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">المورد <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold"> {{ __('المورد') }} <span class="text-danger">*</span></label>
                                 <div class="position-relative">
                                     <div class="input-group">
     {{-- ✅ هذا هو الزر الذي كان مفقوداً --}}
-    <button type="button" class="btn btn-success" onclick="openCreateSupplierModal()" title="مورد جديد"><i class="fas fa-plus"></i></button>
+    <button type="button" class="btn btn-success" onclick="openCreateSupplierModal()" title="{{ __('مورد جديد') }}"><i class="fas fa-plus"></i></button>
     
-    <input type="text" id="supplierSearchInput" class="form-control" placeholder="ابحث عن مورد..." autocomplete="off">
+    <input type="text" id="supplierSearchInput" class="form-control" placeholder="{{ __('ابحث عن مورد...') }}" autocomplete="off">
     <input type="hidden" name="supplier_id" id="supplierId" required>
     <input type="hidden" id="currentSupplierBalance" value="0">
 </div>
@@ -125,7 +125,7 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">تاريخ وتوقيت الفاتورة</label>
+                                <label class="form-label fw-bold"> {{ __('تاريخ وتوقيت الفاتورة') }} </label>
                                 <input type="datetime-local" name="invoice_date" class="form-control custom-date-input" 
                                        value="{{ old('invoice_date', $currentDate) }}" required>
                             </div>
@@ -163,11 +163,11 @@
                                     <tr>
                                         <th class="col-shrink">صورة</th>
                                         <th class="product-col">المنتج</th>
-                                        <th class="col-shrink">الباركود</th>
+                                        <th class="col-shrink"> {{ __('الباركود') }} </th>
                                         <th class="col-shrink">الوحدة</th>
                                         <th class="col-shrink">الكمية</th>
                                         <th class="col-shrink">سعر الشراء</th>
-                                        <th class="col-shrink">الربح %</th> 
+                                        <th class="col-shrink"> {{ __('الربح %') }} </th> 
                                         <th class="col-shrink">الخصم</th>
                                         <th class="col-shrink">سعر المبيع</th>
                                         <th class="col-shrink">تاريخ الانتهاء</th>
@@ -181,7 +181,7 @@
                             </table>
                             <div id="emptyState" class="text-center py-5 text-muted">
                                 <i class="fas fa-box-open fa-3x mb-3 text-secondary opacity-50"></i>
-                                <p>قم بالبحث لإضافة منتجات</p>
+                                <p> {{ __('قم بالبحث لإضافة منتجات') }} </p>
                             </div>
                         </div>
                     </div>
@@ -192,29 +192,29 @@
             <div class="col-lg-5 ms-auto">
                 <div class="card shadow border-primary">
                     <div class="card-header bg-primary bg-opacity-10 py-2">
-                        <h6 class="mb-0 fw-bold text-primary">ملخص الدفع</h6>
+                        <h6 class="mb-0 fw-bold text-primary"> {{ __('ملخص الدفع') }} </h6>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>المجموع الفرعي:</span> <span id="subTotalDisplay" class="fw-bold">0.00</span>
+                            <span> {{ __('المجموع الفرعي:') }} </span> <span id="subTotalDisplay" class="fw-bold">0.00</span>
                         </div>
                         <div class="input-group input-group-sm mb-3">
-                            <span class="input-group-text">خصم إضافي</span>
+                            <span class="input-group-text"> {{ __('خصم إضافي') }} </span>
                             <input type="text" inputmode="decimal" name="discount" id="discountInput" class="form-control text-center fw-bold text-danger" value="0" oninput="calculateGrandTotal()">
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-top border-bottom py-2 mb-3">
-                            <span class="fs-5 fw-bold">الصافي النهائي:</span>
+                            <span class="fs-5 fw-bold"> {{ __('الصافي النهائي:') }} </span>
                             <span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">0.00</span>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="small text-muted mb-1">المدفوعات</label>
+                            <label class="small text-muted mb-1"> {{ __('المدفوعات') }} </label>
                             <div id="paymentsContainer">
                                 <div class="input-group mb-2 payment-row">
                                     <select name="payments[0][method]" class="form-select" style="max-width: 120px;">
-                                        <option value="cash">💰 نقدي</option>
-                                        <option value="card">💳 بطاقة</option>
-                                        <option value="bank">🏦 تحويل</option>
+                                        <option value="cash"> {{ __('💰 نقدي') }} </option>
+                                        <option value="card"> {{ __('💳 بطاقة') }} </option>
+                                        <option value="bank"> {{ __('🏦 تحويل') }} </option>
                                     </select>
                                     <input type="text" inputmode="decimal" name="payments[0][amount]" class="form-control text-center payment-input" value="0" oninput="calculateGrandTotal()">
                                     <button type="button" class="btn btn-outline-success" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
@@ -223,10 +223,10 @@
                         </div>
 
                         <div class="alert p-2 text-center fw-bold" id="balanceAlert" style="display: none;">
-                            <span id="balanceLabel">المتبقي:</span> <span id="balanceAmount">0.00</span>
+                            <span id="balanceLabel"> {{ __('المتبقي:') }} </span> <span id="balanceAmount">0.00</span>
                         </div>
                         
-                        <button type="button" onclick="checkBalanceAndSubmit()" class="btn btn-primary w-100 btn-lg mt-3"><i class="fas fa-save me-2"></i> حفظ الفاتورة</button>
+                        <button type="button" onclick="checkBalanceAndSubmit()" class="btn btn-primary w-100 btn-lg mt-3"><i class="fas fa-save me-2"></i> {{ __('حفظ الفاتورة') }} </button>
                     </div>
                 </div>
             </div>
@@ -286,7 +286,7 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95%;">
         <div class="modal-content" style="height: 90vh;">
             <div class="modal-header bg-success text-white py-2">
-                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> إضافة مورد جديد</h5>
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> {{ __('إضافة مورد جديد') }} </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0" style="overflow: hidden;">
@@ -300,7 +300,7 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95%;">
         <div class="modal-content" style="height: 90vh;">
             <div class="modal-header bg-success text-white py-2">
-                <h5 class="modal-title"><i class="fas fa-cube me-2"></i> إضافة منتج جديد</h5>
+                <h5 class="modal-title"><i class="fas fa-cube me-2"></i> {{ __('إضافة منتج جديد') }} </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0" style="overflow: hidden;">
@@ -659,7 +659,7 @@
             </td>
 
             <td class="col-shrink">
-                <input type="number" name="items[${rowIdx}][alert_days]" class="form-control form-control-sm text-center text-danger fw-bold px-1" style="width: 50px;" value="10" placeholder="10" title="نبهني قبل X يوم">
+                <input type="number" name="items[${rowIdx}][alert_days]" class="form-control form-control-sm text-center text-danger fw-bold px-1" style="width: 50px;" value="10" placeholder="10" title="{{ __('نبهني قبل X يوم') }}">
             </td>
             
             <td class="col-shrink"><select name="items[${rowIdx}][tax]" class="form-select form-select-sm tax bg-warning bg-opacity-10" onchange="calcTotals(${rowIdx})">${taxOptionsHtml}</select></td>
@@ -736,7 +736,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>التاريخ</th>
-                                <th>المورد</th>
+                                <th> {{ __('المورد') }} </th>
                                 <th>الوحدة</th>
                                 <th>السعر</th>
                             </tr>
@@ -840,7 +840,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light text-muted">شراء</span>
+                            <span class="input-group-text bg-light text-muted"> {{ __('شراء') }} </span>
                             <input type="text" class="form-control text-center bg-light sub-cost text-danger fw-bold" 
                                    value="${formatNum(calculatedCost)}" readonly>
                         </div>
@@ -853,7 +853,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text">بيع</span>
+                            <span class="input-group-text"> {{ __('بيع') }} </span>
                             <input type="text" inputmode="decimal" class="form-control text-center fw-bold sub-sell text-success" 
                                    value="${formatNum(uSell)}" oninput="calcSubUnitProfit(this)" onfocus="this.select()">
                         </div>
@@ -1055,9 +1055,9 @@
         div.className = 'input-group mb-2 payment-row';
         div.innerHTML = `
             <select name="payments[${paymentIdx}][method]" class="form-select" style="max-width: 120px;">
-                <option value="cash">💰 نقدي</option>
-                <option value="card">💳 بطاقة</option>
-                <option value="bank">🏦 تحويل</option>
+                <option value="cash"> {{ __('💰 نقدي') }} </option>
+                <option value="card"> {{ __('💳 بطاقة') }} </option>
+                <option value="bank"> {{ __('🏦 تحويل') }} </option>
             </select>
             <input type="text" inputmode="decimal" name="payments[${paymentIdx}][amount]" class="form-control text-center payment-input" value="${defaultVal}" oninput="calculateGrandTotal()" onfocus="this.select()">
             <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove(); calculateGrandTotal();"><i class="fas fa-trash"></i></button>

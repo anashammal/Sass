@@ -214,7 +214,13 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">{{ __('المرفق (صورة الفاتورة)') }}</label>
-                    <input type="file" name="attachment" class="form-control">
+                    <div class="localized-file-wrapper">
+                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                        </button>
+                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                        <input type="file" name="attachment" accept="image/*" onchange="updateFileName(this)">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer border-0">
@@ -263,7 +269,13 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">{{ __('تحديث المرفق (اختياري)') }}</label>
-                    <input type="file" name="attachment" class="form-control">
+                    <div class="localized-file-wrapper">
+                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
+                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                        </button>
+                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
+                        <input type="file" name="attachment" accept="image/*" onchange="updateFileName(this)">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer border-0">
