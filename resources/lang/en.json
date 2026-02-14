@@ -595,5 +595,6 @@
     "تنبيه نقص الكمية والتقادم": "Low Stock and Aging Alert",
     "عند قرب انتهاء الصلاحية بـ(أيام)": "When expiry is near by (days)",
     "سيصلك إشعار تلقائي قبل انتهاء الصلاحية بالعدد من الأيام": "You will receive an automatic notification before expiry by this number of days",
-    "حفظ التعديلات": "Save Changes"
+    "حفظ التعديلات": "Save Changes",
+    "تصنيف رئيسي": "Main Category"
 }

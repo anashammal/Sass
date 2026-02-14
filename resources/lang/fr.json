@@ -207,7 +207,7 @@
     "العودة إلى القائمة": "Retour à la liste",
     "التصنيف الأب (اختياري)": "Catégorie parente (facultatif)",
     "-- تصنيف رئيسي --": "-- Catégorie principale --",
-    "اتركه فارغاً لجعله تصنيفاً رئيسياً.": "Laissez vide pour en faire une catégorie principale.",
+    "اتركه فارغاً لجعله تصنيفاً رئيسياً.": "Laisser vide pour en faire une catégorie principale.",
     "حفظ التصنيف": "Enregistrer la catégorie",
     "تعديل التصنيف:": "Modifier la catégorie :",
     "سجل المشتريات": "سجل المشتريات",
@@ -594,5 +594,6 @@
     "تنبيه نقص الكمية والتقادم": "Alerte de stock faible et de vieillissement",
     "عند قرب انتهاء الصلاحية بـ(أيام)": "Lorsque l'expiration est proche de (jours)",
     "سيصلك إشعار تلقائي قبل انتهاء الصلاحية بالعدد من الأيام": "Vous recevrez une notification automatique avant l'expiration de ce nombre de jours",
-    "حفظ التعديلات": "Enregistrer les modifications"
+    "حفظ التعديلات": "Enregistrer les modifications",
+    "تصنيف رئيسي": "Catégorie principale"
 }

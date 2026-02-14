@@ -583,5 +583,12 @@
     "تنبيه نقص الكمية والتقادم": "Alerta de estoque baixo e envelhecimento",
     "عند قرب انتهاء الصلاحية بـ(أيام)": "Quando o vencimiento está próximo (dias)",
     "سيصلك إشعار تلقائي قبل انتهاء الصلاحية بالعدد من الأيام": "Você receberá uma notificação automática antes do vencimento por este número de dias",
-    "حفظ التعديلات": "Salvar alterações"
+    "حفظ التعديلات": "Salvar Alterações",
+    "تصنيف رئيسي": "Categoria Principal",
+    "العودة إلى القائمة": "Voltar para a lista",
+    "التصنيف الأب (اختياري)": "Categoria Pai (Opcional)",
+    "اتركه فارغاً لجعله تصنيفاً رئيسياً.": "Deixe em branco para torná-la uma categoria principal.",
+    "حفظ التصنيف": "Salvar Categoria",
+    "تعديل التصنيف:": "Editar Categoria:",
+    "إنشاء تصنيف جديد": "Criar Nova Categoria"
 }

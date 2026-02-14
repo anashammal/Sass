@@ -582,5 +582,12 @@
     "تنبيه نقص الكمية والتقادم": "Upozorenje na niske zalihe i starenje",
     "عند قرب انتهاء الصلاحية بـ(أيام)": "Kada se rok trajanja približava (dani)",
     "سيصلك إشعار تلقائي قبل انتهاء الصلاحية بالعدد من الأيام": "Primit ćete automatsku obavijest prije isteka roka za ovaj broj dana",
-    "حفظ التعديلات": "Spremi promjene"
+    "حفظ التعديلات": "Spremi promjene",
+    "تصنيف رئيسي": "Glavna kategorija",
+    "العودة إلى القائمة": "Povratak na popis",
+    "التصنيف الأب (اختياري)": "Nadređena kategorija (izborno)",
+    "اتركه فارغاً لجعله تصنيفاً رئيسياً.": "Ostavite prazno da bude glavna kategorija.",
+    "حفظ التصنيف": "Spremi kategoriju",
+    "تعديل التصنيف:": "Uredi kategoriju:",
+    "إنشاء تصنيف جديد": "Kreiraj novu kategoriju"
 }
