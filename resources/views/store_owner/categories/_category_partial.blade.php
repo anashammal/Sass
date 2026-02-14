@@ -19,13 +19,13 @@
 
         <div>
             {{-- !! -- هذا هو الرابط الذي قمنا بتفعيله -- !! --}}
-            <a href="{{ route('store.categories.edit', $category->id) }}" class="btn btn-sm btn-outline-secondary">تعديل</a>
+            <a href="{{ route('store.categories.edit', $category->id) }}" class="btn btn-sm btn-outline-secondary">{{ __('تعديل') }}</a>
 
             {{-- فورم الحذف (كما هو) --}}
             <form id="delete-form-{{ $category->id }}" action="{{ route('store.categories.destroy', $category->id) }}" method="POST" style="display: inline-block;" onsubmit="return checkDelete(event, {{ $category->id }});">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="btn btn-sm btn-outline-danger">حذف</button>
+                <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('حذف') }}</button>
             </form>
         </div>
     </div>

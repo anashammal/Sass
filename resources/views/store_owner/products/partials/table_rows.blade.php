@@ -11,9 +11,9 @@
             <button class="btn btn-sm btn-link text-decoration-none p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#units_{{ $product->id }}">
                 <i class="fas fa-chevron-down me-1"></i> 
                 @if(Auth::user()->store->type == 'restaurant')
-                    أحجام/وحدات تقديم ({{ $product->units->where('is_base_unit', false)->count() }})
+                    {{ __('أحجام/وحدات تقديم') }} ({{ $product->units->where('is_base_unit', false)->count() }})
                 @else
-                    وحدات إضافية ({{ $product->units->where('is_base_unit', false)->count() }})
+                    {{ __('وحدات إضافية') }} ({{ $product->units->where('is_base_unit', false)->count() }})
                 @endif
             </button>
         @endif
@@ -36,11 +36,11 @@
                 @endphp
                 <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }}</span>
                 @if($tax > 0)
-                    <small class="text-muted" style="font-size: 10px;">(شامل {{ (float)$tax }}%)</small>
+                    <small class="text-muted" style="font-size: 10px;">({{ __('شامل') }} {{ (float)$tax }}%)</small>
                 @endif
             </div>
         @else
-            <span class="badge bg-danger">غير قابل للبيع</span>
+            <span class="badge bg-danger">{{ __('غير قابل للبيع') }}</span>
         @endif
     </td>
 
@@ -64,16 +64,16 @@
 
     <td>
         @if($product->is_active)
-            <span class="badge bg-success">فعال</span>
+            <span class="badge bg-success">{{ __('فعال') }}</span>
         @else
-            <span class="badge bg-danger">معطل</span>
+            <span class="badge bg-danger">{{ __('معطل') }}</span>
         @endif
     </td>
 
     
     <td class="no-print">
         <a href="{{ route('store.products.edit', $product->id) }}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
-        <form action="{{ route('store.products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('حذف؟');">
+        <form action="{{ route('store.products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('{{ __('حذف؟') }}');">
             @csrf @method('DELETE')
             <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
         </form>
@@ -86,20 +86,20 @@
     <td colspan="11" class="p-3">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-1 border-bottom">
-                <small class="fw-bold text-primary">تفاصيل الوحدات الإضافية</small>
+                <small class="fw-bold text-primary">{{ __('تفاصيل الوحدات الإضافية') }}</small>
             </div>
             <div class="card-body p-0">
                 <table class="table table-sm table-bordered mb-0 bg-white text-center">
                     <thead class="table-light">
                         <tr>
-                            <th width="60">صورة</th>
-                            <th>الوحدة</th>
-                            <th>التحويل</th>
-                            <th>الباركود</th>
-                            <th class="text-danger">التكلفة</th> {{-- عمود جديد --}}
-                            <th>سعر البيع (شامل الضريبة)</th>
-                            <th class="text-info">الربح</th>
-                            <th class="text-primary">المخزون المتوفر</th> {{-- عمود جديد --}}
+                            <th width="60">{{ __('صورة') }}</th>
+                            <th>{{ __('الوحدة') }}</th>
+                            <th>{{ __('التحويل') }}</th>
+                            <th>{{ __('الباركود') }}</th>
+                            <th class="text-danger">{{ __('التكلفة') }}</th> {{-- عمود جديد --}}
+                            <th>{{ __('سعر البيع (شامل الضريبة)') }}</th>
+                            <th class="text-info">{{ __('الربح') }}</th>
+                            <th class="text-primary">{{ __('المخزون المتوفر') }}</th> {{-- عمود جديد --}}
                         </tr>
                     </thead>
                     <tbody>
@@ -112,7 +112,6 @@
                             <td>{{ (float)$unit->conversion_factor }}</td>
                             <td class="font-monospace">{{ $unit->barcode ?? '---' }}</td>
                             
-                            {{-- عرض التكلفة --}}
                             <td class="text-danger fw-bold">{{ (float)$unit->cost_price }}</td>
                             
 <td class="text-success fw-bold">
@@ -120,7 +119,7 @@
         @php $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); @endphp
         {{ number_format($uPriceTax, 2) }}
     @else
-        <span class="badge bg-danger">غير قابل للبيع</span>
+        <span class="badge bg-danger">{{ __('غير قابل للبيع') }}</span>
     @endif
 </td>
 
@@ -148,7 +147,7 @@
 @endif
 
 @empty
-<tr><td colspan="11" class="text-center py-4 text-muted">لا توجد بيانات</td></tr>
+<tr><td colspan="11" class="text-center py-4 text-muted">{{ __('لا توجد بيانات') }}</td></tr>
 @endforelse
 
 <tr><td colspan="11" class="p-0"><div class="d-flex justify-content-center py-2">{{ $products->links() }}</div></td></tr>

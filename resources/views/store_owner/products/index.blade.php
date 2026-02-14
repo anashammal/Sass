@@ -4,9 +4,9 @@
 <div class="container-fluid py-4">
     
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-        <h3 class="text-primary fw-bold"><i class="fas fa-box-open me-2"></i> إدارة المنتجات</h3>
+        <h3 class="text-primary fw-bold"><i class="fas fa-box-open me-2"></i> {{ __('إدارة المنتجات') }}</h3>
         <a href="{{ route('store.products.create') }}" class="btn btn-success shadow-sm">
-            <i class="fas fa-plus me-1"></i> إضافة منتج جديد
+            <i class="fas fa-plus me-1"></i> {{ __('إضافة منتج جديد') }}
         </a>
     </div>
 {{-- 🔥 بداية كود الإحصائيات (ضعه هنا) 🔥 --}}
@@ -19,7 +19,7 @@
                     <i class="fas fa-box-open"></i>
                 </div>
                 <div>
-                    <div class="kpi-label">إجمالي المنتجات</div>
+                    <div class="kpi-label">{{ __('إجمالي المنتجات') }}</div>
                     <div class="kpi-value english-num">{{ $prodStats['total'] ?? 0 }}</div>
                 </div>
             </div>
@@ -34,7 +34,7 @@
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
                 <div>
-                    <div class="kpi-label">مخزون منخفض</div>
+                    <div class="kpi-label">{{ __('مخزون منخفض') }}</div>
                     <div class="kpi-value english-num">{{ $prodStats['low_stock'] ?? 0 }}</div>
                 </div>
             </div>
@@ -49,7 +49,7 @@
                     <i class="fas fa-times-circle"></i>
                 </div>
                 <div>
-                    <div class="kpi-label">نافذ (0 كمية)</div>
+                    <div class="kpi-label">{{ __('نافذ (0 كمية)') }}</div>
                     <div class="kpi-value english-num">{{ $prodStats['out_of_stock'] ?? 0 }}</div>
                 </div>
             </div>
@@ -76,10 +76,10 @@
                     <div class="col-auto">
                         <div class="dropdown">
                             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-filter"></i> التصنيف
+                                <i class="fas fa-filter"></i> {{ __('التصنيف') }}
                             </button>
                             <ul class="dropdown-menu p-2 shadow" style="max-height: 300px; overflow-y: auto;">
-                                <li><h6 class="dropdown-header">اختر التصنيفات</h6></li>
+                                <li><h6 class="dropdown-header">{{ __('اختر التصنيفات') }}</h6></li>
                                 @foreach($categories as $cat)
                                     <li class="form-check">
                                         <input class="form-check-input cat-checkbox" type="checkbox" name="category_id[]" value="{{ $cat->id }}" id="cat_{{ $cat->id }}" onchange="performSearch()">
@@ -93,9 +93,9 @@
                     {{-- 🟢 فلتر الحالة (جديد) --}}
                     <div class="col-auto">
                         <select name="status" class="form-select" onchange="performSearch()">
-                            <option value="">كل الحالات</option>
-                            <option value="1">منتجات فعالة</option>
-                            <option value="0">منتجات معطلة</option>
+                            <option value="">{{ __('كل الحالات') }}</option>
+                            <option value="1">{{ __('منتجات فعالة') }}</option>
+                            <option value="0">{{ __('منتجات معطلة') }}</option>
                         </select>
                     </div>
 
@@ -103,7 +103,7 @@
                     <div class="col-auto">
                         <div class="dropdown">
                             <button class="btn btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-eye"></i> الأعمدة
+                                <i class="fas fa-eye"></i> {{ __('الأعمدة') }}
                             </button>
                             <ul class="dropdown-menu p-2 shadow" id="columnToggleMenu">
                                 {{-- سيملأ بواسطة JS --}}
@@ -115,7 +115,7 @@
                     <div class="col">
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
-                            <input type="text" id="searchInput" name="search" class="form-control" placeholder="بحث..." onkeyup="performSearch()">
+                            <input type="text" id="searchInput" name="search" class="form-control" placeholder="{{ __('بحث...') }}" onkeyup="performSearch()">
                         </div>
                     </div>
 
@@ -132,17 +132,17 @@
                 <table class="table table-hover align-middle text-center mb-0" id="productsTable">
                     <thead class="bg-light" id="mainTableHead">
                         <tr>
-                            <th class="py-3" style="width: 80px;">صورة</th>
-                            <th>المنتج</th>
-                            <th>الباركود</th>
-                            <th>التصنيف</th>
-                            <th>الوحدة</th>
-                            <th>التكلفة</th>
-                            <th>سعر البيع</th>
-                            <th>الربح</th>
-                            <th>المخزون</th>
-                            <th>الحالة</th>
-                            <th class="no-print">إجراءات</th>
+                            <th class="py-3" style="width: 80px;">{{ __('صورة') }}</th>
+                            <th>{{ __('المنتج') }}</th>
+                            <th>{{ __('الباركود') }}</th>
+                            <th>{{ __('التصنيف') }}</th>
+                            <th>{{ __('الوحدة') }}</th>
+                            <th>{{ __('التكلفة') }}</th>
+                            <th>{{ __('سعر البيع') }}</th>
+                            <th>{{ __('الربح') }}</th>
+                            <th>{{ __('المخزون') }}</th>
+                            <th>{{ __('الحالة') }}</th>
+                            <th class="no-print">{{ __('إجراءات') }}</th>
                         </tr>
                     </thead>
                     <tbody id="productsTableBody">
@@ -189,16 +189,17 @@
         }, 300);
     }
 
-    // 🟢 إصلاح فلتر الأعمدة: استهداف الصف الأول فقط من الرأس الرئيسي
     function initColumnVisibility() {
-        // نستخدم > لاختيار الأبناء المباشرين فقط (لتجاهل الجداول الداخلية)
         const headers = document.querySelectorAll('#productsTable > thead > tr > th');
         const menu = document.getElementById('columnToggleMenu');
         menu.innerHTML = '';
 
+        // نصوص مستبعدة من القائمة (مترجمة)
+        const excludedTexts = ["{{ __('صورة') }}", "{{ __('إجراءات') }}", "صورة", "إجراءات", "Image", "Actions"];
+
         headers.forEach((th, index) => {
             const text = th.textContent.trim();
-            if (!text || text === 'صورة' || text === 'إجراءات') return;
+            if (!text || excludedTexts.some(ex => text.includes(ex))) return;
 
             const li = document.createElement('li');
             li.innerHTML = `

@@ -748,11 +748,24 @@
         }
 
         .table thead th:first-child {
-            border-radius: 0 12px 0 0;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 0;
         }
 
         .table thead th:last-child {
-            border-radius: 12px 0 0 0;
+            border-top-right-radius: 12px;
+            border-top-left-radius: 0;
+        }
+
+        /* RTL Specific Fixes for Table Headers */
+        [dir="rtl"] .table thead th:first-child {
+            border-top-left-radius: 0;
+            border-top-right-radius: 12px;
+        }
+
+        [dir="rtl"] .table thead th:last-child {
+            border-top-right-radius: 0;
+            border-top-left-radius: 12px;
         }
 
         .table tbody tr {

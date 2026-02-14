@@ -117,7 +117,7 @@
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-danger text-white">
         <h5 class="modal-title fw-bold" id="alertsModalLabel">
-            <i class="fas fa-bell me-2"></i> تنبيهات هامة للمخزون والصلاحية
+            <i class="fas fa-bell me-2"></i> {{ __('تنبيهات هامة للمخزون والصلاحية') }}
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="markPopupSeen()"></button>
       </div>
@@ -127,7 +127,7 @@
         @if(isset($expiredBatches) && $expiredBatches->count() > 0)
             <div class="alert alert-danger border-danger">
                 <h6 class="fw-bold border-bottom pb-2 border-danger text-danger">
-                    <i class="fas fa-calendar-times me-1"></i> منتجات منتهية أو قاربت على الانتهاء:
+                    <i class="fas fa-calendar-times me-1"></i> {{ __('منتجات منتهية أو قاربت على الانتهاء:') }}
                 </h6>
                 <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
                     <table class="table table-sm table-borderless mb-0">
@@ -136,10 +136,10 @@
                                 <tr>
                                     <td><strong>{{ $batch->product->name_ar }}</strong></td>
                                     <td><span class="badge bg-danger" dir="ltr">{{ $batch->expiry_date }}</span></td>
-                                    <td class="text-muted small">الكمية: {{ (float)$batch->quantity }}</td>
+                                    <td class="text-muted small">{{ __('الكمية:') }} {{ (float)$batch->quantity }}</td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-danger py-0" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name_ar ?? 'منتج') }}', '{{ $batch->product->baseUnit->unit_name ?? 'قطعة' }}', {{ $batch->quantity }}, '{{ $batch->expiry_date }}')">
-                                            <i class="fas fa-cog"></i> معالجة
+                                        <button class="btn btn-sm btn-outline-danger py-0" onclick="openExpiryActionModal({{ $batch->id }}, '{{ addslashes($batch->product->name_ar ?? __('منتج')) }}', '{{ $batch->product->baseUnit->unit_name ?? __('قطعة') }}', {{ $batch->quantity }}, '{{ $batch->expiry_date }}')">
+                                            <i class="fas fa-cog"></i> {{ __('معالجة') }}
                                         </button>
                                     </td>
                                 </tr>
@@ -154,7 +154,7 @@
         @if(isset($lowStockProducts) && $lowStockProducts->count() > 0)
             <div class="alert alert-warning border-warning text-dark mt-3">
                 <h6 class="fw-bold border-bottom pb-2 border-warning text-dark">
-                    <i class="fas fa-boxes me-1"></i> منتجات مخزونها منخفض أو نفذت:
+                    <i class="fas fa-boxes me-1"></i> {{ __('منتجات مخزونها منخفض أو نفذت:') }}
                 </h6>
                 <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
                     <table class="table table-sm table-borderless mb-0 text-dark">
@@ -164,15 +164,15 @@
                                     <td><strong>{{ $prod->name_ar }}</strong></td>
                                     <td>
                                         @if($prod->current_stock <= 0)
-                                            <span class="badge bg-dark">نفذت الكمية</span>
+                                            <span class="badge bg-dark">{{ __('نفذت الكمية') }}</span>
                                         @else
-                                            <span class="badge bg-warning text-dark">باقي: {{ (float)$prod->current_stock }}</span>
+                                            <span class="badge bg-warning text-dark">{{ __('باقي:') }} {{ (float)$prod->current_stock }}</span>
                                         @endif
                                     </td>
-                                    <td class="text-muted small">حد التنبيه: {{ (float)$prod->alert_quantity }}</td>
+                                    <td class="text-muted small">{{ __('حد التنبيه:') }} {{ (float)$prod->alert_quantity }}</td>
                                     <td class="text-end">
                                         <button class="btn btn-sm btn-outline-warning text-dark py-0" onclick="openLowStockModal({{ $prod->id }}, '{{ $prod->name_ar }}', {{ $prod->current_stock }}, {{ $prod->alert_quantity }})">
-                                            <i class="fas fa-cog"></i> معالجة
+                                            <i class="fas fa-cog"></i> {{ __('معالجة') }}
                                         </button>
                                     </td>
                                 </tr>
@@ -186,7 +186,7 @@
         @if((!isset($expiredBatches) || $expiredBatches->count() == 0) && (!isset($lowStockProducts) || $lowStockProducts->count() == 0))
             <div class="text-center py-4 text-success">
                 <i class="fas fa-check-circle fa-3x mb-3"></i>
-                <h5>ممتاز! وضع المخزون سليم.</h5>
+                <h5>{{ __('ممتاز! وضع المخزون سليم.') }}</h5>
             </div>
         @endif
 
@@ -197,12 +197,12 @@
             $route = (Auth::user()->store->type == 'restaurant') ? route('store.meals.index') : route('store.products.index');
         @endphp
         <a href="{{ $route }}" class="btn btn-outline-primary btn-sm">
-            عرض كافة المنتجات
+            {{ __('عرض كافة المنتجات') }}
         </a>
         
         {{-- زر فهمت يغلق النافذة فقط --}}
         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" onclick="markPopupSeen()">
-            فهمت، إغلاق
+            {{ __('فهمت، إغلاق') }}
         </button>
       </div>
     </div>

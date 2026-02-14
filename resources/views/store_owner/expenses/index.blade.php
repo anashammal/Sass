@@ -6,15 +6,15 @@
     <div class="row mb-4">
         <div class="col-md-6 d-flex align-items-center">
             <h3 class="fw-bold text-dark mb-0">
-                <i class="fas fa-wallet me-2 text-danger"></i>المصاريف
+                <i class="fas fa-wallet me-2 text-danger"></i>{{ __('المصاريف') }}
             </h3>
             <a href="{{ route('store.expense-categories.index') }}" class="btn btn-outline-secondary btn-sm ms-3">
-                <i class="fas fa-cog me-1"></i> إدارة التصنيفات
+                <i class="fas fa-cog me-1"></i> {{ __('إدارة التصنيفات') }}
             </a>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
             <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                <i class="fas fa-plus-circle me-1"></i> تسجيل مصروف جديد
+                <i class="fas fa-plus-circle me-1"></i> {{ __('تسجيل مصروف جديد') }}
             </button>
         </div>
     </div>
@@ -25,7 +25,7 @@
             <div class="card border-0 shadow-sm p-3 h-100 border-start border-4 border-danger">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <small class="text-muted fw-bold">مصاريف اليوم</small>
+                        <small class="text-muted fw-bold">{{ __('مصاريف اليوم') }}</small>
                         <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['today'] == (int)$totals['today'] ? number_format($totals['today'], 0) : number_format($totals['today'], 2) }}</h4>
                     </div>
                     <div class="bg-danger bg-opacity-10 p-3 rounded-circle text-danger">
@@ -38,7 +38,7 @@
             <div class="card border-0 shadow-sm p-3 h-100 border-start border-4 border-warning">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <small class="text-muted fw-bold">مصاريف الشهر</small>
+                        <small class="text-muted fw-bold">{{ __('مصاريف الشهر') }}</small>
                         <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['month'] == (int)$totals['month'] ? number_format($totals['month'], 0) : number_format($totals['month'], 2) }}</h4>
                     </div>
                     <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
@@ -51,7 +51,7 @@
             <div class="card border-0 shadow-sm p-3 h-100 border-start border-4 border-secondary">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <small class="text-muted fw-bold">إجمالي المصاريف (المفلترة)</small>
+                        <small class="text-muted fw-bold">{{ __('إجمالي المصاريف (المفلترة)') }}</small>
                         <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['total'] == (int)$totals['total'] ? number_format($totals['total'], 0) : number_format($totals['total'], 2) }}</h4>
                     </div>
                     <div class="bg-secondary bg-opacity-10 p-3 rounded-circle text-secondary">
@@ -74,23 +74,23 @@
         <div class="card-header bg-white border-0 py-3">
             <form id="filterForm" action="{{ route('store.expenses.index') }}" method="GET" class="row g-2 align-items-center">
                 <div class="col-md-3">
-                    <label class="small text-muted fw-bold mb-1">من تاريخ</label>
+                    <label class="small text-muted fw-bold mb-1">{{ __('من تاريخ') }}</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white border-end-0"><i class="far fa-calendar-alt text-muted"></i></span>
                         <input type="date" id="filterDateFrom" name="date_from" value="{{ request('date_from') }}" class="form-control enhanced-date-input auto-filter border-start-0 ps-0">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="small text-muted fw-bold mb-1">إلى تاريخ</label>
+                    <label class="small text-muted fw-bold mb-1">{{ __('إلى تاريخ') }}</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white border-end-0"><i class="far fa-calendar-alt text-muted"></i></span>
                         <input type="date" id="filterDateTo" name="date_to" value="{{ request('date_to') }}" class="form-control enhanced-date-input auto-filter border-start-0 ps-0">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="small text-muted fw-bold mb-1">التصنيف</label>
+                    <label class="small text-muted fw-bold mb-1">{{ __('التصنيف') }}</label>
                     <select name="category_id" class="form-select form-select-sm auto-filter">
-                        <option value="">(الكل)</option>
+                        <option value="">{{ __('(الكل)') }}</option>
                         @foreach($categories as $cat)
                             <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                         @endforeach
@@ -98,7 +98,7 @@
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
                     <a href="{{ route('store.expenses.index') }}" class="btn btn-outline-secondary btn-sm w-100">
-                        <i class="fas fa-undo me-1"></i> إعادة تعيين
+                        <i class="fas fa-undo me-1"></i> {{ __('إعادة تعيين') }}
                     </a>
                 </div>
             </form>
@@ -109,12 +109,12 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="py-3 px-4">التاريخ</th>
-                            <th class="py-3">التصنيف</th>
-                            <th class="py-3">المبلغ</th>
-                            <th class="py-3">ملاحظات</th>
-                            <th class="py-3">بواسطة</th>
-                            <th class="py-3 text-end px-4">إجراءات</th>
+                            <th class="py-3 px-4">{{ __('التاريخ') }}</th>
+                            <th class="py-3">{{ __('التصنيف') }}</th>
+                            <th class="py-3">{{ __('المبلغ') }}</th>
+                            <th class="py-3">{{ __('ملاحظات') }}</th>
+                            <th class="py-3">{{ __('بواسطة') }}</th>
+                            <th class="py-3 text-end px-4">{{ __('إجراءات') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -135,7 +135,7 @@
                                     @if($expense->attachment)
                                         <button class="btn btn-sm btn-outline-info" 
                                             onclick="previewAttachment('{{ asset('storage/' . $expense->attachment) }}')"
-                                            title="عرض المرفق">
+                                            title="{{ __('عرض المرفق') }}">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     @endif
@@ -149,7 +149,7 @@
                                         ]) }})">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <form action="{{ route('store.expenses.destroy', $expense->id) }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
+                                    <form action="{{ route('store.expenses.destroy', $expense->id) }}" method="POST" class="d-inline" onsubmit="return confirm('{{ __('هل أنت متأكد من الحذف؟') }}')">
                                         @csrf
                                         @method('DELETE')
                                         <button class="btn btn-sm btn-outline-danger">
@@ -162,7 +162,7 @@
                             <tr>
                                 <td colspan="6" class="text-center py-5 text-muted">
                                     <i class="fas fa-receipt fa-3x mb-3 text-secondary opacity-50"></i>
-                                    <p>لا توجد مصاريف مسجلة</p>
+                                    <p>{{ __('لا توجد مصاريف مسجلة') }}</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -182,14 +182,14 @@
         <form action="{{ route('store.expenses.store') }}" method="POST" enctype="multipart/form-data" class="modal-content">
             @csrf
             <div class="modal-header border-0 bg-light">
-                <h5 class="modal-title fw-bold">تسجيل مصروف جديد</h5>
+                <h5 class="modal-title fw-bold">{{ __('تسجيل مصروف جديد') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold">تصنيف المصروف</label>
+                    <label class="form-label fw-bold">{{ __('تصنيف المصروف') }}</label>
                     <select name="category_id" class="form-select" required>
-                        <option value="" selected disabled>اختر التصنيف...</option>
+                        <option value="" selected disabled>{{ __('اختر التصنيف...') }}</option>
                         @foreach($categories as $cat)
                             <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                         @endforeach
@@ -197,29 +197,29 @@
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">المبلغ</label>
+                        <label class="form-label fw-bold">{{ __('المبلغ') }}</label>
                         <div class="input-group">
                             <input type="number" step="0.01" name="amount" class="form-control" required>
-                            <span class="input-group-text bg-white">د.أ</span>
+                            <span class="input-group-text bg-white">{{ __('د.أ') }}</span>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">التاريخ</label>
+                        <label class="form-label fw-bold">{{ __('التاريخ') }}</label>
                         <input type="date" name="expense_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">ملاحظات (اختياري)</label>
+                    <label class="form-label fw-bold">{{ __('ملاحظات (اختياري)') }}</label>
                     <textarea name="notes" class="form-control" rows="2"></textarea>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">المرفق (صورة الفاتورة)</label>
+                    <label class="form-label fw-bold">{{ __('المرفق (صورة الفاتورة)') }}</label>
                     <input type="file" name="attachment" class="form-control">
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
-                <button type="submit" class="btn btn-danger px-4">حفظ</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('إلغاء') }}</button>
+                <button type="submit" class="btn btn-danger px-4">{{ __('حفظ') }}</button>
             </div>
         </form>
     </div>
@@ -232,12 +232,12 @@
             @csrf
             @method('PUT')
             <div class="modal-header border-0 bg-light">
-                <h5 class="modal-title fw-bold">تعديل المصروف</h5>
+                <h5 class="modal-title fw-bold">{{ __('تعديل المصروف') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold">تصنيف المصروف</label>
+                    <label class="form-label fw-bold">{{ __('تصنيف المصروف') }}</label>
                     <select name="category_id" id="edit_category_id" class="form-select" required>
                         @foreach($categories as $cat)
                             <option value="{{ $cat->id }}">{{ $cat->name }}</option>
@@ -246,29 +246,29 @@
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">المبلغ</label>
+                        <label class="form-label fw-bold">{{ __('المبلغ') }}</label>
                         <div class="input-group">
                             <input type="number" step="0.01" name="amount" id="edit_amount" class="form-control" required>
-                            <span class="input-group-text bg-white">د.أ</span>
+                            <span class="input-group-text bg-white">{{ __('د.أ') }}</span>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">التاريخ</label>
+                        <label class="form-label fw-bold">{{ __('التاريخ') }}</label>
                         <input type="date" name="expense_date" id="edit_expense_date" class="form-control" required>
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">ملاحظات (اختياري)</label>
+                    <label class="form-label fw-bold">{{ __('ملاحظات (اختياري)') }}</label>
                     <textarea name="notes" id="edit_notes" class="form-control" rows="2"></textarea>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">تحديث المرفق (اختياري)</label>
+                    <label class="form-label fw-bold">{{ __('تحديث المرفق (اختياري)') }}</label>
                     <input type="file" name="attachment" class="form-control">
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
-                <button type="submit" class="btn btn-primary px-4">تحديث</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('إلغاء') }}</button>
+                <button type="submit" class="btn btn-primary px-4">{{ __('تحديث') }}</button>
             </div>
         </form>
     </div>
@@ -338,7 +338,7 @@
                 <div class="p-3">
                     <video controls class="w-100 rounded shadow-sm" style="max-height: 500px;">
                         <source src="${url}" type="video/${extension === 'mp4' ? 'mp4' : (extension === 'ogg' ? 'ogg' : 'webm')}">
-                        متصفحك لا يدعم تشغيل الفيديو.
+                        {{ __('متصفحك لا يدعم تشغيل الفيديو.') }}
                     </video>
                 </div>`;
         }
@@ -348,9 +348,9 @@
                     <i class="fas fa-music fa-4x mb-4 text-primary opacity-25"></i>
                     <audio controls class="w-100 mb-3">
                         <source src="${url}" type="audio/${extension === 'mp3' ? 'mpeg' : (extension === 'wav' ? 'wav' : 'ogg')}">
-                        متصفحك لا يدعم تشغيل الصوت.
+                        {{ __('متصفحك لا يدعم تشغيل الصوت.') }}
                     </audio>
-                    <p class="text-muted">مشغل ملفات الصوت</p>
+                    <p class="text-muted">{{ __('مشغل ملفات الصوت') }}</p>
                 </div>`;
         }
         else if (extension === 'pdf') {
@@ -371,14 +371,14 @@
                                 <i class="fas fa-laptop-code fa-stack-1x text-dark shadow-sm" style="font-size: 0.5em; margin-top: 25px;"></i>
                             </span>
                         </div>
-                        <h4 class="fw-bold">معاينة ملفات Office (نظام محلي)</h4>
-                        <p class="text-muted mb-4">أنت تعمل حالياً على <b>Localhost</b>. خدمات المعاينة السحابية (مثل Google/Microsoft) لا يمكنها الوصول لملفات جهازك الشخصي لأسباب أمنية.</p>
+                        <h4 class="fw-bold">{{ __('معاينة ملفات Office (نظام محلي)') }}</h4>
+                        <p class="text-muted mb-4">{!! __('أنت تعمل حالياً على <b>Localhost</b>. خدمات المعاينة السحابية (مثل Google/Microsoft) لا يمكنها الوصول لملفات جهازك الشخصي لأسباب أمنية.') !!}</p>
                         <div class="alert alert-warning d-inline-block shadow-sm">
-                            <i class="fas fa-info-circle me-2"></i> عند رفع النظام على الإنترنت (Live Server)، ستظهر المعاينة هنا تلقائياً.
+                            <i class="fas fa-info-circle me-2"></i> {{ __('عند رفع النظام على الإنترنت (Live Server)، ستظهر المعاينة هنا تلقائياً.') }}
                         </div>
                         <div class="mt-4 pt-2">
                             <a href="${url}" download class="btn btn-primary btn-lg px-5 shadow">
-                                <i class="fas fa-download me-2"></i> تحميل وفتح الملف الآن
+                                <i class="fas fa-download me-2"></i> {{ __('تحميل وفتح الملف الآن') }}
                             </a>
                         </div>
                     </div>`;
@@ -389,10 +389,10 @@
             body.innerHTML = `
                 <div class="text-center py-5">
                     <i class="fas fa-file-alt fa-4x mb-4 text-secondary opacity-25"></i>
-                    <h4>ملف غير مدعوم للمعاينة المباشرة</h4>
-                    <p class="text-muted mb-4">الامتداد: ( ${extension.toUpperCase()} )</p>
+                    <h4>{{ __('ملف غير مدعوم للمعاينة المباشرة') }}</h4>
+                    <p class="text-muted mb-4">{{ __('الامتداد:') }} ( ${extension.toUpperCase()} )</p>
                     <a href="${url}" download class="btn btn-dark px-5">
-                        <i class="fas fa-download me-2"></i> تحميل المرفق
+                        <i class="fas fa-download me-2"></i> {{ __('تحميل المرفق') }}
                     </a>
                 </div>`;
         }
@@ -407,7 +407,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-0">
             <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold">معاينة المرفق</h5>
+                <h5 class="modal-title fw-bold">{{ __('معاينة المرفق') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0" id="previewModalBody">
@@ -415,9 +415,9 @@
             </div>
             <div class="modal-footer border-0">
                 <a href="#" id="downloadPreviewLink" download class="btn btn-outline-secondary">
-                    <i class="fas fa-download me-1"></i> تحميل النسخة الأصلية
+                    <i class="fas fa-download me-1"></i> {{ __('تحميل النسخة الأصلية') }}
                 </a>
-                <button type="button" class="btn btn-danger px-4" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-danger px-4" data-bs-dismiss="modal">{{ __('إغلاق') }}</button>
             </div>
         </div>
     </div>

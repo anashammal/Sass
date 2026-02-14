@@ -21,9 +21,9 @@
         <div class="col-md-10">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0">إدارة التصنيفات (Categories)</h5>
+                    <h5 class="m-0">{{ __('إدارة التصنيفات') }}</h5>
                     <a href="{{ route('store.categories.create') }}" class="btn btn-primary">
-                        <i class="fa fa-plus"></i> إضافة تصنيف جديد
+                        <i class="fa fa-plus"></i> {{ __('إضافة تصنيف جديد') }}
                     </a>
                 </div>
 
@@ -44,8 +44,8 @@
                     @endif
 
                     <div class="d-flex justify-content-between align-items-center py-2 px-3 bg-light border-bottom">
-                        <strong>اسم التصنيف</strong>
-                        <strong>إجراءات</strong>
+                        <strong>{{ __('اسم التصنيف') }}</strong>
+                        <strong>{{ __('إجراءات') }}</strong>
                     </div>
 
                     <ul class="category-tree">
@@ -53,7 +53,7 @@
                             @include('store_owner.categories._category_partial', ['category' => $category])
                         @empty
                             <li class="text-center p-3">
-                                لا توجد تصنيفات لعرضها حالياً.
+                                {{ __('لا توجد تصنيفات لعرضها حالياً.') }}
                             </li>
                         @endforelse
                     </ul>
@@ -69,35 +69,35 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-warning">
-                    <h5 class="modal-title text-dark">⚠️ تحذير: التصنيف غير فارغ</h5>
+                    <h5 class="modal-title text-dark">⚠️ {{ __('⚠️ تحذير: التصنيف غير فارغ') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p class="mb-3">
-                        هذا التصنيف يحتوي على <strong id="modal-product-count" class="text-danger">0</strong> منتج.
+                        {{ __('هذا التصنيف يحتوي على') }} <strong id="modal-product-count" class="text-danger">0</strong> {{ __('منتج.') }}
                         <br>
-                        لا يمكنك حذفه مباشرة للحفاظ على سلامة البيانات.
+                        {{ __('لا يمكنك حذفه مباشرة للحفاظ على سلامة البيانات.') }}
                     </p>
 
                     <div class="d-grid gap-3">
                         <!-- خيار 1: نقل المنتجات -->
                         <div class="p-3 border rounded bg-light">
-                            <h6>1. نقل المنتجات وحذف التصنيف (موصى به)</h6>
+                            <h6>{{ __('1. نقل المنتجات وحذف التصنيف (موصى به)') }}</h6>
                             <div class="mb-2">
-                                <label>انقل المنتجات إلى:</label>
+                                <label>{{ __('انقل المنتجات إلى:') }}</label>
                                 <select id="targetCategorySelect" class="form-select">
                                     <!-- سيتم تعبئته بالجافاسكربت -->
                                 </select>
                             </div>
-                            <button onclick="executeMoveDelete()" class="btn btn-primary w-100">نقل المنتجات وحذف التصنيف</button>
+                            <button onclick="executeMoveDelete()" class="btn btn-primary w-100">{{ __('نقل المنتجات وحذف التصنيف') }}</button>
                         </div>
 
                         <!-- خيار 2: الحذف الإجباري -->
                         <div class="p-3 border rounded border-danger bg-white">
-                            <h6 class="text-danger">2. حذف الكل (خطر ⛔)</h6>
-                            <p class="small text-muted mb-2">سيتم حذف التصنيف وجميع المنتجات المرتبطة به نهائياً. هذا الإجراء لا يمكن التراجع عنه.</p>
+                            <h6 class="text-danger">{{ __('2. حذف الكل (خطر ⛔)') }}</h6>
+                            <p class="small text-muted mb-2">{{ __('سيتم حذف التصنيف وجميع المنتجات المرتبطة به نهائياً. هذا الإجراء لا يمكن التراجع عنه.') }}</p>
                             <button id="forceDeleteBtn" onclick="initForceDelete()" class="btn btn-danger w-100">
-                                حذف الكل نهائياً
+                                {{ __('حذف الكل نهائياً') }}
                             </button>
                             <div id="deleteCountdown" class="text-center text-danger mt-2 fw-bold" style="display:none;"></div>
                         </div>

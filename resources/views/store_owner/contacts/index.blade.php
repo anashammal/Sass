@@ -4,9 +4,9 @@
 <div class="container-fluid py-4">
     
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-        <h3 class="text-primary fw-bold"><i class="fas fa-users me-2"></i> إدارة جهات الاتصال</h3>
+        <h3 class="text-primary fw-bold"><i class="fas fa-users me-2"></i> {{ __('إدارة جهات الاتصال') }}</h3>
         <a href="{{ route('store.contacts.create') }}" class="btn btn-success shadow-sm">
-            <i class="fas fa-user-plus me-1"></i> إضافة جهة اتصال
+            <i class="fas fa-user-plus me-1"></i> {{ __('إضافة جهة اتصال') }}
         </a>
     </div>
 {{-- 🔥 هنا مكان الإحصائيات الصحيح 🔥 --}}
@@ -20,7 +20,7 @@
                         <i class="fas fa-users"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">العدد الكلي</div>
+                        <div class="kpi-label">{{ __('العدد الكلي') }}</div>
                         <div class="kpi-value english-num">{{ $stats['total'] ?? 0 }}</div>
                     </div>
                 </div>
@@ -35,7 +35,7 @@
                         <i class="fas fa-user-tag"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">عدد الزبائن</div>
+                        <div class="kpi-label">{{ __('عدد الزبائن') }}</div>
                         <div class="kpi-value english-num">{{ $stats['customers_count'] ?? 0 }}</div>
                     </div>
                 </div>
@@ -50,7 +50,7 @@
                         <i class="fas fa-truck"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">عدد الموردين</div>
+                        <div class="kpi-label">{{ __('عدد الموردين') }}</div>
                         <div class="kpi-value english-num">{{ $stats['suppliers_count'] ?? 0 }}</div>
                     </div>
                 </div>
@@ -65,7 +65,7 @@
                         <i class="fas fa-arrow-down"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">رصيد الزباين</div>
+                        <div class="kpi-label">{{ __('رصيد الزباين') }}</div>
                         <div class="kpi-value english-num">{{ number_format($stats['receivables'] ?? 0, 0) }}</div>
                     </div>
                 </div>
@@ -80,7 +80,7 @@
                         <i class="fas fa-arrow-up"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">مجموع الديون</div>
+                        <div class="kpi-label">{{ __('مجموع الديون') }}</div>
                         <div class="kpi-value english-num">{{ number_format(abs($stats['payables'] ?? 0), 0) }}</div>
                     </div>
                 </div>
@@ -107,17 +107,17 @@
 {{-- هذا الكود يوضع مكان القائمة المنسدلة الحالية للنوع --}}
 <div class="col-auto">
     <select name="type" class="form-select fw-bold" id="typeFilter" onchange="performSearch()">
-        <option value="">(الكل)</option>
-        <option value="customer" {{ request('type') == 'customer' ? 'selected' : '' }}>زبائن فقط</option>
-        <option value="supplier" {{ request('type') == 'supplier' ? 'selected' : '' }}>موردين فقط</option>
+        <option value="">{{ __('(الكل)') }}</option>
+        <option value="customer" {{ request('type') == 'customer' ? 'selected' : '' }}>{{ __('زبائن فقط') }}</option>
+        <option value="supplier" {{ request('type') == 'supplier' ? 'selected' : '' }}>{{ __('موردين فقط') }}</option>
     </select>
 </div>
 
 <div class="col-auto">
     <select name="balance_status" class="form-select fw-bold" onchange="performSearch()">
-        <option value="">الأرصدة (الكل)</option>
-        <option value="receivables">نطلبهم (ديون زبائن)</option>
-        <option value="payables">يطلبونا (مستحقات موردين)</option>
+        <option value="">{{ __('الأرصدة (الكل)') }}</option>
+        <option value="receivables">{{ __('نطلبهم (ديون زبائن)') }}</option>
+        <option value="payables">{{ __('يطلبونا (مستحقات موردين)') }}</option>
     </select>
 </div>
 
@@ -125,7 +125,7 @@
                     <div class="col-auto">
                         <div class="dropdown">
                             <button class="btn btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-eye"></i> الأعمدة
+                                <i class="fas fa-eye"></i> {{ __('الأعمدة') }}
                             </button>
                             <ul class="dropdown-menu p-2 shadow" id="columnToggleMenu">
                                 {{-- سيملأ بواسطة JS --}}
@@ -137,7 +137,7 @@
                     <div class="col">
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
-                            <input type="text" id="searchInput" name="search" class="form-control" placeholder="بحث بالاسم، الشركة، الهاتف..." onkeyup="performSearch()">
+                            <input type="text" id="searchInput" name="search" class="form-control" placeholder="{{ __('بحث بالاسم، الشركة، الهاتف...') }}" onkeyup="performSearch()">
                         </div>
                     </div>
 
@@ -153,15 +153,15 @@
                 <table class="table table-hover align-middle text-center mb-0" id="contactsTable">
                     <thead class="bg-light" id="mainTableHead">
                         <tr>
-                            <th>الاسم</th>
-                            <th>الشركة</th>
-                            <th>النوع</th>
-                            <th>الهاتف</th>
-                            <th>البريد الإلكتروني</th>
-                            <th>الرقم الضريبي</th>
-                            <th>العنوان</th>
-                            <th>الرصيد</th>
-                            <th class="no-print">إجراءات</th>
+                            <th>{{ __('الاسم') }}</th>
+                            <th>{{ __('الشركة') }}</th>
+                            <th>{{ __('النوع') }}</th>
+                            <th>{{ __('الهاتف') }}</th>
+                            <th>{{ __('البريد الإلكتروني') }}</th>
+                            <th>{{ __('الرقم الضريبي') }}</th>
+                            <th>{{ __('العنوان') }}</th>
+                            <th>{{ __('الرصيد') }}</th>
+                            <th class="no-print">{{ __('إجراءات') }}</th>
                         </tr>
                     </thead>
                     <tbody id="contactsTableBody">
@@ -187,55 +187,55 @@
             @csrf
             <input type="hidden" name="contact_id" id="pay_contact_id">
             <div class="modal-header border-0 bg-light">
-                <h5 class="modal-title fw-bold">تسجيل دفعة جديدة</h5>
+                <h5 class="modal-title fw-bold">{{ __('تسجيل دفعة جديدة') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info py-2 small">
                     <i class="fas fa-info-circle me-1"></i>
-                    الجهة: <span id="pay_contact_name" class="fw-bold"></span> | 
-                    الرصيد الحالي: <span id="pay_contact_balance" class="fw-bold" dir="ltr"></span>
+                    {{ __('الجهة:') }} <span id="pay_contact_name" class="fw-bold"></span> | 
+                    {{ __('الرصيد الحالي:') }} <span id="pay_contact_balance" class="fw-bold" dir="ltr"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">نوع العملية</label>
+                    <label class="form-label fw-bold">{{ __('نوع العملية') }}</label>
                     <select name="type" id="pay_type" class="form-select" required>
-                        <option value="receive">قبض من عميل (Money In)</option>
-                        <option value="pay">صرف لمورد (Money Out)</option>
+                        <option value="receive">{{ __('قبض من عميل (Money In)') }}</option>
+                        <option value="pay">{{ __('صرف لمورد (Money Out)') }}</option>
                     </select>
                 </div>
 
                 <div class="row g-2 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">المبلغ</label>
+                        <label class="form-label fw-bold">{{ __('المبلغ') }}</label>
                         <div class="input-group">
                             <input type="number" step="0.01" name="amount" class="form-control" required>
-                            <span class="input-group-text bg-white">د.أ</span>
+                            <span class="input-group-text bg-white">{{ __('د.أ') }}</span>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">التاريخ</label>
+                        <label class="form-label fw-bold">{{ __('التاريخ') }}</label>
                         <input type="date" name="payment_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">طريقة الدفع</label>
+                    <label class="form-label fw-bold">{{ __('طريقة الدفع') }}</label>
                     <select name="method" class="form-select" required>
-                        <option value="cash">نقداً (Cash)</option>
-                        <option value="card">شبكة (Card)</option>
-                        <option value="bank">تحويل بنكي (Bank)</option>
+                        <option value="cash">{{ __('نقداً (Cash)') }}</option>
+                        <option value="card">{{ __('شبكة (Card)') }}</option>
+                        <option value="bank">{{ __('تحويل بنكي (Bank)') }}</option>
                     </select>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">ملاحظات</label>
+                    <label class="form-label fw-bold">{{ __('ملاحظات') }}</label>
                     <textarea name="notes" class="form-control" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
-                <button type="submit" class="btn btn-success px-4">حفظ الدفعة</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('إلغاء') }}</button>
+                <button type="submit" class="btn btn-success px-4">{{ __('حفظ الدفعة') }}</button>
             </div>
         </form>
     </div>
