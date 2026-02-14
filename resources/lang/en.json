@@ -204,7 +204,7 @@
     "فاتورة جديدة": "New Invoice",
     "إجمالي الفواتير": "Total Invoices",
     "إجمالي المدفوع": "Total Paid",
-    "المتبقي (الأجل)": "Remaining (Due)",
+    "المتبقي (الأجل)": "Remaining (Credit)",
     "بحث ذكي": "Smart Search",
     "رقم الفاتورة، اسم المورد...": "Invoice number, supplier name...",
     "المورد": "Supplier",
@@ -255,14 +255,15 @@
     "حد التنبيه:": "Alert Limit:",
     "ممتاز! وضع المخزون سليم.": "Excellent! Stock status is healthy.",
     "عرض كافة المنتجات": "View All Products",
-    "فهمت، إغلاق": "Understood, Close",
+    "فهمت، إغلاق": "I understand, Close",
     "إجمالي المدفوعات": "Total Payments",
-    "كشف حساب مورد": "Supplier Account Statement",
+    "كشف حساب مورد": "Supplier Statement",
     "باركود الهاتف": "Phone Barcode",
-    "له رصيد / دائن": "Has Credit / Creditor",
+    "له رصيد / دائن": "Has Balance / Creditor",
     "عليه دين / مدين": "Has Debt / Debtor",
     "إضافة مصروف": "Add Expense",
     "مصاريف": "Expenses",
     "إسم المنتج": "Product Name",
-    "الربح (%)": "Profit (%)"
+    "الربح (%)": "Profit (%)",
+    "نقطة البيع (POS)": "Point of Sale (POS)"
 }

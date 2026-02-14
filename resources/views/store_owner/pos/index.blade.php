@@ -207,7 +207,7 @@
                 <div class="position-relative">
                     <div class="input-group input-group-lg">
                         <span class="input-group-text bg-light border-0 text-primary"><i class="fas fa-barcode"></i></span>
-                        <input type="text" id="barcodeInput" class="form-control bg-light border-0" placeholder="امسح الباركود أو ابحث بالاسم (F3)..." autocomplete="off">
+                        <input type="text" id="barcodeInput" class="form-control bg-light border-0" placeholder="{{ __('امسح الباركود أو ابحث بالاسم (F3)...') }}" autocomplete="off">
                     </div>
                     <div id="searchResults" class="list-group position-absolute w-100 shadow-lg" style="top: 100%; z-index: 9999; display: none;"></div>
                 </div>
@@ -218,12 +218,12 @@
                     <thead class="bg-light sticky-top" style="z-index: 1; display: none;">
                         <tr>
                             <th class="ps-4" width="5%">#</th>
-                            <th width="15%">الباركود</th>
-                            <th width="30%">المادة</th>
-                            <th width="15%">الوحدة</th>
-                            <th class="text-center" width="10%">السعر</th>
-                            <th class="text-center" width="15%">الكمية</th>
-                            <th class="text-center" width="10%">الإجمالي</th>
+                            <th width="15%">{{ __('الباركود') }}</th>
+                            <th width="30%">{{ __('المادة') }}</th>
+                            <th width="15%">{{ __('الوحدة') }}</th>
+                            <th class="text-center" width="10%">{{ __('السعر') }}</th>
+                            <th class="text-center" width="15%">{{ __('الكمية') }}</th>
+                            <th class="text-center" width="10%">{{ __('الإجمالي') }}</th>
                             <th width="5%"></th>
                         </tr>
                     </thead>
@@ -231,17 +231,17 @@
                 </table>
                 <div id="emptyCartMsg" class="text-center py-5 mt-5">
                     <i class="fas fa-shopping-cart fa-4x text-light mb-3"></i>
-                    <h4 class="text-muted fw-light">ابدأ عملية البيع</h4>
+                    <h4 class="text-muted fw-light">{{ __('ابدأ عملية البيع') }}</h4>
                 </div>
             </div>
 
             {{-- ✅ أزرار التحكم الجديدة في المنتصف --}}
             <div class="p-3 border-top bg-light d-flex gap-3 justify-content-center">
                 <button class="btn btn-lg py-3 fw-bold shadow-sm pos-action-btn btn-save-invoice" onclick="submitInvoice()">
-                    <i class="fas fa-save me-2"></i> حفظ وطباعة (F9)
+                    <i class="fas fa-save me-2"></i> {{ __('حفظ وطباعة (F9)') }}
                 </button>
                 <button class="btn btn-lg py-3 fw-bold shadow-sm pos-action-btn btn-cancel-invoice" onclick="clearCart()">
-                    <i class="fas fa-times me-2"></i> إلغاء
+                    <i class="fas fa-times me-2"></i> {{ __('إلغاء') }}
                 </button>
             </div>
         </div>
@@ -256,27 +256,27 @@
                     {{-- ✅ زر فتح الصندوق --}}
                     <button id="btnOpenShift" class="btn btn-success btn-sm text-white fw-bold py-1 px-2" 
                             data-bs-toggle="modal" data-bs-target="#openShiftModal"
-                            title="فتح وردية">
+                            title="{{ __('فتح وردية') }}">
                         <i class="fas fa-door-open"></i>
                     </button>
 
                     {{-- زر الإرجاع --}}
-                    <button type="button" class="btn btn-warning btn-sm text-dark py-1 px-2" onclick="openReturnModal()" title="إرجاع مواد">
+                    <button type="button" class="btn btn-warning btn-sm text-dark py-1 px-2" onclick="openReturnModal()" title="{{ __('إرجاع مواد') }}">
                         <i class="fas fa-undo"></i>
                     </button>
 
                     {{-- زر إغلاق الصندوق (مخفي، يظهره النظام عند الحاجة) --}}
-                    <button id="btnCloseShift" class="btn btn-warning btn-sm text-dark fw-bold d-none py-1 px-2" onclick="openCloseShiftModal()" title="إغلاق الوردية">
+                    <button id="btnCloseShift" class="btn btn-warning btn-sm text-dark fw-bold d-none py-1 px-2" onclick="openCloseShiftModal()" title="{{ __('إغلاق الوردية') }}">
                         <i class="fas fa-cash-register"></i>
                     </button>
 
                     {{-- زر الأرشيف --}}
-                    <button type="button" class="btn btn-info btn-sm text-white py-1 px-2" onclick="openHistoryModal()" title="سجل الفواتير">
+                    <button type="button" class="btn btn-info btn-sm text-white py-1 px-2" onclick="openHistoryModal()" title="{{ __('سجل الفواتير') }}">
                         <i class="fas fa-history"></i>
                     </button>
                     
                     {{-- زر التصفير --}}
-                    <button class="btn btn-danger btn-sm py-1 px-2" onclick="resetPosScreen()" title="تصفير الشاشة">
+                    <button class="btn btn-danger btn-sm py-1 px-2" onclick="resetPosScreen()" title="{{ __('تصفير الشاشة') }}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -284,12 +284,12 @@
             
             <div class="mb-2">
                 <select id="customerSelect" class="form-select form-select-sm" style="width: 100%">
-                    <option value="">عميل نقدي (عام)</option>
+                    <option value="">{{ __('عميل نقدي (عام)') }}</option>
                 </select>
 
                 <div id="customerBalanceBox" class="customer-balance-box mt-2">
                     <div class="d-flex justify-content-between align-items-center">
-                        <small>الرصيد الحالي:</small>
+                        <small>{{ __('الرصيد الحالي:') }}</small>
                         <span id="balanceDisplay" class="fw-bold">0.00</span>
                     </div>
                 </div>
@@ -301,26 +301,26 @@
             <div class="mb-2">
                 <div class="d-flex gap-1 mb-2">
                     <select id="discountType" class="form-select form-select-sm" style="width: 35%" onchange="calculateRemaining()">
-                        <option value="fixed">مبلغ</option>
-                        <option value="percent">نسبة %</option>
+                        <option value="fixed">{{ __('مبلغ') }}</option>
+                        <option value="percent">{{ __('نسبة %') }}</option>
                     </select>
-                    <input type="number" id="discountValue" class="form-control form-control-sm text-center" placeholder="قيمة الخصم" oninput="calculateRemaining()">
+                    <input type="number" id="discountValue" class="form-control form-control-sm text-center" placeholder="{{ __('قيمة الخصم') }}" oninput="calculateRemaining()">
                 </div>
                 
                 <button class="btn btn-sm btn-outline-warning w-100 py-1" onclick="roundTotalAmount()" style="font-size: 0.8rem;">
-                    <i class="fas fa-magic me-1"></i> تقريب المبلغ
+                    <i class="fas fa-magic me-1"></i> {{ __('تقريب المبلغ') }}
                 </button>
             </div>
 
             {{-- ملخص المبالغ --}}
             <div class="mb-2">
                 <div class="d-flex justify-content-between mb-1 text-white-50" style="font-size: 0.8rem;">
-                    <span>المواد: <span id="itemsCount" class="fw-bold text-white">0</span></span>
-                    <span>المجموع: <span id="subTotalDisplay">0.00</span></span>
+                    <span>{{ __('المواد:') }} <span id="itemsCount" class="fw-bold text-white">0</span></span>
+                    <span>{{ __('المجموع:') }} <span id="subTotalDisplay">0.00</span></span>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-end mt-2">
-                    <span class="fs-6">الصافي:</span>
+                    <span class="fs-6">{{ __('الصافي:') }}</span>
                     <span id="footerTotal" class="text-success fs-3">0.00</span>
                 </div>
             </div>
@@ -329,14 +329,14 @@
 
            {{-- طرق الدفع --}}
             <div class="mb-2">
-                <label class="small text-white-50 mb-1">الدفع</label>
+                <label class="small text-white-50 mb-1">{{ __('الدفع') }}</label>
                 <div id="paymentRowsContainer" class="payment-section-dynamic">
                     <div class="pay-row" id="payRow_0">
                         <select class="form-select pay-select method-select">
-                            <option value="cash">💵 نقدي</option>
-                            <option value="card">💳 شبكة</option>
-                            <option value="bank">🏦 تحويل</option>
-                            <option value="paypal">💳 PayPal / Cards</option>
+                            <option value="cash">{{ __('💵 نقدي') }}</option>
+                            <option value="card">{{ __('💳 شبكة') }}</option>
+                            <option value="bank">{{ __('🏦 تحويل') }}</option>
+                            <option value="paypal">{{ __('💳 PayPal / Cards') }}</option>
                         </select>
                         <input type="number" class="form-control pay-input amount-input" placeholder="0.00" oninput="calculateRemaining()">
                         <button class="btn-add-pay" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
@@ -349,7 +349,7 @@
             {{-- المتبقي وزر الحفظ --}}
             <div class="mt-auto pt-2 border-top border-secondary">
                 <div class="d-flex justify-content-between align-items-end mb-2">
-                    <span id="diffLabel" class="fs-6 fw-bold">المتبقي:</span>
+                    <span id="diffLabel" class="fs-6 fw-bold">{{ __('المتبقي:') }}</span>
                     <span id="remainingAmount" class="fw-bold text-success fs-3">0.00</span>
                 </div>
             </div>
@@ -385,12 +385,12 @@
                         <div class="filter-segment flex-fill d-flex align-items-center px-3 border-end position-relative" style="min-width: 150px;">
                             <i class="fas fa-filter text-muted small me-2"></i>
                             <select id="filterPaymentStatus" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 auto-filter" style="width: auto; flex-grow: 1;">
-                                <option value="">حالة الدفع (الكل)</option>
-                                <option value="paid">✅ مدفوعة</option>
-                                <option value="unpaid">❌ غير مدفوعة</option>
-                                <option value="partial">⚠️ دفع جزئي</option>
-                                <option value="overpaid">⏫ دفعة زائدة</option>
-                                <option value="has_returns">↩️ بها مرتجعات</option>
+                                <option value="">{{ __('حالة الدفع (الكل)') }}</option>
+                                <option value="paid">{{ __('✅ مدفوعة') }}</option>
+                                <option value="unpaid">{{ __('❌ غير مدفوعة') }}</option>
+                                <option value="partial">{{ __('⚠️ دفع جزئي') }}</option>
+                                <option value="overpaid">{{ __('⏫ دفعة زائدة') }}</option>
+                                <option value="has_returns">{{ __('↩️ بها مرتجعات') }}</option>
                             </select>
                         </div>
 
@@ -399,17 +399,17 @@
                             <i class="far fa-calendar-alt text-muted small me-2"></i>
                             <input type="date" id="filterDateFrom" class="form-control form-control-sm border-0 shadow-none bg-transparent p-0 auto-filter" style="max-width: 110px;" placeholder="من">
                             <i class="fas fa-arrow-left text-muted mx-2 small" style="font-size: 0.7rem;"></i>
-                            <input type="date" id="filterDateTo" class="form-control form-control-sm border-0 shadow-none bg-transparent p-0 auto-filter" style="max-width: 110px;" placeholder="إلى">
+                            <input type="date" id="filterDateTo" class="form-control form-control-sm border-0 shadow-none bg-transparent p-0 auto-filter" style="max-width: 110px;" placeholder="{{ __('إلى') }}">
                         </div>
 
                         {{-- 4. الترتيب والعرض --}}
                         <div class="filter-segment d-flex align-items-center px-3 gap-2 bg-light">
                             <i class="fas fa-sort text-muted small"></i>
-                            <select id="filterSortBy" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 fw-bold text-primary auto-filter" style="width: auto;"><option value="created_at">التاريخ</option><option value="total">القيمة</option><option value="due">الدين</option></select>
+                            <select id="filterSortBy" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 fw-bold text-primary auto-filter" style="width: auto;"><option value="created_at">{{ __('التاريخ') }}</option><option value="total">{{ __('القيمة') }}</option><option value="due">{{ __('الدين') }}</option></select>
                             <span class="text-muted small">|</span>
-                            <select id="filterSortOrder" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 text-muted auto-filter" style="width: auto;"><option value="desc">تنازلي</option><option value="asc">تصاعدي</option></select>
+                            <select id="filterSortOrder" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 text-muted auto-filter" style="width: auto;"><option value="desc">{{ __('تنازلي') }}</option><option value="asc">{{ __('تصاعدي') }}</option></select>
                             <span class="text-muted small">|</span>
-                            <select id="filterLimit" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 fw-bold auto-filter" style="width: auto;"><option value="10">10</option><option value="50">50</option><option value="100">100</option><option value="all">الكل</option></select>
+                            <select id="filterLimit" class="form-select form-select-sm border-0 shadow-none bg-transparent p-0 fw-bold auto-filter" style="width: auto;"><option value="10">10</option><option value="50">50</option><option value="100">100</option><option value="all">{{ __('الكل') }}</option></select>
                         </div>
                     </div>
 
@@ -449,28 +449,28 @@
                     <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                         <div class="position-relative">
                             <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="btn_open_cols">
-                                <i class="fas fa-columns me-1"></i> تخصيص الأعمدة
+                                <i class="fas fa-columns me-1"></i> {{ __('تخصيص الأعمدة') }}
                             </button>
                             {{-- قائمة الأعمدة (Dropup) --}}
                             <div id="menu_cols" class="dropdown-menu shadow p-2" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1050; min-width: 200px;">
-                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="0" checked> # الفاتورة</label>
-                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="1" checked> العميل</label>
-                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="2" checked> الإجمالي</label>
-                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="3" checked> المدفوع</label>
-                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="4" checked> المتبقي</label>
-                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="5" checked> الحالة</label>
-                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="6" checked> التاريخ</label>
-                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="7" checked> المستخدم</label>
-                                <label class="dropdown-item text-warning"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="9" checked> المرتجعات</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="0" checked> # {{ __('الفاتورة') }}</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="1" checked> {{ __('العميل') }}</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="2" checked> {{ __('الإجمالي') }}</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="3" checked> {{ __('المدفوع') }}</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="4" checked> {{ __('المتبقي') }}</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="5" checked> {{ __('الحالة') }}</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="6" checked> {{ __('التاريخ') }}</label>
+                                <label class="dropdown-item"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="7" checked> {{ __('المستخدم') }}</label>
+                                <label class="dropdown-item text-warning"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="9" checked> {{ __('المرتجعات') }}</label>
                                 <div class="dropdown-divider"></div>
-                                <label class="dropdown-item text-danger"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="8" checked> الإجراءات</label>
+                                <label class="dropdown-item text-danger"><input type="checkbox" class="col-toggle form-check-input me-2" data-col="8" checked> {{ __('الإجراءات') }}</label>
                             </div>
                         </div>
 
                         <div class="d-flex gap-2">
-                             <button onclick="printSalesReport()" class="btn btn-dark btn-sm rounded-pill px-3"><i class="fas fa-print me-1"></i> طباعة التقرير</button>
-                                                          <button onclick="sendSalesReportWhatsapp()" class="btn btn-success btn-sm rounded-pill px-3"><i class="fab fa-whatsapp me-1"></i> إرسال للواتساب</button>
-                             <button onclick="sendSalesReportEmail()" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-envelope me-1"></i> إرسال بالإيميل</button>
+                             <button onclick="printSalesReport()" class="btn btn-dark btn-sm rounded-pill px-3"><i class="fas fa-print me-1"></i> {{ __('طباعة التقرير') }}</button>
+                                                          <button onclick="sendSalesReportWhatsapp()" class="btn btn-success btn-sm rounded-pill px-3"><i class="fab fa-whatsapp me-1"></i> {{ __('إرسال للواتساب') }}</button>
+                             <button onclick="sendSalesReportEmail()" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-envelope me-1"></i> {{ __('إرسال بالإيميل') }}</button>
                         </div>
                     </div>
                 </div>
@@ -478,8 +478,8 @@
 
                 <div id="printSection" class="p-3">
                     <div class="report-header d-none d-print-flex">
-                        <div class="text-end"><h4 id="printStoreName">المتجر</h4><p id="printStoreAddress"></p><p id="printStorePhone"></p></div>
-                        <div class="text-center"><h3>تقرير المبيعات</h3><p>{{ date('Y-m-d') }}</p></div>
+                        <div class="text-end"><h4 id="printStoreName">{{ __('المتجر') }}</h4><p id="printStoreAddress"></p><p id="printStorePhone"></p></div>
+                        <div class="text-center"><h3>{{ __('تقرير المبيعات') }}</h3><p>{{ date('Y-m-d') }}</p></div>
                         <div class="report-logo"><img id="printStoreLogo" src="" alt="Logo"></div>
                     </div>
                     
@@ -488,20 +488,20 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="c-0">#</th>
-                                    <th class="c-1">العميل</th>
-                                    <th class="c-2">الإجمالي</th>
-                                    <th class="c-3">المدفوع</th>
-                                    <th class="c-4">المتبقي</th>
-                                    <th class="c-5">الحالة</th>
-                                    <th class="c-6">التاريخ</th>
-                                    <th class="c-7">بواسطة</th>
-                                    <th class="c-9">المرتجعات</th>
-                                    <th class="c-8 no-print">خيارات</th>
+                                    <th class="c-1">{{ __('العميل') }}</th>
+                                    <th class="c-2">{{ __('الإجمالي') }}</th>
+                                    <th class="c-3">{{ __('المدفوع') }}</th>
+                                    <th class="c-4">{{ __('المتبقي') }}</th>
+                                    <th class="c-5">{{ __('الحالة') }}</th>
+                                    <th class="c-6">{{ __('التاريخ') }}</th>
+                                    <th class="c-7">{{ __('بواسطة') }}</th>
+                                    <th class="c-9">{{ __('المرتجعات') }}</th>
+                                    <th class="c-8 no-print">{{ __('خيارات') }}</th>
                                 </tr>
                             </thead>
                             <tbody id="historyList"></tbody>
                             <tfoot class="table-secondary fw-bold">
-                                <tr><td colspan="2">المجموع</td><td id="sumTotal">0.00</td><td id="sumPaid">0.00</td><td id="sumDue">0.00</td><td colspan="5"></td></tr>
+                                <tr><td colspan="2">{{ __('المجموع') }}</td><td id="sumTotal">0.00</td><td id="sumPaid">0.00</td><td id="sumDue">0.00</td><td colspan="5"></td></tr>
                             </tfoot>
                         </table>
                     </div>
@@ -517,7 +517,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">معاينة الفاتورة</h5>
+                <h5 class="modal-title">{{ __('معاينة الفاتورة') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body bg-light">
@@ -525,15 +525,15 @@
                     <div class="d-flex gap-4 justify-content-center">
                         <div class="form-check" id="ibanOptionDiv" style="display:none;">
                             <input class="form-check-input" type="checkbox" id="showIban" onchange="toggleOfficialMarks()">
-                            <label class="form-check-label fw-bold" for="showIban">إضافة بيانات الآيبان</label>
+                            <label class="form-check-label fw-bold" for="showIban">{{ __('إضافة بيانات الآيبان') }}</label>
                         </div>
                         <div class="form-check" id="stampOptionDiv" style="display:none;">
                             <input class="form-check-input" type="checkbox" id="showStamp" onchange="toggleOfficialMarks()">
-                            <label class="form-check-label fw-bold" for="showStamp">إضافة ختم المتجر</label>
+                            <label class="form-check-label fw-bold" for="showStamp">{{ __('إضافة ختم المتجر') }}</label>
                         </div>
                         <div class="form-check" id="signatureOptionDiv" style="display:none;">
                             <input class="form-check-input" type="checkbox" id="showSignature" onchange="toggleOfficialMarks()">
-                            <label class="form-check-label fw-bold" for="showSignature">إضافة توقيع المالك</label>
+                            <label class="form-check-label fw-bold" for="showSignature">{{ __('إضافة توقيع المالك') }}</label>
                         </div>
                     </div>
                 </div>
@@ -543,7 +543,7 @@
                         <div class="col-8 text-end">
                             <h2 class="fw-bold text-primary" id="invStoreName"></h2>
                             <p class="mb-1 text-muted" id="invStoreAddress"></p>
-                            <p class="mb-1">الرقم الضريبي: <span id="invTaxNumber" class="fw-bold">-</span></p>
+                            <p class="mb-1">{{ __('الرقم الضريبي:') }} <span id="invTaxNumber" class="fw-bold">-</span></p>
                         </div>
                         <div class="col-4 text-start">
                             <img id="invLogo" src="" alt="Logo" style="max-width: 120px; max-height: 100px; object-fit: contain;">
@@ -551,12 +551,12 @@
                     </div>
                     <div class="row mb-4">
                         <div class="col-6">
-                            <h5 class="fw-bold">فاتورة ضريبية</h5>
-                            <p class="mb-1">رقم الفاتورة: <span id="invNumber" class="fw-bold text-danger"></span></p>
-                            <p class="mb-1">التاريخ: <span id="invDate"></span></p>
+                            <h5 class="fw-bold">{{ __('فاتورة ضريبية') }}</h5>
+                            <p class="mb-1">{{ __('رقم الفاتورة:') }} <span id="invNumber" class="fw-bold text-danger"></span></p>
+                            <p class="mb-1">{{ __('التاريخ:') }} <span id="invDate"></span></p>
                         </div>
                         <div class="col-6 text-start">
-                            <h6 class="fw-bold">فاتورة إلى:</h6>
+                            <h6 class="fw-bold">{{ __('فاتورة إلى:') }}</h6>
                             <p class="mb-1" id="invCustomerName"></p>
                         </div>
                     </div>
@@ -564,17 +564,17 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>#</th>
-                                <th>المنتج</th>
-                                <th>الباركود</th>
-                                <th>الكمية</th>
-                                <th>السعر</th>
-                                <th>الإجمالي</th>
+                                <th>{{ __('المنتج') }}</th>
+                                <th>{{ __('الباركود') }}</th>
+                                <th>{{ __('الكمية') }}</th>
+                                <th>{{ __('السعر') }}</th>
+                                <th>{{ __('الإجمالي') }}</th>
                             </tr>
                         </thead>
                         <tbody id="invItemsBody"></tbody>
                         <tfoot class="fw-bold bg-light">
                             <tr>
-                                <td colspan="5" class="text-end pe-3">الإجمالي النهائي:</td>
+                                <td colspan="5" class="text-end pe-3">{{ __('الإجمالي النهائي:') }}</td>
                                 <td id="invTotal" class="text-dark fs-5"></td>
                             </tr>
                         </tfoot>
@@ -582,10 +582,10 @@
 
                     {{-- سطر الآيبان المضاف --}}
                     <div id="ibanBox" style="display:none; margin-top: 20px; padding: 10px; border: 1px dashed #ccc; text-align: right; background: #fcfcfc; direction: rtl;">
-                        <p class="mb-1 fw-bold text-decoration-underline">تفاصيل الدفع البنكي:</p>
-                        <p class="mb-1">البنك: <span id="invIbanBank"></span></p>
-                        <p class="mb-1">صاحب الحساب: <span id="invIbanHolder"></span></p>
-                        <p class="mb-1">الآيبان: <span id="invIbanNumber" dir="ltr" class="fw-bold"></span></p>
+                        <p class="mb-1 fw-bold text-decoration-underline">{{ __('تفاصيل الدفع البنكي:') }}</p>
+                        <p class="mb-1">{{ __('البنك:') }} <span id="invIbanBank"></span></p>
+                        <p class="mb-1">{{ __('صاحب الحساب:') }} <span id="invIbanHolder"></span></p>
+                        <p class="mb-1">{{ __('الآيبان:') }} <span id="invIbanNumber" dir="ltr" class="fw-bold"></span></p>
                         <div id="paymentNotice" class="mt-2 text-primary fw-bold" style="font-size: 0.9rem;">
                             في حال أي سداد، يرجى إرسال إشعار السداد لرقم الواتساب (<span id="invStoreWhatsapp"></span>)
                         </div>
@@ -593,23 +593,23 @@
                     <div class="row mt-4" id="officialMarksArea">
                         <div class="col-6 text-center position-relative">
                             <div id="stampBox" style="display:none;">
-                                <p class="mb-2 fw-bold text-decoration-underline">ختم المتجر</p>
+                                <p class="mb-2 fw-bold text-decoration-underline">{{ __('ختم المتجر') }}</p>
                                 <img id="invStamp" src="" style="width: 140px; opacity: 0.8; transform: rotate(-15deg);">
                             </div>
                         </div>
                         <div class="col-6 text-center position-relative">
                             <div id="signatureBox" style="display:none;">
-                                <p class="mb-2 fw-bold text-decoration-underline">توقيع المسؤول</p>
+                                <p class="mb-2 fw-bold text-decoration-underline">{{ __('توقيع المسؤول') }}</p>
                                 <img id="invSignature" src="" style="width: 150px; opacity: 0.8;">
                             </div>
                         </div>
                     </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                <button type="button" class="btn btn-success" onclick="shareInvoiceWhatsapp()"><i class="fab fa-whatsapp"></i> إرسال واتساب</button>
-                <button type="button" class="btn btn-primary" onclick="shareInvoiceEmail()"><i class="fas fa-envelope"></i> إرسال إيميل</button>
-                <button type="button" class="btn btn-primary" onclick="printOfficialInvoice()"><i class="fas fa-print"></i> طباعة</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('إغلاق') }}</button>
+                <button type="button" class="btn btn-success" onclick="shareInvoiceWhatsapp()"><i class="fab fa-whatsapp"></i> {{ __('إرسال واتساب') }}</button>
+                <button type="button" class="btn btn-primary" onclick="shareInvoiceEmail()"><i class="fas fa-envelope"></i> {{ __('إرسال إيميل') }}</button>
+                <button type="button" class="btn btn-primary" onclick="printOfficialInvoice()"><i class="fas fa-print"></i> {{ __('طباعة') }}</button>
             </div>
         </div>
     </div>
@@ -621,12 +621,12 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="fas fa-cash-register me-2"></i>فتح وردية جديدة</h5>
+                <h5 class="modal-title"><i class="fas fa-cash-register me-2"></i>{{ __('فتح وردية جديدة') }}</h5>
                 {{-- 👇 زر الإغلاق المضاف 👇 --}}
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <label class="form-label fw-bold">المبلغ النقدي في الدرج (العهدة):</label>
+                <label class="form-label fw-bold">{{ __('المبلغ النقدي في الدرج (العهدة):') }}</label>
                 <div class="input-group">
                     <span class="input-group-text">SAR</span>
                     <input type="number" id="startCashInput" class="form-control form-control-lg text-center fw-bold" placeholder="0.00" min="0" step="0.1">
@@ -634,7 +634,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-success w-100 py-2 fw-bold" onclick="submitOpenShift()">
-                    تأكيد وفتح الصندوق 🚀
+                    {{ __('تأكيد وفتح الصندوق 🚀') }}
                 </button>
             </div>
         </div>
@@ -646,42 +646,42 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-warning">
-                <h5 class="modal-title fw-bold text-dark">إغلاق الوردية (التقفيل)</h5>
+                <h5 class="modal-title fw-bold text-dark">{{ __('إغلاق الوردية (التقفيل)') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             
             <div class="modal-body">
                 <div class="alert alert-info py-2 text-center mb-3">
-                    <span>توقيت الفتح:</span> <strong id="shiftOpenDate" dir="ltr" class="ms-2">-</strong>
+                    <span>{{ __('توقيت الفتح:') }}</span> <strong id="shiftOpenDate" dir="ltr" class="ms-2">-</strong>
                 </div>
 
                 {{-- تفاصيل المبالغ الجديدة --}}
                 <div class="row g-2 text-center mb-2">
-                    <div class="col-6"><div class="border p-2 bg-light rounded"><small class="text-muted">العهدة (البداية)</small><br><b id="shiftStartCash" class="fs-5">0.00</b></div></div>
-                    <div class="col-6"><div class="border p-2 bg-success text-white rounded"><small>صافي الكاش (بالدرج)</small><br><b id="shiftCashSales" class="fs-5">0.00</b></div></div>
+                    <div class="col-6"><div class="border p-2 bg-light rounded"><small class="text-muted">{{ __('العهدة (البداية)') }}</small><br><b id="shiftStartCash" class="fs-5">0.00</b></div></div>
+                    <div class="col-6"><div class="border p-2 bg-success text-white rounded"><small>{{ __('صافي الكاش (بالدرج)') }}</small><br><b id="shiftCashSales" class="fs-5">0.00</b></div></div>
                 </div>
                 
                 <div class="row g-2 text-center mb-3">
-                    <div class="col-4"><div class="border p-1 bg-light rounded"><small>💳 شبكة</small><br><b id="shiftCardSales">0</b></div></div>
-                    <div class="col-4"><div class="border p-1 bg-light rounded"><small>🏦 تحويل</small><br><b id="shiftBankSales">0</b></div></div>
-                    <div class="col-4"><div class="border p-1 bg-light rounded text-danger"><small>📝 آجل (دين)</small><br><b id="shiftCreditSales">0</b></div></div>
+                    <div class="col-4"><div class="border p-1 bg-light rounded"><small>{{ __('💳 شبكة') }}</small><br><b id="shiftCardSales">0</b></div></div>
+                    <div class="col-4"><div class="border p-1 bg-light rounded"><small>{{ __('🏦 تحويل') }}</small><br><b id="shiftBankSales">0</b></div></div>
+                    <div class="col-4"><div class="border p-1 bg-light rounded text-danger"><small>{{ __('📝 آجل (دين)') }}</small><br><b id="shiftCreditSales">0</b></div></div>
                 </div>
 
                 <div class="alert alert-warning text-center">
-                    <h5 class="m-0">المتوقع في الدرج: <span id="shiftExpected" class="fw-bold text-danger fs-3">0.00</span></h5>
+                    <h5 class="m-0">{{ __('المتوقع في الدرج:') }} <span id="shiftExpected" class="fw-bold text-danger fs-3">0.00</span></h5>
                 </div>
 
                 <hr>
-                <label class="form-label fw-bold">المبلغ الفعلي (جرد):</label>
+                <label class="form-label fw-bold">{{ __('المبلغ الفعلي (جرد):') }}</label>
                 <div class="input-group input-group-lg">
                     <span class="input-group-text bg-white text-success">💵</span>
-                    <input type="number" id="endCashInput" class="form-control text-center fw-bold text-success" placeholder="أدخل المبلغ الموجود">
+                    <input type="number" id="endCashInput" class="form-control text-center fw-bold text-success" placeholder="{{ __('أدخل المبلغ الموجود') }}">
                 </div>
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-warning fw-bold text-dark px-4" onclick="submitCloseShift()">إغلاق الوردية وترحيل</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('إلغاء') }}</button>
+                <button type="button" class="btn btn-warning fw-bold text-dark px-4" onclick="submitCloseShift()">{{ __('إغلاق الوردية وترحيل') }}</button>
             </div>
         </div>
     </div>
@@ -692,13 +692,13 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">استرجاع منتج (Refund)</h5>
+                <h5 class="modal-title">{{ __('استرجاع منتج (Refund)') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="row g-2 mb-3">
                     <div class="col-md-6">
-                        <label>العميل (اختياري)</label>
+                        <label>{{ __('العميل (اختياري)') }}</label>
                         <select id="returnCustomerSelect" class="form-select" style="width:100%"></select>
                     </div>
                     <div class="col-md-6">
@@ -712,11 +712,11 @@
                 <table class="table table-bordered text-center table-hover">
                     <thead class="table-light">
                         <tr>
-                            <th>رقم الفاتورة</th>
-                            <th>المنتج</th>
-                            <th>الكمية</th>
-                            <th>السعر</th>
-                            <th>إجراء</th>
+                            <th>{{ __('رقم الفاتورة') }}</th>
+                            <th>{{ __('المنتج') }}</th>
+                            <th>{{ __('الكمية') }}</th>
+                            <th>{{ __('السعر') }}</th>
+                            <th>{{ __('إجراء') }}</th>
                         </tr>
                     </thead>
                     <tbody id="returnResultsBody"></tbody>
@@ -731,7 +731,7 @@
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title"><i class="fas fa-undo me-2"></i>تفاصيل المرتجعات - فاتورة <span id="returnsSaleId"></span></h5>
+                <h5 class="modal-title"><i class="fas fa-undo me-2"></i>{{ __('تفاصيل المرتجعات - فاتورة') }} <span id="returnsSaleId"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -739,17 +739,17 @@
                 <ul class="nav nav-tabs mb-3" id="returnsTab" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="original-tab" data-bs-toggle="tab" data-bs-target="#original-content" type="button">
-                            <i class="fas fa-file-invoice me-1"></i> الفاتورة الأصلية
+                            <i class="fas fa-file-invoice me-1"></i> {{ __('الفاتورة الأصلية') }}
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-content" type="button">
-                            <i class="fas fa-undo me-1 text-danger"></i> المرتجعات
+                            <i class="fas fa-undo me-1 text-danger"></i> {{ __('المرتجعات') }}
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="final-tab" data-bs-toggle="tab" data-bs-target="#final-content" type="button">
-                            <i class="fas fa-check-circle me-1 text-success"></i> بعد الإرجاع
+                            <i class="fas fa-check-circle me-1 text-success"></i> {{ __('بعد الإرجاع') }}
                         </button>
                     </li>
                 </ul>
@@ -762,30 +762,30 @@
                             <div class="card-body">
                                 <div class="row text-center">
                                     <div class="col-md-4">
-                                        <h6 class="text-muted mb-1">العميل</h6>
+                                        <h6 class="text-muted mb-1">{{ __('العميل') }}</h6>
                                         <h5 id="returnsCustomerName" class="fw-bold">-</h5>
                                     </div>
                                     <div class="col-md-4">
-                                        <h6 class="text-muted mb-1">الإجمالي الأصلي</h6>
+                                        <h6 class="text-muted mb-1">{{ __('الإجمالي الأصلي') }}</h6>
                                         <h5 id="returnsOriginalTotal" class="fw-bold text-primary">0.00</h5>
                                     </div>
                                     <div class="col-md-4">
-                                        <h6 class="text-muted mb-1">تاريخ الفاتورة</h6>
+                                        <h6 class="text-muted mb-1">{{ __('تاريخ الفاتورة') }}</h6>
                                         <h6 id="returnsDate" class="small">-</h6>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <h6 class="fw-bold mb-2"><i class="fas fa-list me-1"></i> أصناف الفاتورة (الحالية)</h6>
+                        <h6 class="fw-bold mb-2"><i class="fas fa-list me-1"></i> {{ __('أصناف الفاتورة (الحالية)') }}</h6>
                         <div class="table-responsive">
                             <table class="table table-bordered text-center">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>المنتج</th>
-                                        <th>الوحدة</th>
-                                        <th>الكمية</th>
-                                        <th>السعر</th>
-                                        <th>الإجمالي</th>
+                                        <th>{{ __('المنتج') }}</th>
+                                        <th>{{ __('الوحدة') }}</th>
+                                        <th>{{ __('الكمية') }}</th>
+                                        <th>{{ __('السعر') }}</th>
+                                        <th>{{ __('الإجمالي') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody id="returnsItemsBody"></tbody>
@@ -798,23 +798,23 @@
                         <div class="alert alert-warning d-flex align-items-center mb-3">
                             <i class="fas fa-info-circle me-2 fs-4"></i>
                             <div>
-                                <strong>إجمالي المرتجعات:</strong>
+                                <strong>{{ __('إجمالي المرتجعات:') }}</strong>
                                 <span id="returnsTotalReturns" class="fw-bold fs-5 ms-2">0.00</span>
                             </div>
                         </div>
-                        <h6 class="fw-bold mb-2"><i class="fas fa-undo me-1 text-danger"></i> الأصناف المرتجعة</h6>
+                        <h6 class="fw-bold mb-2"><i class="fas fa-undo me-1 text-danger"></i> {{ __('الأصناف المرتجعة') }}</h6>
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped text-center">
                                 <thead class="table-danger">
                                     <tr>
-                                        <th>المنتج</th>
-                                        <th>الوحدة</th>
-                                        <th>الكمية المرتجعة</th>
-                                        <th>السعر</th>
-                                        <th>المبلغ المسترد</th>
-                                        <th>السبب</th>
-                                        <th>بواسطة</th>
-                                        <th>التاريخ</th>
+                                        <th>{{ __('المنتج') }}</th>
+                                        <th>{{ __('الوحدة') }}</th>
+                                        <th>{{ __('الكمية المرتجعة') }}</th>
+                                        <th>{{ __('السعر') }}</th>
+                                        <th>{{ __('المبلغ المسترد') }}</th>
+                                        <th>{{ __('السبب') }}</th>
+                                        <th>{{ __('بواسطة') }}</th>
+                                        <th>{{ __('التاريخ') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody id="returnsReturnedItemsBody"></tbody>
@@ -826,25 +826,25 @@
                     <div class="tab-pane fade" id="final-content" role="tabpanel">
                         <div class="card border-success mb-3 shadow-sm">
                             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center py-2">
-                                <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>الفاتورة النهائية (الوضع الحالي)</h6>
-                                <span class="badge bg-white text-success fw-bold" id="finalStatusBadge">معدلة</span>
+                                <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>{{ __('الفاتورة النهائية (الوضع الحالي)') }}</h6>
+                                <span class="badge bg-white text-success fw-bold" id="finalStatusBadge">{{ __('معدلة') }}</span>
                             </div>
                             <div class="card-body">
                                 <div class="row mb-4 border-bottom pb-3">
                                     <div class="col-md-6 border-start">
                                         <div class="d-flex align-items-center mb-2">
                                             <i class="fas fa-hashtag text-muted me-2"></i>
-                                            <span class="text-muted small me-2">رقم الفاتورة:</span>
+                                            <span class="text-muted small me-2">{{ __('رقم الفاتورة:') }}</span>
                                             <span class="fw-bold" id="finalInvNumber">-</span>
                                         </div>
                                         <div class="d-flex align-items-center mb-2">
                                             <i class="fas fa-user text-muted me-2"></i>
-                                            <span class="text-muted small me-2">العميل:</span>
+                                            <span class="text-muted small me-2">{{ __('العميل:') }}</span>
                                             <span class="fw-bold" id="finalCustomer">-</span>
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <i class="fas fa-calendar-alt text-muted me-2"></i>
-                                            <span class="text-muted small me-2">التاريخ:</span>
+                                            <span class="text-muted small me-2">{{ __('التاريخ:') }}</span>
                                             <span id="finalDate">-</span>
                                         </div>
                                     </div>
@@ -852,19 +852,19 @@
                                         <div class="row g-2 text-center">
                                             <div class="col-4">
                                                 <div class="p-2 bg-light rounded shadow-xs border">
-                                                    <div class="text-muted x-small mb-1">الإجمالي الأصلي</div>
+                                                    <div class="text-muted x-small mb-1">{{ __('الإجمالي الأصلي') }}</div>
                                                     <div id="finalOriginalTotal" class="fw-bold text-dark fs-6">0.00</div>
                                                 </div>
                                             </div>
                                             <div class="col-4">
                                                 <div class="p-2 bg-danger bg-opacity-10 rounded shadow-xs border border-danger border-opacity-25">
-                                                    <div class="text-danger x-small mb-1">إجمالي المرتجع</div>
+                                                    <div class="text-danger x-small mb-1">{{ __('إجمالي المرتجع') }}</div>
                                                     <div id="finalReturnsAmount" class="fw-bold text-danger fs-6">-0.00</div>
                                                 </div>
                                             </div>
                                             <div class="col-4">
                                                 <div class="p-2 bg-success bg-opacity-10 rounded shadow-xs border border-success border-opacity-25">
-                                                    <div class="text-success x-small mb-1">الصافي الحالي</div>
+                                                    <div class="text-success x-small mb-1">{{ __('الصافي الحالي') }}</div>
                                                     <div id="returnsFinalTotal" class="fw-bold text-success fs-6">0.00</div>
                                                 </div>
                                             </div>
@@ -872,17 +872,17 @@
                                     </div>
                                 </div>
                                 
-                                <h6 class="fw-bold text-success mb-3"><i class="fas fa-box me-1"></i> الأصناف المتبقية بالفاتورة</h6>
+                                <h6 class="fw-bold text-success mb-3"><i class="fas fa-box me-1"></i> {{ __('الأصناف المتبقية بالفاتورة') }}</h6>
                                 <div class="table-responsive rounded shadow-sm border">
                                     <table class="table table-sm table-hover text-center mb-0">
                                         <thead class="table-success text-dark">
                                             <tr>
                                                 <th class="py-2">#</th>
-                                                <th class="py-2 text-start px-3">المنتج</th>
-                                                <th class="py-2">الوحدة</th>
-                                                <th class="py-2">الكمية</th>
-                                                <th class="py-2">السعر</th>
-                                                <th class="py-2 text-end px-3">الإجمالي</th>
+                                                <th class="py-2 text-start px-3">{{ __('المنتج') }}</th>
+                                                <th class="py-2">{{ __('الوحدة') }}</th>
+                                                <th class="py-2">{{ __('الكمية') }}</th>
+                                                <th class="py-2">{{ __('السعر') }}</th>
+                                                <th class="py-2 text-end px-3">{{ __('الإجمالي') }}</th>
                                             </tr>
                                         </thead>
                                         <tbody id="finalItemsBody"></tbody>
@@ -892,15 +892,15 @@
                                 <div class="mt-4 d-flex justify-content-end">
                                     <div style="min-width: 250px;">
                                         <div class="d-flex justify-content-between py-1 border-bottom border-dashed">
-                                            <span class="text-muted small">الصافي:</span>
+                                            <span class="text-muted small">{{ __('الصافي:') }}</span>
                                             <span class="fw-bold" id="finalItemsTotal">0.00</span>
                                         </div>
                                         <div class="d-flex justify-content-between py-1 border-bottom border-dashed">
-                                            <span class="text-muted small text-info">المدفوع:</span>
+                                            <span class="text-muted small text-info">{{ __('المدفوع:') }}</span>
                                             <span class="fw-bold text-info" id="returnsFinalPaid">0.00</span>
                                         </div>
                                         <div class="d-flex justify-content-between py-2 border-bottom bg-danger bg-opacity-10 px-2 rounded mt-1">
-                                            <span class="text-danger small fw-bold">المتبقي:</span>
+                                            <span class="text-danger small fw-bold">{{ __('المتبقي:') }}</span>
                                             <span class="fw-bold text-danger fs-5" id="returnsFinalDue">0.00</span>
                                         </div>
                                     </div>
@@ -911,10 +911,10 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                <button type="button" class="btn btn-success" onclick="shareReturnsWhatsapp()"><i class="fab fa-whatsapp me-1"></i> واتساب</button>
-                <button type="button" class="btn btn-primary" onclick="shareReturnsEmail()"><i class="fas fa-envelope me-1"></i> إيميل</button>
-                <button type="button" class="btn btn-primary" onclick="printReturnsReport()"><i class="fas fa-print me-1"></i> طباعة</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('إغلاق') }}</button>
+                <button type="button" class="btn btn-success" onclick="shareReturnsWhatsapp()"><i class="fab fa-whatsapp me-1"></i> {{ __('واتساب') }}</button>
+                <button type="button" class="btn btn-primary" onclick="shareReturnsEmail()"><i class="fas fa-envelope me-1"></i> {{ __('إيميل') }}</button>
+                <button type="button" class="btn btn-primary" onclick="printReturnsReport()"><i class="fas fa-print me-1"></i> {{ __('طباعة') }}</button>
             </div>
         </div>
     </div>
@@ -1007,7 +1007,7 @@
         $customerSelect.select2({
             theme: 'bootstrap-5',
             dir: "rtl",
-            placeholder: "بحث عن عميل...",
+            placeholder: "{{ __('بحث عن عميل...') }}",
             allowClear: true,
             minimumInputLength: 1,
             ajax: {
@@ -1084,7 +1084,7 @@
             $('#diffLabel').parent().parent().addClass('d-none');
             
             $('.btn-save-invoice').removeClass('btn-save-invoice').addClass('btn-withdrawal-save')
-                .html('<i class="fas fa-file-export me-2"></i> تسجيل مسحوبات')
+                .html('<i class="fas fa-file-export me-2"></i> {{ __("تسجيل مسحوبات") }}')
                 .css('background', '#e67e22');
                 
             // تغيير رقم الفاتورة
@@ -1099,7 +1099,7 @@
             $('#diffLabel').parent().parent().removeClass('d-none');
 
             $('.btn-withdrawal-save').removeClass('btn-withdrawal-save').addClass('btn-save-invoice')
-                .html('<i class="fas fa-save me-2"></i> حفظ وطباعة (F9)')
+                .html('<i class="fas fa-save me-2"></i> {{ __("حفظ وطباعة (F9)") }}')
                 .css('background', '');
 
             // استعادة رقم الفاتورة الطبيعي
@@ -1124,9 +1124,9 @@
         if (Math.abs(bal) < 0.01) {
             htmlContent = `<span class="text-primary fw-bold fs-5">0.00</span>`;
         } else if (bal > 0) {
-            htmlContent = `<span class="text-success fw-bold fs-5" dir="ltr">+${bal.toFixed(2)} <i class="fas fa-arrow-up"></i></span> <small class="text-success fw-bold me-2">(له رصيد)</small>`;
+            htmlContent = `<span class="text-success fw-bold fs-5" dir="ltr">+${bal.toFixed(2)} <i class="fas fa-arrow-up"></i></span> <small class="text-success fw-bold me-2">({{ __('له رصيد') }})</small>`;
         } else {
-            htmlContent = `<span class="text-danger fw-bold fs-5" dir="ltr">${Math.abs(bal).toFixed(2)} <i class="fas fa-arrow-down"></i></span> <small class="text-danger fw-bold me-2">(عليه دين)</small>`;
+            htmlContent = `<span class="text-danger fw-bold fs-5" dir="ltr">${Math.abs(bal).toFixed(2)} <i class="fas fa-arrow-down"></i></span> <small class="text-danger fw-bold me-2">({{ __('عليه دين') }})</small>`;
         }
         display.html(htmlContent);
     }
@@ -1187,7 +1187,7 @@
                 } else if (data.length > 1) {
                     showSuggestions(data);
                 } else {
-                    if(isEnterKey) { toastr.error('المنتج غير موجود'); closeSearch(); }
+                    if(isEnterKey) { toastr.error("{{ __('المنتج غير موجود') }}"); closeSearch(); }
                     else searchResults.style.display = 'none';
                 }
             });
@@ -1206,7 +1206,7 @@
                     <div class="fw-bold">${p.name_ar}</div>
                     <div class="d-flex justify-content-between">
                         <small class="text-muted font-monospace">${p.default_barcode}</small>
-                        <small class="${qtyColor}">مخزون: ${parseFloat(p.quantity).toFixed(2)}</small>
+                        <small class="${qtyColor}">{{ __('مخزون:') }} ${parseFloat(p.quantity).toFixed(2)}</small>
                     </div>
                 </div>
                 <span class="badge bg-primary rounded-pill ms-2">${parseFloat(p.default_price).toFixed(2)}</span>
@@ -1263,7 +1263,7 @@
             });
         }
         renderCart();
-        toastr.success('تمت الإضافة');
+        toastr.success("{{ __('تمت الإضافة') }}");
     }
 
     function renderCart() {
@@ -1363,7 +1363,7 @@
 
                     // 3. تحديث العرض وإظهار رسالة نجاح
                     renderCart();
-                    toastr.success('تم تعديل المخزون وتغيير الوحدة بنجاح');
+                    toastr.success("{{ __('تم تعديل المخزون وتغيير الوحدة بنجاح') }}");
                 });
 
                 // إعادة رسم السلة لكي يعود الاختيار للوحدة القديمة (بصرياً) حتى يقرر المستخدم التعديل أو الإلغاء
@@ -1420,7 +1420,7 @@
 
         // ✅ منع الكسور لغير الكيلو
         if (!isKilo && !Number.isInteger(newQty)) {
-            toastr.warning('هذه الوحدة لا تقبل الكسور');
+            toastr.warning("{{ __('هذه الوحدة لا تقبل الكسور') }}");
             newQty = Math.round(newQty);
             if(newQty < 1) newQty = 1;
         }
@@ -1447,14 +1447,14 @@
             }
             item.qty = newQty;
         } else {
-            toastr.warning('الكمية غير صحيحة');
+            toastr.warning("{{ __('الكمية غير صحيحة') }}");
             item.qty = 1;
         }
         renderCart();
     };
 
     window.removeItem = (index) => { cart.splice(index, 1); renderCart(); };
-    window.clearCart = () => { if(confirm('مسح الفاتورة؟')) { cart = []; renderCart(); } };
+    window.clearCart = () => { if(confirm("{{ __('مسح الفاتورة؟') }}")) { cart = []; renderCart(); } };
 
     function calculateRemaining() {
         let subTotal = window.currentTotal || 0;
@@ -1491,16 +1491,16 @@
         }
 
         let diff = netTotal - totalPaid;
-        let label = "المتبقي:";
+        let label = "{{ __('المتبقي:') }}";
         let colorClass = "text-success";
         let displayText = "0.00";
 
         if (diff > 0.001) {
-            label = "المتبقي (عليه):";
+            label = "{{ __('المتبقي (عليه):') }}";
             colorClass = "text-danger";
             displayText = diff.toFixed(2);
         } else if (diff < -0.001) {
-            label = "رصيد إضافي (له):";
+            label = "{{ __('رصيد إضافي (له):') }}";
             colorClass = "text-success"; 
             displayText = Math.abs(diff).toFixed(2);
         }
@@ -1521,7 +1521,7 @@
         let rounded = Math.round(currentNet * 2) / 2;
         roundingDifference = rounded - currentNet;
         calculateRemaining();
-        toastr.success('تم تقريب المبلغ: ' + rounded.toFixed(2));
+        toastr.success("{{ __('تم تقريب المبلغ:') }} " + rounded.toFixed(2));
     }
 
     function addPaymentRow() {
@@ -1535,10 +1535,10 @@
         div.className = 'pay-row';
         div.innerHTML = `
             <select class="form-select pay-select method-select" onchange="calculateRemaining()">
-                <option value="cash">💵 نقدي</option>
-                <option value="card">💳 شبكة / كرت</option>
-                <option value="bank">🏦 تحويل بنكي</option>
-                <option value="paypal">💳 PayPal / Cards</option>
+                <option value="cash">{{ __('💵 نقدي') }}</option>
+                <option value="card">{{ __('💳 شبكة / كرت') }}</option>
+                <option value="bank">{{ __('🏦 تحويل بنكي') }}</option>
+                <option value="paypal">{{ __('💳 PayPal / Cards') }}</option>
             </select>
             <input type="number" class="form-control pay-input amount-input" placeholder="0.00" value="${val}" oninput="calculateRemaining()">
             <button class="btn-add-pay" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
@@ -1577,15 +1577,15 @@
                     body: JSON.stringify({ orderID: data.orderID })
                 }).then(res => res.json()).then(details => {
                     if (details.success) {
-                        toastr.success('تم الدفع عبر PayPal بنجاح!');
+                        toastr.success("{{ __('تم الدفع عبر PayPal بنجاح!') }}");
                         submitInvoice({ paypal_order_id: data.orderID });
                     } else {
-                        toastr.error('فشل تأكيد الدفع');
+                        toastr.error("{{ __('فشل تأكيد الدفع') }}");
                     }
                 });
             },
             onError: function(err) {
-                toastr.error('حدث خطأ أثناء الدفع عبر PayPal');
+                toastr.error("{{ __('حدث خطأ أثناء الدفع عبر PayPal') }}");
                 paypalInitialized = false;
             }
         }).render('#paypal-button-container');
@@ -1601,9 +1601,9 @@
         if (!selectedCustomer?.is_store_owner && !isShiftOpen) {
             Swal.fire({
                 icon: 'info',
-                title: 'الصندوق مغلق',
-                text: 'لا يمكن إتمام عملية البيع قبل فتح الصندوق (الوردية).',
-                confirmButtonText: 'فتح الصندوق الآن',
+                title: "{{ __('الصندوق مغلق') }}",
+                text: "{{ __('لا يمكن إتمام عملية البيع قبل فتح الصندوق (الوردية).') }}",
+                confirmButtonText: "{{ __('فتح الصندوق الآن') }}",
                 confirmButtonColor: '#198754'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -1613,7 +1613,7 @@
             return; // إيقاف تنفيذ دالة البيع
         }
 
-        if(cart.length === 0) return toastr.error('السلة فارغة');
+        if(cart.length === 0) return toastr.error("{{ __('السلة فارغة') }}");
         
         let total = parseFloat($('#footerTotal').text());
         let pay = []; 
@@ -1632,57 +1632,57 @@
                 ...extraData, ...finalData
             };
 
-            Swal.fire({title: 'جاري الحفظ...', didOpen: () => Swal.showLoading()});
+            Swal.fire({title: "{{ __('جاري الحفظ...') }}", didOpen: () => Swal.showLoading()});
 
             $.post(fixUrl("{{ route('store.pos.save') }}"), data)
              .done((res) => { 
                  if (res.whatsapp_data) {
                     Swal.fire({
-                        title: 'تم الحفظ بنجاح',
-                        text: 'كيف ترغب في مشاركة الفاتورة مع العميل؟',
+                        title: "{{ __('تم الحفظ بنجاح') }}",
+                        text: "{{ __('كيف ترغب في مشاركة الفاتورة مع العميل؟') }}",
                         icon: 'success',
                         showDenyButton: true,
                         showCancelButton: true,
-                        confirmButtonText: '<i class="fab fa-whatsapp"></i> واتساب',
-                        denyButtonText: '<i class="fas fa-envelope"></i> إيميل',
-                        cancelButtonText: 'إغلاق',
+                        confirmButtonText: '<i class="fab fa-whatsapp"></i> ' + "{{ __('واتساب') }}",
+                        denyButtonText: '<i class="fas fa-envelope"></i> ' + "{{ __('إيميل') }}",
+                        cancelButtonText: "{{ __('إغلاق') }}",
                         confirmButtonColor: '#25d366',
                         denyButtonColor: '#007bff',
                     }).then((result) => {
                         if (result.isConfirmed) {
                             triggerWhatsappPrompt(res.whatsapp_data.phone, res.whatsapp_data.message);
                         } else if (result.isDenied) {
-                            triggerEmailPrompt(res.customer_email || '', res.whatsapp_data.message, "إرسال فاتورة مبيعات - رقم #" + (res.invoice_id || ''));
+                            triggerEmailPrompt(res.customer_email || '', res.whatsapp_data.message, "{{ __('إرسال فاتورة مبيعات - رقم #') }}" + (res.invoice_id || ''));
                         }
                         resetPosScreen();
                     });
                  } else {
-                     Swal.fire({icon:'success', title: isOwner ? 'تم تسجيل المسحوبات' : 'تمت العملية بنجاح', timer:1000, showConfirmButton:false}); 
+                     Swal.fire({icon:'success', title: isOwner ? "{{ __('تم تسجيل المسحوبات') }}" : "{{ __('تمت العملية بنجاح') }}", timer:1000, showConfirmButton:false}); 
                      setTimeout(() => location.reload(), 1000);
                  }
              })
              .fail((xhr) => { 
                  let res = xhr.responseJSON || {};
-                 if(res.error === 'customer_required') {
-                     Swal.fire({icon: 'error', title: 'تنبيه', text: res.message});
+                  if(res.error === 'customer_required') {
+                     Swal.fire({icon: 'error', title: "{{ __('تنبيه') }}", text: res.message});
                  } else if (res.error === 'credit_limit_exceeded') {
                      Swal.fire({
-                         title: 'تجاوز حد الدين',
-                         html: `<div class="text-end"><p class="text-danger fw-bold">${res.message}</p><p>الحد الحالي: <b>${res.current_limit}</b></p><hr><p class="fw-bold">هل تريد رفع الحد؟</p></div>`,
+                         title: "{{ __('تجاوز حد الدين') }}",
+                         html: `<div class="text-end"><p class="text-danger fw-bold">${res.message}</p><p>{{ __('الحد الحالي:') }} <b>${res.current_limit}</b></p><hr><p class="fw-bold">{{ __('هل تريد رفع الحد؟') }}</p></div>`,
                          icon: 'warning',
-                         showCancelButton: true, confirmButtonText: 'نعم', cancelButtonText: 'إلغاء', confirmButtonColor: '#d33'
+                         showCancelButton: true, confirmButtonText: "{{ __('نعم') }}", cancelButtonText: "{{ __('إلغاء') }}", confirmButtonColor: '#d33'
                      }).then((r) => { 
                          if (r.isConfirmed) window.submitInvoice({ update_limit_to: parseFloat(res.required_limit) + 10, bypass_confirm: true });
                      });
                  } else if(res.error === 'stock_error') {
                      Swal.fire({
-                         title: 'نقص مخزون', html: res.message, icon: 'warning',
-                         showCancelButton: true, confirmButtonText: 'تعديل المخزون', cancelButtonText: 'إلغاء'
+                         title: "{{ __('نقص مخزون') }}", html: res.message, icon: 'warning',
+                         showCancelButton: true, confirmButtonText: "{{ __('تعديل المخزون') }}", cancelButtonText: "{{ __('إلغاء') }}"
                      }).then((r) => {
                          if (r.isConfirmed && typeof promptStockAdjustment === 'function') promptStockAdjustment(res.product_id, res.product_name, res.current_stock);
                      });
                  } else {
-                     Swal.fire({icon:'error', title:'خطأ', text: res.message || 'حدث خطأ غير معروف'});
+                     Swal.fire({icon:'error', title:"{{ __('خطأ') }}", text: res.message || "{{ __('حدث خطأ غير معروف') }}"});
                  }
              });
         };
@@ -1716,29 +1716,29 @@
         // if (selectedCustomer?.is_store_owner) { ... }
 
         if (diff > 0.01 && !extraData.bypass_confirm) {
-            if (!selectedCustomer) return Swal.fire({icon: 'error', title: 'مطلوب عميل', text: 'لا يمكن تسجيل دين لعميل عام'});
+            if (!selectedCustomer) return Swal.fire({icon: 'error', title: "{{ __('مطلوب عميل') }}", text: "{{ __('لا يمكن تسجيل دين لعميل عام') }}"});
             let newBal = currentBalance - diff;
-            let msg = currentBalance < 0 ? `سيصبح إجمالي الدين: <b class="text-danger">${Math.abs(newBal).toFixed(2)}</b>` : `سيصبح رصيده: <b>${newBal.toFixed(2)}</b>`;
+            let msg = currentBalance < 0 ? `{{ __('سيصبح إجمالي الدين:') }} <b class="text-danger">${Math.abs(newBal).toFixed(2)}</b>` : `{{ __('سيصبح رصيده:') }} <b>${newBal.toFixed(2)}</b>`;
             Swal.fire({
-                title: 'تأكيد تسجيل الدين',
-                html: `<div class="text-end fs-6">قيمة الدين: <span class="text-danger fw-bold">${diff.toFixed(2)}</span><hr><small>${msg}</small></div>`,
+                title: "{{ __('تأكيد تسجيل الدين') }}",
+                html: `<div class="text-end fs-6">{{ __('قيمة الدين:') }} <span class="text-danger fw-bold">${diff.toFixed(2)}</span><hr><small>${msg}</small></div>`,
                 icon: 'question',
-                showCancelButton: true, confirmButtonText: 'نعم', cancelButtonText: 'إلغاء', confirmButtonColor: '#d33'
+                showCancelButton: true, confirmButtonText: "{{ __('نعم') }}", cancelButtonText: "{{ __('إلغاء') }}", confirmButtonColor: '#d33'
             }).then((result) => { if (result.isConfirmed) performAjaxSave({}); });
         } else if (diff < -0.01) {
             let surplus = Math.abs(diff);
             if (!selectedCustomer) {
                 return Swal.fire({
-                    title: 'مبلغ زائد', html: `المبلغ الزائد: <b class="text-success">${surplus.toFixed(2)}</b>`,
-                    confirmButtonText: '✅ تم إرجاع الكاش',
+                    title: "{{ __('مبلغ زائد') }}", html: `{{ __('المبلغ الزائد:') }} <b class="text-success">${surplus.toFixed(2)}</b>`,
+                    confirmButtonText: "{{ __('✅ تم إرجاع الكاش') }}",
                 }).then((r) => { if(r.isConfirmed) performAjaxSave({ action: 'return_cash', change_amount: surplus }); });
             }
             Swal.fire({
-                title: 'مبلغ مدفوع زائد',
-                html: `<div class="text-end"><h4 class="text-success text-center">${surplus.toFixed(2)}</h4><p class="fw-bold">كيف تريد التعامل مع الباقي؟</p></div>`,
+                title: "{{ __('مبلغ مدفوع زائد') }}",
+                html: `<div class="text-end"><h4 class="text-success text-center">${surplus.toFixed(2)}</h4><p class="fw-bold">{{ __('كيف تريد التعامل مع الباقي؟') }}</p></div>`,
                 icon: 'info',
                 showDenyButton: true, showCancelButton: true,
-                confirmButtonText: '💰 إرجاع كاش', denyButtonText: '📥 إضافة لرصيد العميل', cancelButtonText: 'إلغاء',
+                confirmButtonText: "{{ __('💰 إرجاع كاش') }}", denyButtonText: "{{ __('📥 إضافة لرصيد العميل') }}", cancelButtonText: "{{ __('إلغاء') }}",
                 confirmButtonColor: '#6c757d', denyButtonColor: '#198754'
             }).then((result) => {
                 if (result.isConfirmed) performAjaxSave({ action: 'return_cash', change_amount: surplus });
@@ -1751,32 +1751,32 @@
 
     function promptStockAdjustment(productName, productId, currentStock, successCallback) {
         Swal.fire({
-            title: 'الكمية غير كافية!',
-            html: `المنتج: <b>${productName}</b><br>المخزون الحالي: <b class="text-danger">${currentStock}</b>`,
+            title: "{{ __('الكمية غير كافية!') }}",
+            html: `{{ __('المنتج:') }} <b>${productName}</b><br>{{ __('المخزون الحالي:') }} <b class="text-danger">${currentStock}</b>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'تعديل المخزون',
-            cancelButtonText: 'إلغاء',
+            confirmButtonText: "{{ __('تعديل المخزون') }}",
+            cancelButtonText: "{{ __('إلغاء') }}",
             confirmButtonColor: '#d33',
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.fire({
-                    title: 'تعديل المخزون',
+                    title: "{{ __('تعديل المخزون') }}",
                     input: 'number',
-                    inputLabel: 'الكمية الجديدة:',
+                    inputLabel: "{{ __('الكمية الجديدة:') }}",
                     inputValue: currentStock,
                     showCancelButton: true,
-                    confirmButtonText: 'حفظ',
+                    confirmButtonText: "{{ __('حفظ') }}",
                     showLoaderOnConfirm: true,
                     preConfirm: (newQty) => {
                         return $.post(fixUrl("{{ route('store.pos.adjustStock') }}"), {
                             product_id: productId, new_qty: newQty, _token: '{{ csrf_token() }}'
                         }).then(response => ({ newQty: newQty, response: response }))
-                          .fail(xhr => Swal.showValidationMessage(`خطأ: ${xhr.responseJSON.message}`));
+                          .fail(xhr => Swal.showValidationMessage("{{ __('خطأ:') }} " + (xhr.responseJSON?.message || '')));
                     }
                 }).then((res) => {
                     if (res.isConfirmed) {
-                        Swal.fire('تم!', 'تم تحديث المخزون.', 'success');
+                        Swal.fire("{{ __('تم!') }}", "{{ __('تم تحديث المخزون.') }}", 'success');
                         if(successCallback) successCallback(parseFloat(res.value.newQty));
                     }
                 });
@@ -1796,7 +1796,11 @@
         let div = document.createElement('div');
         div.className = 'pay-row'; div.id = `payRow_${uniqueId}`;
         div.innerHTML = `
-            <select class="form-select pay-select method-select"><option value="cash">💵 نقدي</option><option value="card">💳 شبكة / كرت</option><option value="bank">🏦 تحويل بنكي</option></select>
+            <select class="form-select pay-select method-select">
+                <option value="cash">{{ __('💵 نقدي') }}</option>
+                <option value="card">{{ __('💳 شبكة / كرت') }}</option>
+                <option value="bank">{{ __('🏦 تحويل بنكي') }}</option>
+            </select>
             <input type="number" class="form-control pay-input amount-input" placeholder="0.00" oninput="calculateRemaining()">
             <button class="btn-add-pay" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
         `;
@@ -1822,7 +1826,7 @@
         if (!$('#filterCustomer').hasClass("select2-hidden-accessible")) {
             $('#filterCustomer').select2({
                 dropdownParent: $('#historyModal'),
-                theme: 'bootstrap-5', dir: "rtl", placeholder: "الكل", allowClear: true,
+                theme: 'bootstrap-5', dir: "rtl", placeholder: "{{ __('الكل') }}", allowClear: true,
                 ajax: {
                     url: fixUrl("{{ route('store.pos.search-customers') }}"), dataType: 'json', delay: 250,
                     data: function (params) { return { term: params.term }; }, // ✅ استعادة term
@@ -1867,15 +1871,15 @@
                 list.forEach(s => {
                     t += parseFloat(s.total); p += parseFloat(s.paid); d += parseFloat(s.due);
                     let badge = '';
-                    if(s.status === 'overpaid') badge = '<span class="badge bg-info text-dark">زائدة</span>';
-                    else if(s.status === 'paid') badge = '<span class="badge bg-success">مدفوعة</span>';
-                    else if(s.status === 'partial') badge = '<span class="badge bg-warning text-dark">جزئي</span>';
-                    else badge = '<span class="badge bg-danger">غير مدفوعة</span>';
+                    if(s.status === 'overpaid') badge = `<span class="badge bg-info text-dark">${"{{ __('زائدة') }}"}</span>`;
+                    else if(s.status === 'paid') badge = `<span class="badge bg-success">${"{{ __('مدفوعة') }}"}</span>`;
+                    else if(s.status === 'partial') badge = `<span class="badge bg-warning text-dark">${"{{ __('جزئي') }}"}</span>`;
+                    else badge = `<span class="badge bg-danger">${"{{ __('غير مدفوعة') }}"}</span>`;
 
                     // عمود المرتجعات
                     let returnsCell = '';
                     if(s.has_returns) {
-                        returnsCell = `<button class="btn btn-sm btn-outline-warning" onclick="viewReturns(${s.id})" title="عرض المرتجعات">
+                        returnsCell = `<button class="btn btn-sm btn-outline-warning" onclick="viewReturns(${s.id})" title="{{ __('عرض المرتجعات') }}">
                             <i class="fas fa-eye"></i> ${formatMoney(s.total_returns)}
                         </button>`;
                     } else {
@@ -1903,7 +1907,7 @@
                     </tr>`;
                 });
             } else { 
-                rows = '<tr><td colspan="10" class="text-center text-muted py-3">لا توجد بيانات</td></tr>'; 
+                rows = `<tr><td colspan="10" class="text-center text-muted py-3">${"{{ __('لا توجد بيانات') }}"}</td></tr>`; 
             }
 
             $('#historyList').html(rows);
@@ -1913,7 +1917,7 @@
             renderPagination(meta);
             applyColumnVisibility(); // ✅ تطبيق إخفاء الأعمدة على البيانات الجديدة
         }).fail(() => {
-            $('#historyList').html('<tr><td colspan="10" class="text-danger text-center">خطأ في الاتصال (Recent Sales)</td></tr>');
+            $('#historyList').html(`<tr><td colspan="10" class="text-danger text-center">${"{{ __('خطأ في الاتصال (Recent Sales)') }}"}</td></tr>`);
         });
     }
 
@@ -1926,23 +1930,23 @@
         $modal.removeAttr('tabindex');
 
         Swal.fire({
-            title: 'إرجاع صنف',
+            title: "{{ __('إرجاع صنف') }}",
             target: '#returnModal', // جعل التنبيه جزءاً من المودال لتجاوز قيود التركيز
             html: `
                 <div class="mb-3 text-start">
-                    <label class="form-label fw-bold">الكمية المسترجعة (الحد الأقصى: ${maxQty})</label>
+                    <label class="form-label fw-bold">{{ __('الكمية المسترجعة (الحد الأقصى:') }} ${maxQty})</label>
                     <input type="number" id="return_qty_input" class="form-control form-control-lg text-center" 
                            value="${maxQty}" min="0.1" max="${maxQty}" step="0.1" autocomplete="off">
                 </div>
                 <div class="mb-3 text-start">
-                    <label class="form-label fw-bold small">السبب (اختياري)</label>
-                    <input type="text" id="return_reason_input" class="form-control" placeholder="مثلاً: صنف تالف...">
+                    <label class="form-label fw-bold small">{{ __('السبب (اختياري)') }}</label>
+                    <input type="text" id="return_reason_input" class="form-control" placeholder="{{ __('مثلاً: صنف تالف...') }}">
                 </div>
             `,
             showCancelButton: true,
-            confirmButtonText: 'تأكيد الإرجاع',
+            confirmButtonText: "{{ __('تأكيد الإرجاع') }}",
             confirmButtonColor: '#dc3545',
-            cancelButtonText: 'إلغاء',
+            cancelButtonText: "{{ __('إلغاء') }}",
             allowOutsideClick: false,
             didOpen: () => {
                 const input = document.getElementById('return_qty_input');
@@ -1965,11 +1969,11 @@
                 const qty = parseFloat(document.getElementById('return_qty_input').value);
                 const reason = document.getElementById('return_reason_input').value;
                 if (!qty || qty <= 0) {
-                    Swal.showValidationMessage('الرجاء إدخال كمية صحيحة');
+                    Swal.showValidationMessage("{{ __('الرجاء إدخال كمية صحيحة') }}");
                     return false;
                 }
                 if (qty > maxQty) {
-                    Swal.showValidationMessage(`الكمية لا يمكن أن تتجاوز ${maxQty}`);
+                    Swal.showValidationMessage("{{ __('الكمية لا يمكن أن تتجاوز') }} " + maxQty);
                     return false;
                 }
                 return { qty: qty, reason: reason };
@@ -1982,9 +1986,9 @@
                     reason: r.value.reason,
                     _token: '{{ csrf_token() }}'
                 }).done(() => {
-                    toastr.success('تم الإرجاع بنجاح');
+                    toastr.success("{{ __('تم الإرجاع بنجاح') }}");
                     searchForReturnInvoices(); 
-                }).fail((xhr) => toastr.error(xhr.responseJSON.error || 'حدث خطأ'));
+                }).fail((xhr) => toastr.error(xhr.responseJSON.error || "{{ __('حدث خطأ') }}"));
             }
         });
     };
@@ -1994,23 +1998,23 @@
     function openUpdateExpiryModal(product) {
         let current = product.expiry_date || '';
         Swal.fire({
-            title: 'تحديث صلاحية',
+            title: "{{ __('تحديث صلاحية') }}",
             html: `
                 <div class="mb-3 text-start">
-                    <label>المنتج: ${product.name_ar}</label>
+                    <label>{{ __('المنتج:') }} ${product.name_ar}</label>
                     <input type="date" id="newExpiryDate" class="form-control" value="${current}">
                 </div>
                 <div class="mb-3 text-start">
-                    <label>سبب التحديث:</label>
-                    <textarea id="updateReason" class="form-control" placeholder="مثلاً: خطأ في الادخال، تمديد من المورد..."></textarea>
+                    <label>{{ __('سبب التحديث:') }}</label>
+                    <textarea id="updateReason" class="form-control" placeholder="{{ __('مثلاً: خطأ في الادخال، تمديد من المورد...') }}"></textarea>
                 </div>
             `,
-            showCancelButton: true, confirmButtonText: 'تحديث', cancelButtonText: 'إلغاء',
+            showCancelButton: true, confirmButtonText: "{{ __('تحديث') }}", cancelButtonText: "{{ __('إلغاء') }}",
             preConfirm: () => {
                 let d = document.getElementById('newExpiryDate').value;
                 let r = document.getElementById('updateReason').value;
-                if(!d) Swal.showValidationMessage('التاريخ مطلوب');
-                if(!r) Swal.showValidationMessage('السبب مطلوب');
+                if(!d) Swal.showValidationMessage("{{ __('التاريخ مطلوب') }}");
+                if(!r) Swal.showValidationMessage("{{ __('السبب مطلوب') }}");
                 return { date: d, reason: r };
             }
         }).then((result) => {
@@ -2038,15 +2042,15 @@
         $('#paginationControls').empty();
         if (!meta || meta.total === 0) return;
         let html = '<nav><ul class="pagination pagination-sm m-0">';
-        html += `<li class="page-item ${meta.current_page === 1 ? 'disabled' : ''}"><button class="page-link" onclick="getRecentSales(${meta.current_page - 1})">السابق</button></li>`;
+        html += `<li class="page-item ${meta.current_page === 1 ? 'disabled' : ''}"><button class="page-link" onclick="getRecentSales(${meta.current_page - 1})">${"{{ __('السابق') }}"}</button></li>`;
         let start = Math.max(1, meta.current_page - 2);
         let end = Math.min(meta.last_page, meta.current_page + 2);
         for (let i = start; i <= end; i++) {
             html += `<li class="page-item ${i === meta.current_page ? 'active' : ''}"><button class="page-link" onclick="getRecentSales(${i})">${i}</button></li>`;
         }
-        html += `<li class="page-item ${meta.current_page === meta.last_page ? 'disabled' : ''}"><button class="page-link" onclick="getRecentSales(${meta.current_page + 1})">التالي</button></li>`;
+        html += `<li class="page-item ${meta.current_page === meta.last_page ? 'disabled' : ''}"><button class="page-link" onclick="getRecentSales(${meta.current_page + 1})">${"{{ __('التالي') }}"}</button></li>`;
         html += '</ul></nav>';
-        html += `<div class="ms-3 text-muted small align-self-center">صفحة ${meta.current_page} من ${meta.last_page} (إجمالي ${meta.total})</div>`;
+        html += `<div class="ms-3 text-muted small align-self-center">${"{{ __('صفحة') }}"} ${meta.current_page} ${"{{ __('من') }}"} ${meta.last_page} (${"{{ __('إجمالي') }}"} ${meta.total})</div>`;
         $('#paginationControls').html(html);
     }
 
@@ -2075,17 +2079,17 @@
 
     window.deleteInvoice = function(id) {
         Swal.fire({
-            title: 'تأكيد الحذف', text: "سيتم حذف الفاتورة وإرجاع المخزون.", icon: 'warning',
-            showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'نعم، حذف', cancelButtonText: 'إلغاء'
+            title: "{{ __('تأكيد الحذف') }}", text: "{{ __('سيتم حذف الفاتورة وإرجاع المخزون.') }}", icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: "{{ __('نعم، حذف') }}", cancelButtonText: "{{ __('إلغاء') }}"
         }).then((res) => {
             if (res.isConfirmed) {
                 $.ajax({
                     url: fixUrl("{{ route('store.pos.delete-sale', ['id' => ':id']) }}").replace(':id', id),
                     type: 'DELETE',
                     headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-                    success: function() { toastr.success('تم الحذف'); getRecentSales(); },
+                    success: function() { toastr.success("{{ __('تم الحذف') }}"); getRecentSales(); },
                     error: function(xhr) { 
-                        let msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'فشل الحذف';
+                        let msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "{{ __('فشل الحذف') }}";
                         toastr.error(msg); 
                     }
                 });
@@ -2097,7 +2101,7 @@
 
     window.viewInvoice = function(id) {
         currentViewedInvoiceId = id;
-        $('#invItemsBody').html('<tr><td colspan="6" class="text-center py-3">جاري التحميل...</td></tr>');
+        $('#invItemsBody').html(`<tr><td colspan="6" class="text-center py-3">${"{{ __('جاري التحميل...') }}"}</td></tr>`);
         $('#showIban').prop('checked', false);
         $('#showStamp').prop('checked', false);
         $('#showSignature').prop('checked', false);
@@ -2119,7 +2123,7 @@
                 $('#invTaxNumber').text(st.tax_number || '-');
                 $('#invNumber').text('INV-' + s.id); 
                 $('#invDate').text(new Date(s.created_at).toLocaleDateString('en-GB'));
-                $('#invCustomerName').text(s.contact ? s.contact.contact_name : 'عميل نقدي');
+                $('#invCustomerName').text(s.contact ? s.contact.contact_name : "{{ __('عميل نقدي') }}");
                 
                 if (st.logo_url) $('#invLogo').attr('src', st.logo_url).show(); else $('#invLogo').hide();
                 if (st.stamp_url) { $('#stampOptionDiv').show(); $('#invStamp').attr('src', st.stamp_url); } else { $('#stampOptionDiv').hide(); }
@@ -2153,7 +2157,7 @@
             },
             error: function(xhr) { 
                 $('#invoiceModal').modal('hide'); 
-                let msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'فشل تحميل الفاتورة';
+                let msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "{{ __('فشل تحميل الفاتورة') }}";
                 toastr.error(msg); 
                 console.error("Invoice Load Error:", xhr);
             }
@@ -2180,11 +2184,11 @@
          .done(function(res) {
              Swal.close();
              if(res.success) {
-                let msg = `فاتورة رقم ${currentViewedInvoiceId}\nالمتجر: {{ auth()->user()->store->name }}\nشكراً لتعاملكم معنا.`;
+                let msg = "{{ __('فاتورة رقم') }} " + currentViewedInvoiceId + "\n" + "{{ __('المتجر:') }} " + "{{ auth()->user()->store->name }}\n" + "{{ __('شكراً لتعاملكم معنا.') }}";
                 if(typeof triggerEmailPrompt === 'function') {
-                    triggerEmailPrompt((res.customer_email || ''), msg, "إرسال الفاتورة (PDF)", res.url, res.filename);
+                    triggerEmailPrompt((res.customer_email || ''), msg, "{{ __('إرسال الفاتورة (PDF)') }}", res.url, res.filename);
                 } else {
-                    alert('وظيفة إرسال البريد غير متوفرة');
+                    alert("{{ __('وظيفة إرسال البريد غير متوفرة') }}");
                 }
              }
          })
@@ -2211,10 +2215,10 @@
          .done(function(res) {
              Swal.close();
              if(res.success) {
-                let msg = `فاتورة رقم ${currentViewedInvoiceId}\nالمتجر: {{ auth()->user()->store->name }}\nشكراً لتعاملكم معنا.`;
+                let msg = "{{ __('فاتورة رقم') }} " + currentViewedInvoiceId + "\n" + "{{ __('المتجر:') }} " + "{{ auth()->user()->store->name }}\n" + "{{ __('شكراً لتعاملكم معنا.') }}";
                 if(typeof triggerWhatsappPrompt === 'function') {
                     // نمرر رقم العميل إن وجد
-                    triggerWhatsappPrompt((res.customer_phone || ''), msg, "إرسال الفاتورة (PDF)", res.url, res.filename);
+                    triggerWhatsappPrompt((res.customer_phone || ''), msg, "{{ __('إرسال الفاتورة (PDF)') }}", res.url, res.filename);
                 } else {
                     // Fallback link if global function missing
                     window.open(res.url, '_blank');
@@ -2321,7 +2325,7 @@
 
     window.submitOpenShift = function() {
         let amount = $('#startCashInput').val();
-        if(amount === '') return toastr.error('الرجاء إدخال المبلغ');
+        if(amount === '') return toastr.error("{{ __('الرجاء إدخال المبلغ') }}");
         
         $.post(fixUrl("{{ route('store.pos.shift.open') }}"), { start_cash: amount, _token: '{{ csrf_token() }}' })
          .done(() => {
@@ -2353,17 +2357,17 @@
             $('#closeShiftModal').modal('show');
         }).fail(() => {
             Swal.close();
-            toastr.error('لا يوجد صندوق مفتوح حالياً');
+            toastr.error("{{ __('لا يوجد صندوق مفتوح حالياً') }}");
         });
     };
 
     window.submitCloseShift = function() {
         let actualCash = $('#endCashInput').val();
-        if(actualCash === '') return toastr.error('الرجاء إدخال المبلغ الموجود فعلياً');
+        if(actualCash === '') return toastr.error("{{ __('الرجاء إدخال المبلغ الموجود فعلياً') }}");
 
         Swal.fire({
-            title: 'هل أنت متأكد؟', text: "سيتم إغلاق الوردية.", icon: 'warning',
-            showCancelButton: true, confirmButtonText: 'نعم، إغلاق', cancelButtonText: 'تراجع', confirmButtonColor: '#ffc107', cancelButtonColor: '#d33'
+            title: "{{ __('هل أنت متأكد؟') }}", text: "{{ __('سيتم إغلاق الوردية.') }}", icon: 'warning',
+            showCancelButton: true, confirmButtonText: "{{ __('نعم، إغلاق') }}", cancelButtonText: "{{ __('تراجع') }}", confirmButtonColor: '#ffc107', cancelButtonColor: '#d33'
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.showLoading();
@@ -2374,14 +2378,14 @@
                     $('.modal-backdrop').remove();
                     $('body').removeClass('modal-open').css('padding-right', '');
                     let diff = parseFloat(res.difference);
-                    let msg = diff === 0 ? 'مطابقة ممتازة ✅' : (diff < 0 ? `عجز: ${diff} ❌` : `زيادة: +${diff} ⚠️`);
-                    Swal.fire({ title: 'تم الإغلاق', text: msg, icon: diff === 0 ? 'success' : 'warning' }).then(() => location.reload());
+                    let msg = diff === 0 ? "{{ __('مطابقة ممتازة ✅') }}" : (diff < 0 ? "{{ __('عجز:') }} " + diff + " ❌" : "{{ __('زيادة:') }} +" + diff + " ⚠️");
+                    Swal.fire({ title: "{{ __('تم الإغلاق') }}", text: msg, icon: diff === 0 ? 'success' : 'warning' }).then(() => location.reload());
                 })
                 .fail((xhr) => {
                     Swal.close();
-                    let msg = 'حدث خطأ غير معروف';
+                    let msg = "{{ __('حدث خطأ غير معروف') }}";
                     if(xhr.responseJSON && xhr.responseJSON.error) msg = xhr.responseJSON.error;
-                    else if (xhr.status === 500) msg = 'خطأ في السيرفر (500)';
+                    else if (xhr.status === 500) msg = "{{ __('خطأ في السيرفر (500)') }}";
                     toastr.error(msg);
                 });
             }
@@ -2398,7 +2402,7 @@
         // تفعيل بحث العملاء
         $('#returnCustomerSelect').select2({
             dropdownParent: $('#returnModal'),
-            theme: 'bootstrap-5', placeholder: "اختر العميل (اختياري)", allowClear: true,
+            theme: 'bootstrap-5', placeholder: "{{ __('اختر العميل (اختياري)') }}", allowClear: true,
             ajax: { url: fixUrl("{{ route('store.pos.search-customers') }}"), dataType: 'json', processResults: data => ({results: data.results}) }
         }).on('change', function() { searchForReturnInvoices(); }); // عند تغيير العميل نبحث فوراً
 
@@ -2406,7 +2410,7 @@
         $('#returnProductSelect').select2({
             dropdownParent: $('#returnModal'),
             theme: 'bootstrap-5', 
-            placeholder: "ابحث عن المنتج (اسم أو باركود)...", 
+            placeholder: "{{ __('ابحث عن المنتج (اسم أو باركود)...') }}", 
             allowClear: true,
             minimumInputLength: 1,
             ajax: {
@@ -2446,11 +2450,11 @@
         
         if(!term && !cust) return;
 
-        $('#returnResultsBody').html('<tr><td colspan="5">جاري البحث...</td></tr>');
+        $('#returnResultsBody').html(`<tr><td colspan="5">${"{{ __('جاري البحث...') }}"}</td></tr>`);
 
         $.get(fixUrl("{{ route('store.pos.return.search') }}"), {term: term, customer_id: cust}, function(res) {
             let rows = '';
-            if(res.invoices.length === 0) rows = '<tr><td colspan="5" class="text-muted">لا توجد فواتير لهذا المنتج/العميل</td></tr>';
+            if(res.invoices.length === 0) rows = `<tr><td colspan="5" class="text-muted">${"{{ __('لا توجد فواتير لهذا المنتج/العميل') }}"}</td></tr>`;
             else {
                 res.invoices.forEach(i => {
                     rows += `<tr>
@@ -2458,7 +2462,7 @@
                         <td>${i.product_name} <br> <span class="badge bg-light text-dark border">${i.unit_name}</span></td>
                         <td class="fw-bold">${i.qty}</td>
                         <td>${i.price}</td>
-                        <td><button class="btn btn-sm btn-outline-danger fw-bold" onclick="processReturnItem(${i.item_id}, ${i.qty})">↩️ إرجاع</button></td>
+                        <td><button class="btn btn-sm btn-outline-danger fw-bold" onclick="processReturnItem(${i.item_id}, ${i.qty})">${"{{ __('↩️ إرجاع') }}"}</button></td>
                     </tr>`;
                 });
             }
@@ -2473,15 +2477,15 @@
         // 1. إذا كان المنتج منتهي (أحمر) -> منع بات
         if (product.alert_status === 'expired') {
             Swal.fire({
-                title: '⛔ منتج منتهي الصلاحية!',
+                title: "{{ __('⛔ منتج منتهي الصلاحية!') }}",
                 html: `<h4 class="text-danger my-2">${product.name_ar}</h4>
                        <div class="alert alert-danger fw-bold">${product.alert_msg}</div>
-                       <p>حفاظاً على السلامة، لا يمكن بيع هذا المنتج.</p>`,
+                       <p>{{ __('حفاظاً على السلامة، لا يمكن بيع هذا المنتج.') }}</p>`,
                 icon: 'error',
                 showDenyButton: true,
-                confirmButtonText: '📝 تحديث التاريخ (على مسؤوليتي)',
+                confirmButtonText: "{{ __('📝 تحديث التاريخ (على مسؤوليتي)') }}",
                 confirmButtonColor: '#ffc107', // أصفر
-                denyButtonText: 'إلغاء البيع',
+                denyButtonText: "{{ __('إلغاء البيع') }}",
                 denyButtonColor: '#6c757d', 
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -2494,7 +2498,7 @@
 
         // 2. إذا كان المنتج قارب على الانتهاء (أصفر) -> تنبيه فقط
         if (product.alert_status === 'near') {
-            toastr.warning(product.alert_msg, 'تنبيه صلاحية', {timeOut: 5000, positionClass: "toast-top-center"});
+            toastr.warning(product.alert_msg, "{{ __('تنبيه صلاحية') }}", {timeOut: 5000, positionClass: "toast-top-center"});
             // تشغيل صوت تنبيه خفيف
             let audio = new Audio('https://media.geeksforgeeks.org/wp-content/uploads/20190531135120/beep.mp3');
             audio.play().catch(e=>{});
@@ -2507,27 +2511,27 @@
     // نافذة تعديل التاريخ (تظهر فقط عند الضغط على الزر الأصفر)
     function openUpdateExpiryModal(product) {
         Swal.fire({
-            title: 'تحديث الصلاحية وتوثيق العملية',
+            title: "{{ __('تحديث الصلاحية وتوثيق العملية') }}",
             html: `
                 <div class="text-start bg-light p-3 rounded border">
-                    <label class="fw-bold">المنتج: ${product.name_ar}</label>
+                    <label class="fw-bold">{{ __('المنتج:') }} ${product.name_ar}</label>
                     <hr>
-                    <label class="mt-2 text-primary fw-bold">تاريخ الانتهاء الجديد:</label>
+                    <label class="mt-2 text-primary fw-bold">{{ __('تاريخ الانتهاء الجديد:') }}</label>
                     <input type="date" id="newExpiryDate" class="form-control mb-3 border-primary">
                     
-                    <label class="text-danger fw-bold">سبب التعديل (إلزامي للتوثيق):</label>
-                    <textarea id="updateReason" class="form-control border-danger" rows="2" placeholder="اكتب السبب بوضوح ليظهر في تقرير الإدارة..."></textarea>
+                    <label class="text-danger fw-bold">{{ __('سبب التعديل (إلزامي للتوثيق):') }}</label>
+                    <textarea id="updateReason" class="form-control border-danger" rows="2" placeholder="{{ __('اكتب السبب بوضوح ليظهر في تقرير الإدارة...') }}"></textarea>
                 </div>
             `,
-            confirmButtonText: 'حفظ التعديل والبيع',
+            confirmButtonText: "{{ __('حفظ التعديل والبيع') }}",
             showCancelButton: true,
-            cancelButtonText: 'تراجع',
+            cancelButtonText: "{{ __('تراجع') }}",
             focusConfirm: false,
             preConfirm: () => {
                 const date = document.getElementById('newExpiryDate').value;
                 const reason = document.getElementById('updateReason').value;
                 if (!date || !reason || reason.length < 5) {
-                    Swal.showValidationMessage('الرجاء إدخال التاريخ وسبب مقنع (5 أحرف على الأقل)');
+                    Swal.showValidationMessage("{{ __('الرجاء إدخال التاريخ وسبب مقنع (5 أحرف على الأقل)') }}");
                     return false;
                 }
                 return { date: date, reason: reason };
@@ -2569,8 +2573,8 @@
         
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                title: 'جاري التجهيز...',
-                html: 'يرجى الانتظار بينما يتم تجهيز ملف التقرير...',
+                title: "{{ __('جاري التجهيز...') }}",
+                html: "{{ __('يرجى الانتظار بينما يتم تجهيز ملف التقرير...') }}",
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
@@ -2590,17 +2594,17 @@
                     
                     const filename = data.filename || "sales_report.pdf";
                     if (typeof triggerEmailPrompt === 'function') {
-                        triggerEmailPrompt('', message, "تقرير سجل المبيعات - {{ auth()->user()->store->name }}", data.url, filename);
+                        triggerEmailPrompt('', message, "{{ __('تقرير سجل المبيعات -') }} {{ auth()->user()->store->name }}", data.url, filename);
                     } else {
-                        alert('حدث خطأ: وظيفة إرسال البريد غير متوفرة');
+                        alert("{{ __('حدث خطأ: وظيفة إرسال البريد غير متوفرة') }}");
                     }
                 } else {
-                    alert('فشل تجهيز ملف التقرير');
+                    alert("{{ __('فشل تجهيز ملف التقرير') }}");
                 }
             })
             .catch(err => {
                 if (typeof Swal !== 'undefined') Swal.close();
-                alert('حدث خطأ أثناء التواصل مع السيرفر');
+                alert("{{ __('حدث خطأ أثناء التواصل مع السيرفر') }}");
             });
     };
 
@@ -2621,9 +2625,9 @@
         if (typeof Swal !== 'undefined') {
             let progressTimer;
             Swal.fire({
-                title: 'جاري تجهيز ملف التقرير...',
+                title: "{{ __('جاري تجهيز ملف التقرير...') }}",
                 html: `
-                    <div class="mb-3">يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...</div>
+                    <div class="mb-3">${"{{ __('يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...') }}"}</div>
                     <div class="progress" style="height: 20px;">
                         <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
                     </div>
@@ -2671,15 +2675,15 @@
                     
                     // إرسال المرفق عبر المودال العالمي
                     if (typeof triggerWhatsappPrompt === 'function') {
-                        triggerWhatsappPrompt('', message, "إرسال سجل المبيعات كمرفق PDF", data.url, filename);
+                        triggerWhatsappPrompt('', message, "{{ __('إرسال سجل المبيعات كمرفق PDF') }}", data.url, filename);
                     } else {
-                        alert('حدث خطأ: وظيفة إرسال الواتساب غير متوفرة');
+                        alert("{{ __('حدث خطأ: وظيفة إرسال الواتساب غير متوفرة') }}");
                     }
                 } else {
                     if (typeof Swal !== 'undefined') {
-                        Swal.fire('خطأ', 'فشل تجهيز ملف التقرير', 'error');
+                        Swal.fire("{{ __('خطأ') }}", "{{ __('فشل تجهيز ملف التقرير') }}", 'error');
                     } else {
-                        alert('فشل تجهيز ملف التقرير');
+                        alert("{{ __('فشل تجهيز ملف التقرير') }}");
                     }
                 }
             })
@@ -2687,9 +2691,9 @@
                 if (typeof Swal !== 'undefined') Swal.close();
                 console.error(err);
                 if (typeof Swal !== 'undefined') {
-                    Swal.fire('خطأ', 'حدث خطأ أثناء التواصل مع السيرفر', 'error');
+                    Swal.fire("{{ __('خطأ') }}", "{{ __('حدث خطأ أثناء التواصل مع السيرفر') }}", 'error');
                 } else {
-                    alert('حدث خطأ أثناء التواصل مع السيرفر');
+                    alert("{{ __('حدث خطأ أثناء التواصل مع السيرفر') }}");
                 }
             });
     };
@@ -2698,7 +2702,7 @@
     window.viewReturns = function(saleId) {
         // تحميل البيانات
         Swal.fire({
-            title: 'جاري التحميل...',
+            title: "{{ __('جاري التحميل...') }}",
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading()
         });
@@ -2745,7 +2749,7 @@
                     </tr>`;
                 });
             } else {
-                itemsHtml = '<tr><td colspan="5" class="text-muted">لا توجد أصناف</td></tr>';
+                itemsHtml = `<tr><td colspan="5" class="text-muted">${"{{ __('لا توجد أصناف') }}"}</td></tr>`;
             }
             $('#returnsItemsBody').html(itemsHtml);
             
@@ -2766,7 +2770,7 @@
                     </tr>`;
                 });
             } else {
-                finalItemsHtml = '<tr><td colspan="6" class="text-muted text-center py-3"><i class="fas fa-box-open me-2"></i>تم إرجاع جميع الأصناف - لا توجد أصناف متبقية</td></tr>';
+                finalItemsHtml = `<tr><td colspan="6" class="text-muted text-center py-3"><i class="fas fa-box-open me-2"></i>${"{{ __('تم إرجاع جميع الأصناف - لا توجد أصناف متبقية') }}"}</td></tr>`;
             }
             $('#finalItemsBody').html(finalItemsHtml);
             $('#finalItemsTotal').text(finalItemsTotal.toFixed(2));
@@ -2787,7 +2791,7 @@
                     </tr>`;
                 });
             } else {
-                returnsHtml = '<tr><td colspan="8" class="text-muted">لا توجد مرتجعات مسجلة</td></tr>';
+                returnsHtml = `<tr><td colspan="8" class="text-muted">${"{{ __('لا توجد مرتجعات مسجلة') }}"}</td></tr>`;
             }
             $('#returnsReturnedItemsBody').html(returnsHtml);
             
@@ -2795,7 +2799,7 @@
             new bootstrap.Modal(document.getElementById('returnsDetailModal')).show();
         })
         .fail(function(xhr) {
-            Swal.fire('خطأ', 'فشل تحميل بيانات المرتجعات', 'error');
+            Swal.fire("{{ __('خطأ') }}", "{{ __('فشل تحميل بيانات المرتجعات') }}", 'error');
             console.error(xhr);
         });
     };
@@ -2805,7 +2809,7 @@
         let content = document.getElementById('returnsDetailModal').querySelector('.modal-body').innerHTML;
         let win = window.open('', '_blank');
         win.document.write(`
-            <html dir="rtl"><head><title>تقرير المرتجعات</title>
+            <html dir="rtl"><head><title>${"{{ __('تقرير المرتجعات') }}"}</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
             <style>body{padding:20px;font-family:Cairo,sans-serif;} @media print{.nav-tabs{display:none;} .tab-pane{display:block!important;opacity:1!important;margin-bottom:20px;}}</style>
             </head><body>${content}</body></html>
@@ -2831,18 +2835,18 @@
             if(data.success && data.url) {
                 const customer = $('#returnsCustomerName').text();
                 const date = $('#returnsDate').text();
-                let message = `*تقرير مرتجعات - ${saleId}*\nالعميل: ${customer}\nالتاريخ: ${date}\nيرجى الاطلاع على الملف المرفق.\n`;
+                let message = `*${"{{ __('تقرير مرتجعات -') }}"} ${saleId}*\n${"{{ __('العميل:') }}"} ${customer}\n${"{{ __('التاريخ:') }}"} ${date}\n${"{{ __('يرجى الاطلاع على الملف المرفق.') }}"}\n`;
 
                 if (typeof triggerEmailPrompt === 'function') {
-                    triggerEmailPrompt('', message, "تقرير المرتجعات PDF", data.url, data.filename);
+                    triggerEmailPrompt('', message, "{{ __('تقرير المرتجعات PDF') }}", data.url, data.filename);
                 }
             } else {
-                Swal.fire('خطأ', 'فشل إنشاء ملف PDF', 'error');
+                Swal.fire("{{ __('خطأ') }}", "{{ __('فشل إنشاء ملف PDF') }}", 'error');
             }
         })
         .fail(function() {
             Swal.close();
-            Swal.fire('خطأ', 'حدث خطأ أثناء التواصل مع السيرفر', 'error');
+            Swal.fire("{{ __('خطأ') }}", "{{ __('حدث خطأ أثناء التواصل مع السيرفر') }}", 'error');
         });
     };
 
@@ -2865,27 +2869,27 @@
                 const customer = $('#returnsCustomerName').text();
                 const date = $('#returnsDate').text();
                 
-                let message = `*تقرير مرتجعات - ${saleId}*\n`;
-                message += `العميل: ${customer}\n`;
-                message += `التاريخ: ${date}\n`;
-                message += `يرجى الاطلاع على الملف المرفق.\n`;
+                let message = `*${"{{ __('تقرير مرتجعات -') }}"} ${saleId}*\n`;
+                message += `${"{{ __('العميل:') }}"} ${customer}\n`;
+                message += `${"{{ __('التاريخ:') }}"} ${date}\n`;
+                message += `${"{{ __('يرجى الاطلاع على الملف المرفق.') }}"}\n`;
 
                 if (typeof triggerWhatsappPrompt === 'function') {
                     // إرسال الرابط كملف
-                    triggerWhatsappPrompt('', message, "تقرير المرتجعات PDF", data.url, data.filename);
+                    triggerWhatsappPrompt('', message, "{{ __('تقرير المرتجعات PDF') }}", data.url, data.filename);
                 } else {
                     // Fallback
                     const url = `https://wa.me/?text=${encodeURIComponent(message + "\n" + data.url)}`;
                     window.open(url, '_blank');
                 }
             } else {
-                Swal.fire('خطأ', 'فشل إنشاء ملف PDF', 'error');
+                Swal.fire("{{ __('خطأ') }}", "{{ __('فشل إنشاء ملف PDF') }}", 'error');
             }
         })
         .fail(function(xhr) {
             Swal.close();
             console.error(xhr);
-            Swal.fire('خطأ', 'حدث خطأ أثناء التواصل مع السيرفر', 'error');
+            Swal.fire("{{ __('خطأ') }}", "{{ __('حدث خطأ أثناء التواصل مع السيرفر') }}", 'error');
         });
     };
 
