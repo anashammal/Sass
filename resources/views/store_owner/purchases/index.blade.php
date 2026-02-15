@@ -250,7 +250,6 @@
     </div>
 </div>
 
-<style>
     /* تنسيقات الطباعة */
     @media print {
         .no-print, .navbar, .sidebar, footer, .btn {
@@ -276,8 +275,20 @@
             background: white !important;
         }
     }
+    
+    /* إلغاء شفافية المودال لرؤية الجدول تحته */
+    .modal-backdrop, .modal-backdrop.show, .modal-backdrop.fade {
+        opacity: 0 !important;
+        display: none !important; 
+        background-color: transparent !important;
+        pointer-events: none !important; /* ضمان عدم حجز النقرات */
+        visibility: hidden !important;
+    }
+    .modal {
+        background: rgba(0,0,0,0); /* خلفية المودال نفسه شفافة */
+    }
 </style>
-<div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -511,8 +522,15 @@
         $(document).on('click', '.view-invoice-btn', function() {
             var url = $(this).data('url');
             
-            // 1. فتح المودال
-            $('#invoiceModal').modal('show');
+            // 1. فتح المودال (بدون خلفية معتمة)
+            var myModal = new bootstrap.Modal(document.getElementById('invoiceModal'), {
+                backdrop: false,
+                keyboard: true
+            });
+            myModal.show();
+            
+            // إزالة أي خلفية موجودة يدوياً للتأكيد
+            $('.modal-backdrop').remove();
             
             // 2. إظهار علامة التحميل (للتأكد من تنظيف المحتوى السابق)
             $('#invoiceModalBody').html('<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>');

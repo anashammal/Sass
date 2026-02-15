@@ -517,28 +517,63 @@ class PurchaseController extends Controller
 
     public function edit($id)
     {
-        $purchase = Purchase::with(['items.product.units.media', 'items.unit', 'supplier'])->findOrFail($id);
+        // 1. Fetch only necessary relations (removed media from items.product.units to save memory initially)
+        $purchase = Purchase::with(['items.product', 'items.unit', 'supplier'])->findOrFail($id);
         
+        // 2. Prepare Items Array Manually to avoid JSON recursion crash
+        $itemsData = [];
         foreach($purchase->items as $item) {
-            if($item->product) {
-                $img = asset('images/default-product.png');
-                
-                if($item->unit && $item->unit->getFirstMediaUrl('unit_images')) {
-                    $img = $item->unit->getFirstMediaUrl('unit_images');
-                } elseif ($item->product->getFirstMediaUrl('products')) {
-                    $img = $item->product->getFirstMediaUrl('products');
-                }
-                
-                $item->product->image_url = $img;
-                $item->product->scanned_unit_id = $item->product_unit_id;
+            if(!$item->product) continue;
+            
+            // Image Logic
+            $img = asset('images/default-product.png');
+            if($item->unit && $item->unit->getFirstMediaUrl('unit_images')) {
+                $img = $item->unit->getFirstMediaUrl('unit_images');
+            } elseif ($item->product->getFirstMediaUrl('products')) {
+                $img = $item->product->getFirstMediaUrl('products');
             }
+
+            // Map Units Manually
+            $units = $item->product->units->map(function($u) {
+                 return [
+                    'id' => $u->id,
+                    'unit_name' => $u->unit_name,
+                    'is_base_unit' => $u->is_base_unit,
+                    'conversion_factor' => $u->conversion_factor,
+                    'is_purchase' => $u->is_purchase,
+                    'barcode' => $u->barcode, 
+                    'cost_price' => $u->cost_price,
+                    'purchase_price' => $u->purchase_price,
+                    'selling_price' => $u->selling_price,
+                    'profit_percent' => $u->profit_percent,
+                    'image_url' => $u->image // accessor
+                 ];
+            });
+
+            $itemsData[] = [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'product_unit_id' => $item->product_unit_id,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price,
+                'total_cost' => $item->total_cost,
+                'expiry_date' => $item->expiry_date,
+                'alert_days' => $item->alert_days,
+                'product' => [
+                    'id' => $item->product->id,
+                    'name' => $item->product->name,
+                    'image_url' => $img,
+                    'scanned_unit_id' => $item->product_unit_id,
+                    'units' => $units
+                ]
+            ];
         }
 
         $store = Auth::user()->store;
         $suppliers = Contact::where('store_id', $store->id)->whereIn('type', ['supplier', 'both'])->get();
         $taxRates = explode(',', $store->tax_rates ?? '0,15');
 
-        return view('store_owner.purchases.edit', compact('purchase', 'suppliers', 'taxRates'));
+        return view('store_owner.purchases.edit', compact('purchase', 'suppliers', 'taxRates', 'itemsData'));
     }
 
     public function update(Request $request, $id)

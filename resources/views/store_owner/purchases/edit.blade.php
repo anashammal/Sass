@@ -31,7 +31,7 @@
                                         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSupplierModal" title="مورد جديد"><i class="fas fa-plus"></i></button>
                                         {{-- ملء بيانات المورد القديم --}}
                                         <input type="text" id="supplierSearchInput" class="form-control" 
-                                               value="{{ $purchase->supplier->company_name ?? $purchase->supplier->contact_name }}" 
+                                               value="{{ $purchase->supplier ? ($purchase->supplier->company_name ?? $purchase->supplier->contact_name) : '' }}" 
                                                placeholder="ابحث عن مورد..." autocomplete="off">
                                         <input type="hidden" name="supplier_id" id="supplierId" value="{{ $purchase->supplier_id }}" required>
                                     </div>
@@ -168,7 +168,7 @@
     let paymentIdx = 1;
     const storeTaxRates = @json($taxRates); 
     // التأكد من أن البيانات تأتي مصفوفة سليمة حتى لو كانت فارغة
-    const oldItems = @json($purchase->items ?? []); 
+    const oldItems = @json($itemsData ?? []); 
     window.productsData = {}; // 🟢 تهيئة مصفوفة المنتجات 
 
     // --- دوال التنسيق والحسابات ---
@@ -185,6 +185,11 @@ function formatNum(num) {
         document.getElementById('emptyState') ? document.getElementById('emptyState').style.display = 'none' : '';
         window.productsData[rowIdx] = product; // 🟢 حفظ المنتج في الذاكرة
 
+        if (!product || !product.units || product.units.length === 0) {
+            console.error("Product has no units or is invalid:", product);
+            return;
+        }
+
         // حسابات التكلفة (Normalization) لمعالجة تضارب الأسعار في الداتابيس
         let maxUnit = product.units.reduce((prev, curr) => (parseFloat(prev.conversion_factor) > parseFloat(curr.conversion_factor)) ? prev : curr);
         let maxUnitCost = parseFloat(maxUnit.cost_price) || parseFloat(maxUnit.purchase_price) || 0;
@@ -196,7 +201,13 @@ function formatNum(num) {
         if (savedItem) {
             selectedUnitId = savedItem.product_unit_id;
         } else {
-            selectedUnitId = product.scanned_unit_id || (product.units.find(u => u.is_base_unit)?.id || product.units[0].id);
+            // Check if scanned_unit_id exists in units, otherwise fallback correctly
+            let foundScanned = product.units.find(u => u.id == product.scanned_unit_id);
+            if (foundScanned) {
+                selectedUnitId = foundScanned.id;
+            } else {
+                 selectedUnitId = (product.units.find(u => u.is_base_unit)?.id || product.units[0].id);
+            }
         }
 
         let selectedUnit = product.units.find(u => u.id == selectedUnitId);
@@ -628,12 +639,16 @@ function formatNum(num) {
         });
 
         // 2. 🔥 تعبئة المنتجات القديمة (Fix) 🔥
-        if (oldItems && oldItems.length > 0) {
+        if (oldItems && Array.isArray(oldItems) && oldItems.length > 0) {
             console.log("Loading saved items:", oldItems);
             oldItems.forEach(item => {
                 if (item.product) {
-                    // نمرر الـ item المحفوظ للدالة ليتم أخذ الكمية والسعر منه
-                    addProductRow(item.product, item);
+                    try {
+                        // نمرر الـ item المحفوظ للدالة ليتم أخذ الكمية والسعر منه
+                        addProductRow(item.product, item);
+                    } catch (e) {
+                        console.error("Error adding row for item:", item, e);
+                    }
                 }
             });
             calculateGrandTotal();
