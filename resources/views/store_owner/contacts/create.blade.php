@@ -31,15 +31,15 @@
             
             {{-- عنوان الصفحة --}}
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="text-primary fw-bold"><i class="fas fa-user-plus me-2"></i> إضافة جهة اتصال جديدة</h4>
+                <h4 class="text-primary fw-bold"><i class="fas fa-user-plus me-2"></i> {{ __('add_new_contact_page_title') }}</h4>
                 <a href="{{ route('store.contacts.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
+                    <i class="fas fa-arrow-right me-1"></i> {{ __('back_to_list') }}
                 </a>
             </div>
 
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-success">بيانات جهة الاتصال</h5>
+                    <h5 class="mb-0 text-success">{{ __('contact_info_section') }}</h5>
                 </div>
                 <div class="card-body">
 
@@ -60,27 +60,27 @@
                         <div class="row g-3">
 {{-- 1. اسم الشخص المسؤول --}}
 <div class="col-md-6">
-    <label for="name" class="form-label required">اسم جهة الاتصال (الشخص المسؤول) <span class="text-danger">*</span></label>
+    <label for="name" class="form-label required">{{ __('contact_name_label') }} <span class="text-danger">*</span></label>
     {{-- تم تغيير name="contact_name" إلى name="name" --}}
-    <input type="text" class="form-control" id="name" name="name" value="{{ old('name') }}" required placeholder="مثال: محمد أحمد">
+    <input type="text" class="form-control" id="name" name="name" value="{{ old('name') }}" required placeholder="{{ __('contact_name_placeholder') }}">
 </div>
                             <div class="col-md-6">
-                                <label for="company_name" class="form-label">اسم الشركة / المؤسسة</label>
-                                <input type="text" class="form-control" id="company_name" name="company_name" value="{{ old('company_name') }}" placeholder="مثال: شركة الأمانة">
+                                <label for="company_name" class="form-label">{{ __('company_name_label') }}</label>
+                                <input type="text" class="form-control" id="company_name" name="company_name" value="{{ old('company_name') }}" placeholder="{{ __('company_name_placeholder') }}">
                             </div>
 
                             {{-- 2. نوع العلاقة (Checkboxes) --}}
                             <div class="col-12">
-                                <label class="form-label d-block fw-bold">نوع العلاقة <span class="text-danger">*</span></label>
+                                <label class="form-label d-block fw-bold">{{ __('relationship_type_label') }} <span class="text-danger">*</span></label>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="type[]" value="customer" id="type_customer" 
                                            {{ (is_array(old('type')) && in_array('customer', old('type'))) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="type_customer">زبون (Customer)</label>
+                                    <label class="form-check-label" for="type_customer">{{ __('type_customer_label') }}</label>
                                 </div>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" name="type[]" value="supplier" id="type_supplier" 
                                            {{ (is_array(old('type')) && in_array('supplier', old('type'))) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="type_supplier">مورد (Supplier)</label>
+                                    <label class="form-check-label" for="type_supplier">{{ __('type_supplier_label') }}</label>
                                 </div>
                             </div>
 
@@ -88,31 +88,31 @@
 
                              {{-- 3. معلومات الاتصال --}}
                              <div class="col-md-6">
-                                 <label for="phone" class="form-label">رقم الهاتف 
+                                 <label for="phone" class="form-label">{{ __('phone_number_label') }} 
                                      <span id="phone_v_status" class="ms-2" style="display:none;">
-                                         <i class="fas fa-certificate text-success" title="تم التحقق"></i>
+                                         <i class="fas fa-certificate text-success" title="{{ __('verified_status') }}"></i>
                                      </span>
                                  </label>
                                  <div class="d-flex gap-1">
                                      <div class="tel-input-wrapper flex-grow-1">
-                                         <input type="tel" class="form-control" id="phone_input" value="{{ old('phone') }}" placeholder="5xxxxxxxxx">
+                                         <input type="tel" class="form-control" id="phone_input" value="{{ old('phone') }}" placeholder="{{ __('phone_placeholder') ?? '5xxxxxxxxx' }}">
                                          <input type="hidden" name="phone" id="full_phone" value="{{ old('phone') }}">
-                                         <div id="phone-error" class="phone-error-msg">رقم الهاتف غير صحيح لهذه الدولة</div>
+                                         <div id="phone-error" class="phone-error-msg">{{ __('phone_incorrect_msg') }}</div>
                                      </div>
-                                     <button type="button" class="btn btn-light btn-sm border" id="send_phone_v" onclick="triggerVerification('phone')">تحقق</button>
+                                     <button type="button" class="btn btn-light btn-sm border" id="send_phone_v" onclick="triggerVerification('phone')">{{ __('verify_button') }}</button>
                                  </div>
                              </div>
                              <div class="col-md-6">
-                                 <label for="email" class="form-label">البريد الإلكتروني
+                                 <label for="email" class="form-label">{{ __('email_address_label') }}
                                      <span id="email_v_status" class="ms-2" style="display:none;">
-                                         <i class="fas fa-certificate text-success" title="تم التحقق"></i>
+                                         <i class="fas fa-certificate text-success" title="{{ __('verified_status') }}"></i>
                                      </span>
                                  </label>
                                  <div class="d-flex gap-1">
                                      <div class="flex-grow-1">
                                          <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}" placeholder="name@example.com">
                                      </div>
-                                     <button type="button" class="btn btn-light btn-sm border" id="send_email_v" onclick="triggerVerification('email')">تحقق</button>
+                                     <button type="button" class="btn btn-light btn-sm border" id="send_email_v" onclick="triggerVerification('email')">{{ __('verify_button') }}</button>
                                  </div>
                              </div>
 
@@ -148,7 +148,7 @@
                                             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js",
                                             countryNameLocale: "ar",
                                             i18n: {
-                                                searchPlaceholder: "ابحث عن دولة...",
+                                                searchPlaceholder: "{{ __('search_country_placeholder') }}",
                                             }
                                         });
 
@@ -228,7 +228,7 @@
                                     const value = (type === 'phone') ? document.querySelector("#full_phone").value : document.querySelector("#email").value;
                                     
                                     if (!value) {
-                                        Swal.fire('خطأ', 'يرجى إدخال ' + (type === 'phone' ? 'رقم الهاتف' : 'البريد') + ' أولاً', 'error');
+                                        Swal.fire('{{ __('error_title') }}', '{{ __('please_enter_value') }} ' + (type === 'phone' ? '{{ __('phone_number_label') }}' : '{{ __('email_address_label') }}'), 'error');
                                         return;
                                     }
 
@@ -249,26 +249,26 @@
                                         const data = await response.json();
                                         if (data.success) {
                                             const { value: code } = await Swal.fire({
-                                                title: 'أدخل رمز التحقق',
+                                                title: '{{ __('enter_verification_code') }}',
                                                 text: data.message,
                                                 input: 'text',
                                                 inputPlaceholder: '123456',
                                                 showCancelButton: true,
-                                                confirmButtonText: 'تأكيد الرمز',
-                                                cancelButtonText: 'إلغاء'
+                                                confirmButtonText: '{{ __('confirm_code_button') }}',
+                                                cancelButtonText: '{{ __('cancel_button') }}'
                                             });
 
                                             if (code) {
                                                 verifyCode(type, value, code);
                                             }
                                         } else {
-                                            Swal.fire('فشل', data.message, 'error');
+                                            Swal.fire('{{ __('fail_title') }}', data.message, 'error');
                                         }
                                     } catch (e) {
-                                        Swal.fire('خطأ', 'حدث خطأ غير متوقع', 'error');
+                                        Swal.fire('{{ __('error_title') }}', '{{ __('unexpected_error_msg') }}', 'error');
                                     } finally {
                                         btn.disabled = false;
-                                        btn.innerText = 'تحقق';
+                                        btn.innerText = '{{ __('verify_button') }}';
                                     }
                                 }
 
@@ -285,14 +285,14 @@
 
                                         const data = await response.json();
                                         if (data.success) {
-                                            Swal.fire('ممتاز!', 'تم التحقق من ' + (type === 'phone' ? 'الرقم' : 'الإيميل') + ' بنجاح', 'success');
+                                            Swal.fire('{{ __('success_title') }}', '{{ __('verification_success_msg') }}', 'success');
                                             document.querySelector('#' + type + '_v_status').style.display = 'inline-block';
                                             document.querySelector('#send_' + type + '_v').style.display = 'none';
                                         } else {
-                                            Swal.fire('خطأ', data.message, 'error');
+                                            Swal.fire('{{ __('error_title') }}', data.message, 'error');
                                         }
                                     } catch (e) {
-                                        Swal.fire('خطأ', 'فشل التحقق من الرمز', 'error');
+                                        Swal.fire('{{ __('error_title') }}', '{{ __('verification_failed_msg') }}', 'error');
                                     }
                                 }
 
@@ -300,11 +300,28 @@
                                 let map, marker, autocomplete;
 
                                 function initMap() {
-                                    const defaultPos = { lat: 24.7136, lng: 46.6753 }; // الرياض كموقف افتراضي
+                                    const capitals = {
+                                        'ar': { lat: 24.7136, lng: 46.6753 }, // Riyadh
+                                        'en': { lat: 51.5074, lng: -0.1278 }, // London
+                                        'tr': { lat: 39.9334, lng: 32.8597 }, // Ankara
+                                        'fr': { lat: 48.8566, lng: 2.3522 }, // Paris
+                                        'de': { lat: 52.5200, lng: 13.4050 }, // Berlin
+                                        'es': { lat: 40.4168, lng: -3.7038 }, // Madrid
+                                        'pt': { lat: 38.7223, lng: -9.1393 }, // Lisbon
+                                        'pt-BR': { lat: -15.8267, lng: -47.9218 }, // Brasilia
+                                        'pt_BR': { lat: -15.8267, lng: -47.9218 }, // Brasilia (Backup)
+                                        'ru': { lat: 55.7558, lng: 37.6173 }, // Moscow
+                                        'zh': { lat: 39.9042, lng: 116.4074 }, // Beijing
+                                        'ja': { lat: 35.6895, lng: 139.6917 }, // Tokyo
+                                        'hr': { lat: 45.8150, lng: 15.9819 }  // Zagreb
+                                    };
+
+                                    const currentLang = "{{ app()->getLocale() }}";
+                                    const defaultPos = capitals[currentLang] || capitals['ar'];
                                     
                                     map = new google.maps.Map(document.getElementById("map"), {
                                         center: defaultPos,
-                                        zoom: 13,
+                                        zoom: 12,
                                         mapTypeControl: false,
                                     });
 
@@ -378,61 +395,61 @@
                                                 updateCoords(currentPos.lat, currentPos.lng);
                                                 reverseGeocode(currentPos);
                                             },
-                                            () => Swal.fire('تنبيه', 'تم رفض الوصول لموقعك الحالي', 'warning')
+                                            () => Swal.fire('{{ __('alert_title') }}', '{{ __('location_access_denied') }}', 'warning')
                                         );
                                     }
                                 }
                             </script>
-                            <script async src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&libraries=places&callback=initMap"></script>
+                            <script async src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&libraries=places&language={{ app()->getLocale() }}&callback=initMap"></script>
 
                             {{-- 5. المعلومات المالية --}}
                             <div class="col-md-6">
-                                <label for="credit_limit" class="form-label">حد الدين (للزبائن)</label>
+                                <label for="credit_limit" class="form-label">{{ __('credit_limit_label') }}</label>
                                 <div class="input-group">
                                     <input type="number" step="0.01" class="form-control" id="credit_limit" name="credit_limit" value="{{ old('credit_limit', 0) }}">
                                     <span class="input-group-text">TL</span>
                                 </div>
-                                <div class="form-text">اتركه 0 إذا لم يكن هناك حد.</div>
+                                <div class="form-text">{{ __('credit_limit_help') ?? 'اتركه 0 إذا لم يكن هناك حد.' }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label for="opening_balance" class="form-label">الرصيد الافتتاحي</label>
+                                <label for="opening_balance" class="form-label">{{ __('opening_balance_label') }}</label>
                                 <div class="input-group">
                                     <input type="number" step="0.01" class="form-control" id="opening_balance" name="opening_balance" value="{{ old('opening_balance', 0) }}">
                                     <span class="input-group-text">TL</span>
                                 </div>
-                                <div class="form-text text-danger">سالب (-) = عليه دين | موجب (+) = له رصيد</div>
+                                <div class="form-text text-danger">{{ __('opening_balance_help') }}</div>
                             </div>
 
                             <hr class="my-4">
 
                             {{-- 4. العنوان والضريبة (الآن في الأسفل وبكامل العرض) --}}
                             <div class="col-12 mb-3">
-                                <label for="tax_number" class="form-label">الرقم الضريبي</label>
-                                <input type="text" class="form-control" id="tax_number" name="tax_number" value="{{ old('tax_number') }}" placeholder="أدخل الرقم الضريبي (اختياري)">
+                                <label for="tax_number" class="form-label">{{ __('tax_number_label') }}</label>
+                                <input type="text" class="form-control" id="tax_number" name="tax_number" value="{{ old('tax_number') }}" placeholder="{{ __('tax_number_placeholder') }}">
                             </div>
                             
                             <div class="col-12 mb-3">
-                                <label for="address" class="form-label">العنوان (قوقل ماب)</label>
+                                <label for="address" class="form-label">{{ __('address_map_label') }}</label>
                                 <div class="input-group shadow-sm border rounded-3 overflow-hidden" dir="ltr">
-                                    <button type="button" class="btn btn-primary px-3" onclick="getCurrentLocation()" title="موقعي الحالي">
+                                    <button type="button" class="btn btn-primary px-3" onclick="getCurrentLocation()" title="{{ __('my_current_location') }}">
                                         <i class="fas fa-location-arrow"></i>
                                     </button>
                                     <input type="text" class="form-control border-0" id="address" name="address" value="{{ old('address') }}" 
-                                           placeholder="ابحث عن العنوان (سيظهر الإكمال التلقائي هنا)" dir="rtl" style="font-size: 1rem;">
+                                           placeholder="{{ __('address_search_placeholder') }}" dir="rtl" style="font-size: 1rem;">
                                 </div>
                                 <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude') }}">
                                 <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude') }}">
                                 
                                 <div id="map" class="mt-3 rounded-3 shadow-sm border" style="height: 350px; width: 100%; background: #f8f9fa;">
                                     <div class="d-flex align-items-center justify-content-center h-100 text-muted small">
-                                        <span>يرجى إضافة Google Maps API Key لتفعيل الخريطة</span>
+                                        <span>{{ __('google_maps_api_missing') }}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="col-12 mt-4">
                                 <button type="submit" class="btn btn-success w-100 fw-bold py-3 shadow-sm">
-                                    <i class="fas fa-save me-1"></i> حفظ جهة الاتصال
+                                    <i class="fas fa-save me-1"></i> {{ __('save_contact_button') }}
                                 </button>
                             </div>
 

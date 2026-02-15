@@ -33,14 +33,14 @@ class ContactVerificationController extends Controller
         $contactId = $request->input('contact_id'); // Optional for existing contacts
 
         if (!$value) {
-            return response()->json(['success' => false, 'message' => 'يرجى إدخال البيانات أولاً']);
+            return response()->json(['success' => false, 'message' => __('please_enter_data_first')]);
         }
 
         $code = rand(100000, 999999);
         $storeId = $this->getStoreId();
 
         if ($type === 'phone') {
-            $message = "رمز التحقق الخاص بك هو: {$code}";
+            $message = __('your_verification_code_is', ['code' => $code]);
             $sent = $this->whatsapp->send($value, $message, $storeId);
             
             if ($sent) {
@@ -49,9 +49,9 @@ class ContactVerificationController extends Controller
                 } else {
                     Session::put("verify_phone_{$value}", $code);
                 }
-                return response()->json(['success' => true, 'message' => 'تم إرسال رمز التحقق إلى واتساب']);
+                return response()->json(['success' => true, 'message' => __('verification_code_sent_to_whatsapp')]);
             }
-            return response()->json(['success' => false, 'message' => 'فشل إرسال الرسالة، تأكد من اتصال واتساب']);
+            return response()->json(['success' => false, 'message' => __('whatsapp_send_failed')]);
         } else {
             try {
                 Mail::to($value)->send(new VerificationCodeMail($code));
@@ -60,9 +60,9 @@ class ContactVerificationController extends Controller
                 } else {
                     Session::put("verify_email_{$value}", $code);
                 }
-                return response()->json(['success' => true, 'message' => 'تم إرسال رمز التحقق إلى البريد الإلكتروني']);
+                return response()->json(['success' => true, 'message' => __('verification_code_sent_to_email')]);
             } catch (\Exception $e) {
-                return response()->json(['success' => false, 'message' => 'فشل إرسال البريد الإلكتروني: ' . $e->getMessage()]);
+                return response()->json(['success' => false, 'message' => __('email_send_failed') . ': ' . $e->getMessage()]);
             }
         }
     }
@@ -84,7 +84,7 @@ class ContactVerificationController extends Controller
                 } else {
                     $contact->update(['email_verified_at' => now(), 'email_verification_code' => null]);
                 }
-                return response()->json(['success' => true, 'message' => 'تم التحقق بنجاح']);
+                return response()->json(['success' => true, 'message' => __('verification_success')]);
             }
         } else {
             $sessionKey = "verify_{$type}_{$value}";
@@ -92,10 +92,10 @@ class ContactVerificationController extends Controller
             
             if ($code == $storedCode) {
                 Session::put("{$sessionKey}_verified", true);
-                return response()->json(['success' => true, 'message' => 'تم التحقق بنجاح (سيتم حفظ الحالة عند حفظ جهة الاتصال)']);
+                return response()->json(['success' => true, 'message' => __('verification_success_session')]);
             }
         }
 
-        return response()->json(['success' => false, 'message' => 'رمز التحقق غير صحيح']);
+        return response()->json(['success' => false, 'message' => __('invalid_verification_code')]);
     }
 }

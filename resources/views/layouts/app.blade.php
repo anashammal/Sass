@@ -23,6 +23,19 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js"></script>
 
+    {{-- Flatpickr --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <style>
+        .flatpickr-calendar {
+            font-family: 'Nunito', sans-serif;
+        }
+        /* Fix for RTL direction in Flatpickr if needed */
+        [dir="rtl"] .flatpickr-calendar {
+            direction: rtl;
+        }
+    </style>
+
     <style>
 /* تصغير واجهة الموقع بالكامل لتظهر بشكل أرتب */
     :root {
@@ -2067,7 +2080,7 @@
         
         const mediaSection = document.getElementById('ge_media_status');
         if (mediaUrl) {
-            mediaSection.innerHTML = `<div class="alert alert-primary py-2 mb-2 small"><i class="fas fa-paperclip me-1"></i> سيتم إرفاق ملف: ${filename || 'تقرير PDF'}</div>`;
+            mediaSection.innerHTML = `<div class="alert alert-primary py-2 mb-2 small"><i class="fas fa-paperclip me-1"></i> {{ __('file_will_be_attached') }} ${filename || '{{ __('pdf_report_filename') }}'}</div>`;
         } else {
             mediaSection.innerHTML = '';
         }
@@ -2143,8 +2156,8 @@
         const subject = document.getElementById('ge_subject').value;
         const message = document.getElementById('ge_message_preview').value;
 
-        if(!email) return alert('الرجاء إدخال البريد الإلكتروني');
-        if(!subject) return alert('الرجاء إدخال عنوان الرسالة');
+        if(!email) return alert('{{ __('please_enter_value') }}: {{ __('recipient_email') }}');
+        if(!subject) return alert('{{ __('please_enter_value') }}: {{ __('email_subject') }}');
 
         const btn = document.getElementById('ge_send_btn');
         // بدء شريط التقدم (لمدة 3 دقائق تقريباً)
@@ -2161,13 +2174,13 @@
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                alert(data.message || 'تم إرسال البريد بنجاح!');
+                alert(data.message || '{{ __('sending_success') }}');
                 bootstrap.Modal.getInstance(document.getElementById('globalEmailModal')).hide();
             } else {
-                alert('فشل الإرسال: ' + (data.message || 'حدث خطأ غير متوقع'));
+                alert('{{ __('sending_failed') }}: ' + (data.message || '{{ __('unexpected_error_msg') }}'));
             }
         })
-        .catch(err => alert('حدث خطأ أثناء الاتصال بالسيرفر'))
+        .catch(err => alert('{{ __('server_connection_error') }}'))
         .finally(() => {
             // إيقاف التقدم وإعادة الزر لطبيعته
             progressControl.stop();
@@ -2177,7 +2190,7 @@
     // --- نظام الواتساب الموحد (Universal WhatsApp Logic) ---
     let searchTimeout = null;
 
-    function triggerWhatsappPrompt(phone, message, title = "إرسال الفاتورة عبر واتساب", mediaUrl = "", filename = "") {
+    function triggerWhatsappPrompt(phone, message, title = "{{ __('send_via_whatsapp') }}", mediaUrl = "", filename = "") {
         const modalEl = document.getElementById('globalWhatsappModal');
         if(!modalEl) return;
         
@@ -2197,7 +2210,7 @@
         // إذا كان هناك ملف، أظهر تنبيهاً بسيطاً للمستخدم
         const mediaSection = document.getElementById('gw_media_status');
         if (mediaUrl) {
-            mediaSection.innerHTML = `<div class="alert alert-info py-2 mb-2 small"><i class="fas fa-paperclip me-1"></i> سيتم إرفاق ملف: ${filename || 'تقرير PDF'}</div>`;
+            mediaSection.innerHTML = `<div class="alert alert-info py-2 mb-2 small"><i class="fas fa-paperclip me-1"></i> {{ __('file_will_be_attached') }} ${filename || '{{ __('pdf_report_filename') }}'}</div>`;
         } else {
             mediaSection.innerHTML = '';
         }
@@ -2405,9 +2418,9 @@
             (contact) => {
                 if(contact.phone) {
                     document.getElementById('gw_phone').value = contact.phone;
-                    document.getElementById('gw_search_info').innerText = `تم اختيار: ${contact.name || contact.contact_name}`;
+                    document.getElementById('gw_search_info').innerText = `{{ __('selected') }}: ${contact.name || contact.contact_name}`;
                 } else {
-                    alert('هذا العميل لا يملك رقم هاتف مسجل');
+                    alert('{{ __('no_phone_registered') }}');
                 }
             }
         );
@@ -2424,13 +2437,13 @@
         const phone = document.getElementById('gw_phone').value;
         const message = document.getElementById('gw_message_preview').value;
 
-        if(!phone) return alert('الرجاء إدخال رقم الهاتف');
+        if(!phone) return alert('{{ __('please_enter_value') }}: {{ __('phone_number_label') }}');
 
         // تنظيف الرقم
         let cleanPhone = phone.replace(/\D/g, '');
         
         // التحقق من وجود رمز دولي (مثال بسيط)
-        if(cleanPhone.length < 9) return alert('رقم الهاتف غير صحيح');
+        if(cleanPhone.length < 9) return alert('{{ __('phone_incorrect_msg') }}');
         
         // إظهار لودينغ
         // إظهار شريط التقدم (لمدة 3 دقائق تقريباً)
@@ -2449,14 +2462,14 @@
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                alert(data.message || 'تم إرسال الرسالة بنجاح!');
+                alert(data.message || '{{ __('sending_success') }}');
                 bootstrap.Modal.getInstance(document.getElementById('globalWhatsappModal')).hide();
             } else {
                 // إظهار الرسالة القادمة من السيرفر بالتفصيل
-                alert('فشل الإرسال: ' + (data.message || data.error || 'تأكد من ربط الواتساب بالسيرفر'));
+                alert('{{ __('sending_failed') }}: ' + (data.message || data.error || '{{ __('sending_failed_check_connection') }}'));
             }
         })
-        .catch(err => alert('حدث خطأ أثناء الاتصال بالسيرفر'))
+        .catch(err => alert('{{ __('server_connection_error') }}'))
         .finally(() => {
             // إيقاف التقدم وإعادة الزر لطبيعته
             progressControl.stop();
@@ -2469,12 +2482,12 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white border-0">
-                <h5 class="modal-title fw-bold" id="ge_modal_title"><i class="fas fa-envelope me-2"></i> إرسال عبر البريد الإلكتروني</h5>
+                <h5 class="modal-title fw-bold" id="ge_modal_title"><i class="fas fa-envelope me-2"></i> {{ __('send_via_email') }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold">البريد الإلكتروني للمستلم</label>
+                    <label class="form-label fw-bold">{{ __('recipient_email') }}</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-primary"><i class="fas fa-at"></i></span>
                         <input type="email" id="ge_email" class="form-control fw-bold border-primary text-center" placeholder="example@mail.com" autocomplete="off">
@@ -2482,12 +2495,12 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">عنوان الرسالة (Subject)</label>
+                    <label class="form-label fw-bold">{{ __('email_subject') }}</label>
                     <input type="text" id="ge_subject" class="form-control fw-bold border-light bg-light" dir="rtl">
                 </div>
                 
                 <div class="mb-0">
-                    <label class="form-label fw-bold">نص الرسالة</label>
+                    <label class="form-label fw-bold">{{ __('message_text') }}</label>
                     <textarea id="ge_message_preview" class="form-control text-start border-light bg-light" rows="10" dir="rtl"></textarea>
                 </div>
                 <div id="ge_media_status" class="mt-2"></div>
@@ -2495,9 +2508,9 @@
                 <input type="hidden" id="ge_filename">
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">{{ __('cancel_button') }}</button>
                 <button type="button" id="ge_send_btn" class="btn btn-primary px-5 shadow fw-bold" onclick="sendGlobalEmail()">
-                    <i class="fas fa-paper-plane me-2"></i> إرسال الآن
+                    <i class="fas fa-paper-plane me-2"></i> {{ __('send_now') }}
                 </button>
             </div>
         </div>
@@ -2620,15 +2633,15 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-success text-white border-0">
-                <h5 class="modal-title fw-bold" id="gw_modal_title"><i class="fab fa-whatsapp me-2"></i> إرسال عبر واتساب</h5>
+                <h5 class="modal-title fw-bold" id="gw_modal_title"><i class="fab fa-whatsapp me-2"></i> {{ __('send_via_whatsapp') }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3 position-relative">
-                    <label class="form-label fw-bold">رقم المستلم (اكتب للبحث في جهات الاتصال)</label>
+                    <label class="form-label fw-bold">{{ __('recipient_phone') }}</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-success"><i class="fas fa-search"></i></span>
-                        <input type="text" id="gw_phone" class="form-control fw-bold border-success text-center" placeholder="اكتب الاسم أو الرقم..." autocomplete="off">
+                        <input type="text" id="gw_phone" class="form-control fw-bold border-success text-center" placeholder="{{ __('search_contact_placeholder') }}" autocomplete="off">
                     </div>
                     
                     {{-- قائمة نتائج البحث --}}
@@ -2639,7 +2652,7 @@
                 </div>
                 
                 <div class="mb-0">
-                    <label class="form-label fw-bold">نص الرسالة</label>
+                    <label class="form-label fw-bold">{{ __('message_text') }}</label>
                     <textarea id="gw_message_preview" class="form-control text-start border-light bg-light" rows="10" dir="rtl"></textarea>
                 </div>
                 <div id="gw_media_status" class="mt-2"></div>
@@ -2647,9 +2660,9 @@
                 <input type="hidden" id="gw_filename">
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">{{ __('cancel_button') }}</button>
                 <button type="button" id="gw_send_btn" class="btn btn-success px-5 shadow fw-bold" onclick="sendGlobalWhatsapp()">
-                    <i class="fas fa-paper-plane me-2"></i> تأكيد وإرسال الآن
+                    <i class="fas fa-paper-plane me-2"></i> {{ __('confirm_send') }}
                 </button>
             </div>
         </div>
@@ -2686,6 +2699,44 @@
             
             // Start the worker loop after 5 seconds of page load
             setTimeout(runQueueWorker, 5000);
+
+            // Initialize Flatpickr
+            const currentLocale = "{{ app()->getLocale() }}";
+            const localeMap = {
+                'ar': 'ar',
+                'fr': 'fr',
+                'ru': 'ru',
+                'zh': 'zh',
+                'ja': 'ja',
+                'pt': 'pt',
+                'pt-BR': 'pt',
+                'hr': 'hr',
+                'de': 'de',
+                'tr': 'tr',
+                'es': 'es'
+            };
+
+            const flatpickrLocale = localeMap[currentLocale] || 'default';
+
+            if (flatpickrLocale !== 'default') {
+                const script = document.createElement('script');
+                script.src = `https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/${flatpickrLocale}.js`;
+                script.onload = () => {
+                    initFlatpickr(flatpickrLocale);
+                };
+                document.head.appendChild(script);
+            } else {
+                initFlatpickr('default');
+            }
+
+            function initFlatpickr(locale) {
+                flatpickr(".enhanced-date-input", {
+                    locale: locale,
+                    dateFormat: "Y-m-d",
+                    allowInput: true,
+                    disableMobile: true // Force custom picker on mobile
+                });
+            }
         });
     </script>
 </body>

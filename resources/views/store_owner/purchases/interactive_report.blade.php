@@ -102,9 +102,9 @@
 
 <div class="report-header text-center">
     <h2 class="fw-bold mb-1">{{ $store->name }}</h2>
-    <h4 class="text-muted">تقرير سجل المشتريات التفاعلي</h4>
+    <h4 class="text-muted">{{ __('interactive_report_title') }}</h4>
     <div class="small text-secondary mt-2">
-        <i class="fas fa-calendar-alt me-1"></i> تاريخ التقرير: {{ now()->format('Y-m-d H:i') }}
+        <i class="fas fa-calendar-alt me-1"></i> {{ __('report_date') }} {{ now()->format('Y-m-d H:i') }}
     </div>
 </div>
 
@@ -113,25 +113,25 @@
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-6">
             <div class="kpi-box">
-                <div class="kpi-label">عدد الفواتير</div>
+                <div class="kpi-label">{{ __('invoices_count') }}</div>
                 <div class="kpi-value text-dark">{{ $totals['count'] }}</div>
             </div>
         </div>
         <div class="col-md-3 col-6">
             <div class="kpi-box">
-                <div class="kpi-label">إجمالي المشتريات</div>
+                <div class="kpi-label">{{ __('total_purchases') }}</div>
                 <div class="kpi-value">{{ number_format($totals['sum_total'], 2) }}</div>
             </div>
         </div>
         <div class="col-md-3 col-6">
             <div class="kpi-box">
-                <div class="kpi-label">إجمالي المدفوع</div>
+                <div class="kpi-label">{{ __('total_paid') }}</div>
                 <div class="kpi-value text-success">{{ number_format($totals['sum_paid'], 2) }}</div>
             </div>
         </div>
         <div class="col-md-3 col-6">
             <div class="kpi-box">
-                <div class="kpi-label">إجمالي الأجل</div>
+                <div class="kpi-label">{{ __('total_due') }}</div>
                 <div class="kpi-value text-danger">{{ number_format($totals['sum_due'], 2) }}</div>
             </div>
         </div>
@@ -139,7 +139,7 @@
 
     <!-- Instructions -->
     <p class="text-center text-muted mb-4 no-print">
-        <i class="fas fa-info-circle me-1"></i> اضغط على أي فاتورة لعرض تفاصيلها بنودها.
+        <i class="fas fa-info-circle me-1"></i> {{ __('click_invoice_details') }}
     </p>
 
     <!-- Invoices List -->
@@ -151,7 +151,7 @@
                     <span class="fw-bold me-3">#{{ $p->invoice_number }}</span>
                     <span class="text-muted small d-none d-md-inline ms-2">{{ \Carbon\Carbon::parse($p->invoice_date)->format('Y-m-d') }}</span>
                     <span class="ms-3 badge {{ $p->payment_status == 'paid' ? 'badge-paid' : ($p->payment_status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
-                        @if($p->payment_status == 'paid') مدفوعة @elseif($p->payment_status == 'partial') جزئية @else غير مدفوعة @endif
+                        @if($p->payment_status == 'paid') {{ __('paid_status') }} @elseif($p->payment_status == 'partial') {{ __('partial_status') }} @else {{ __('unpaid_status') }} @endif
                     </span>
                 </div>
                 <div class="d-flex align-items-center">
@@ -162,14 +162,14 @@
             <div class="invoice-details" id="details-{{ $p->id }}">
                 <div class="row mb-3">
                     <div class="col-6">
-                        <small class="text-muted d-block">المورد:</small>
+                        <small class="text-muted d-block">{{ __('supplier_label') }}:</small>
                         <strong>{{ $p->supplier->contact_name ?? '---' }}</strong>
                         @if($p->supplier && $p->supplier->company_name)
                             <div class="small text-muted">{{ $p->supplier->company_name }}</div>
                         @endif
                     </div>
                     <div class="col-6 text-end">
-                        <small class="text-muted d-block">تاريخ وساعة الفاتورة:</small>
+                        <small class="text-muted d-block">{{ __('invoice_date_time') }}:</small>
                         <strong>{{ \Carbon\Carbon::parse($p->invoice_date)->format('Y-m-d H:i') }}</strong>
                     </div>
                 </div>
@@ -178,10 +178,10 @@
                     <table class="table table-sm table-bordered">
                         <thead class="bg-light">
                             <tr>
-                                <th>المنتج</th>
-                                <th class="text-center">الكمية</th>
-                                <th class="text-center">السعر</th>
-                                <th class="text-end">الإجمالي</th>
+                                <th>{{ __('table_product') }}</th>
+                                <th class="text-center">{{ __('table_quantity') }}</th>
+                                <th class="text-center">{{ __('table_price') }}</th>
+                                <th class="text-end">{{ __('table_total') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -196,15 +196,15 @@
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td colspan="3" class="text-end fw-bold">الصافي:</td>
+                                <td colspan="3" class="text-end fw-bold">{{ __('net_total_label') }}</td>
                                 <td class="text-end fw-bold text-primary">{{ number_format($p->grand_total, 2) }}</td>
                             </tr>
                             <tr>
-                                <td colspan="3" class="text-end">المدفوع:</td>
+                                <td colspan="3" class="text-end">{{ __('paid_label') }}:</td>
                                 <td class="text-end text-success">{{ number_format($p->paid_amount, 2) }}</td>
                             </tr>
                             <tr>
-                                <td colspan="3" class="text-end">المتبقي:</td>
+                                <td colspan="3" class="text-end">{{ __('remaining_label') }}:</td>
                                 <td class="text-end text-danger">{{ number_format($p->grand_total - $p->paid_amount, 2) }}</td>
                             </tr>
                         </tfoot>
@@ -212,7 +212,7 @@
                 </div>
                 @if($p->notes)
                     <div class="mt-2 p-2 bg-light border-start border-primary small">
-                        <strong>ملاحظات:</strong> {{ $p->notes }}
+                        <strong>{{ __('notes_label') }}:</strong> {{ $p->notes }}
                     </div>
                 @endif
             </div>
@@ -222,7 +222,7 @@
 </div>
 
 <button class="btn btn-primary btn-print shadow-lg px-4 py-2" onclick="window.print()">
-    <i class="fas fa-print me-2"></i> طباعة التقرير كاملاً
+    <i class="fas fa-print me-2"></i> {{ __('print_full_report') }}
 </button>
 
 <!-- Bootstrap JS -->

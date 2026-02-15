@@ -1,44 +1,47 @@
-<div class="row">
+<div class="row" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
     <div class="col-md-6">
-        <h5>رقم الفاتورة: {{ $purchase->invoice_number }}</h5>
-        <p>المورد: <strong>{{ $purchase->supplier->contact_name ?? 'غير محدد' }}</strong></p>
-        <p>التاريخ: {{ $purchase->invoice_date }}</p>
+        <h5>{{ __('invoice_no_value') }}: {{ $purchase->invoice_number }}</h5>
+        <p>{{ __('supplier_label') }}: <strong>{{ $purchase->supplier->contact_name ?? __('undefined_supplier') }}</strong></p>
+        <p>{{ __('date_label') }}: {{ $purchase->invoice_date }}</p>
     </div>
-    <div class="col-md-6 text-start">
+    <div class="col-md-6 {{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}">
         <span class="badge bg-{{ $purchase->payment_status == 'paid' ? 'success' : 'warning' }}">
-            {{ $purchase->payment_status }}
+            @if($purchase->payment_status == 'paid') {{ __('paid_status') }}
+            @elseif($purchase->payment_status == 'partial') {{ __('partial_status') }}
+            @else {{ __('unpaid_status') }}
+            @endif
         </span>
     </div>
 </div>
 
 <hr>
 
-<div class="table-responsive">
-    <table class="table table-bordered table-sm">
+<div class="table-responsive" style="background-color: #fff;">
+    <table class="table table-bordered table-sm" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
         <thead class="table-light">
             <tr>
-                <th>المنتج</th>
-                <th>الوحدة</th>
-                <th>الكمية</th>
-                <th>السعر</th>
-                <th>الإجمالي</th>
+                <th class="{{ app()->getLocale() == 'ar' ? 'text-end' : 'text-start' }}">{{ __('table_product') }}</th>
+                <th class="text-center">{{ __('table_unit') }}</th>
+                <th class="text-center">{{ __('table_quantity') }}</th>
+                <th class="text-center">{{ __('table_price') }}</th>
+                <th class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}">{{ __('table_total') }}</th>
             </tr>
         </thead>
         <tbody>
             @foreach($purchase->items as $item)
             <tr>
-                <td>{{ $item->product->name ?? 'منتج محذوف' }}</td>
-                <td>{{ $item->unit->unit_name ?? '-' }}</td>
-                <td>{{ $item->quantity }}</td>
-                <td>{{ number_format($item->unit_price, 2) }}</td>
-                <td>{{ number_format($item->total_cost, 2) }}</td>
+                <td class="{{ app()->getLocale() == 'ar' ? 'text-end' : 'text-start' }}">{{ $item->product->name ?? __('deleted_product') }}</td>
+                <td class="text-center">{{ $item->unit->unit_name ?? '-' }}</td>
+                <td class="text-center">{{ $item->quantity }}</td>
+                <td class="text-center">{{ number_format($item->unit_price, 2) }}</td>
+                <td class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}">{{ number_format($item->total_cost, 2) }}</td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" class="text-end"><strong>الإجمالي النهائي</strong></td>
-                <td><strong>{{ number_format($purchase->grand_total, 2) }}</strong></td>
+                <td colspan="4" class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}"><strong>{{ __('grand_total_label') }}</strong></td>
+                <td class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}"><strong>{{ number_format($purchase->grand_total, 2) }}</strong></td>
             </tr>
         </tfoot>
     </table>
@@ -46,23 +49,23 @@
 
 <hr>
 
-<div class="d-flex justify-content-between no-print">
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+<div class="d-flex justify-content-between no-print" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('close_btn') }}</button>
     
     <div>
         <button type="button" class="btn btn-success" onclick="printInvoiceContent()">
-            <i class="fa fa-print"></i> طباعة
+            <i class="fa fa-print"></i> {{ __('print_btn') }}
         </button>
 
         <a href="{{ route('store.purchases.edit', $purchase->id) }}" class="btn btn-warning">
-            <i class="fa fa-edit"></i> تعديل
+            <i class="fa fa-edit"></i> {{ __('edit_invoice_btn') }}
         </a>
 
-        <form action="{{ route('store.purchases.destroy', $purchase->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('هل أنت متأكد من حذف هذه الفاتورة؟');">
+        <form action="{{ route('store.purchases.destroy', $purchase->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('{{ __('confirm_delete_msg') }}');">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-danger">
-                <i class="fa fa-trash"></i> حذف
+                <i class="fa fa-trash"></i> {{ __('delete_invoice_btn') }}
             </button>
         </form>
     </div>

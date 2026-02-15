@@ -3,14 +3,13 @@
 @section('content')
 <div class="container-fluid">
     
-    {{-- عنوان الصفحة وزر الإضافة --}}
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-        <h4 class="fw-bold text-primary"><i class="fas fa-shopping-cart me-2"></i> {{ __('سجل المشتريات') }}</h4>
+        <h4 class="fw-bold text-primary"><i class="fas fa-shopping-cart me-2"></i> {{ __('purchases_log') }}</h4>
         <div class="d-flex gap-2">
-            <button onclick="sharePurchasesViaWhatsapp()" class="btn btn-outline-success"><i class="fab fa-whatsapp me-1"></i> {{ __('إرسال واتساب') }}</button>
-            <button onclick="sharePurchasesViaEmail()" class="btn btn-outline-primary"><i class="fas fa-envelope me-1"></i> {{ __('إرسال إيميل') }}</button>
-            <a href="{{ route('store.purchases.report.interactive', request()->all()) }}" target="_blank" class="btn btn-outline-primary"><i class="fas fa-file-invoice me-1"></i> {{ __('التقرير التفاعلي للطباعة') }}</a>
-            <a href="{{ route('store.purchases.create') }}" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i> {{ __('فاتورة جديدة') }}</a>
+            <button onclick="sharePurchasesViaWhatsapp()" class="btn btn-outline-success"><i class="fab fa-whatsapp me-1"></i> {{ __('send_whatsapp') }}</button>
+            <button onclick="sharePurchasesViaEmail()" class="btn btn-outline-primary"><i class="fas fa-envelope me-1"></i> {{ __('send_email') }}</button>
+            <a href="{{ route('store.purchases.report.interactive', request()->all()) }}" target="_blank" class="btn btn-outline-primary"><i class="fas fa-file-invoice me-1"></i> {{ __('interactive_report_print') }}</a>
+            <a href="{{ route('store.purchases.create') }}" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i> {{ __('new_invoice') }}</a>
         </div>
     </div>
 
@@ -23,7 +22,7 @@
                         <i class="fas fa-file-invoice-dollar"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">{{ __('إجمالي الفواتير') }} ({{ $totals['count'] }})</div>
+                        <div class="kpi-label">{{ __('total_invoices') }} ({{ $totals['count'] }})</div>
                         <div class="kpi-value english-num">{{ number_format($totals['sum_total'], 2) }}</div>
                     </div>
                 </div>
@@ -36,7 +35,7 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">{{ __('إجمالي المدفوع') }}</div>
+                        <div class="kpi-label">{{ __('total_paid') }}</div>
                         <div class="kpi-value english-num">{{ number_format($totals['sum_paid'], 2) }}</div>
                     </div>
                 </div>
@@ -49,7 +48,7 @@
                         <i class="fas fa-hand-holding-usd"></i>
                     </div>
                     <div>
-                        <div class="kpi-label">{{ __('المتبقي (الأجل)') }}</div>
+                        <div class="kpi-label">{{ __('remaining_balance_credit') }}</div>
                         <div class="kpi-value english-num">{{ number_format($totals['sum_due'], 2) }}</div>
                     </div>
                 </div>
@@ -64,18 +63,18 @@
                 <div class="row g-3">
                     {{-- بحث عام --}}
                     <div class="col-md-3">
-                        <label class="form-label small fw-bold text-muted">{{ __('بحث ذكي') }}</label>
+                        <label class="form-label small fw-bold text-muted">{{ __('smart_search') }}</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" name="search" class="form-control" placeholder="{{ __('رقم الفاتورة، اسم المورد...') }}" value="{{ request('search') }}">
+                            <input type="text" name="search" class="form-control" placeholder="{{ __('invoice_no_supplier_name_placeholder') }}" value="{{ request('search') }}">
                         </div>
                     </div>
 
                     {{-- فلتر المورد --}}
                     <div class="col-md-3">
-                        <label class="form-label small fw-bold text-muted">{{ __('المورد') }}</label>
+                        <label class="form-label small fw-bold text-muted">{{ __('supplier_label') }}</label>
                         <select name="supplier_id" class="form-select auto-filter">
-                            <option value="">{{ __('-- كل الموردين --') }}</option>
+                            <option value="">{{ __('all_suppliers') }}</option>
                             @foreach($suppliers as $sup)
                                 <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>
                                     {{ $sup->contact_name }} {{ $sup->company_name ? '('.$sup->company_name.')' : '' }}
@@ -86,18 +85,18 @@
 
                     {{-- فلتر الحالة --}}
                     <div class="col-md-2">
-                        <label class="form-label small fw-bold text-muted">{{ __('حالة الدفع') }}</label>
+                        <label class="form-label small fw-bold text-muted">{{ __('payment_status') }}</label>
                         <select name="payment_status" class="form-select auto-filter">
-                            <option value="">{{ __('-- الكل --') }}</option>
-                            <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>{{ __('مدفوعة') }}</option>
-                            <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>{{ __('جزئية') }}</option>
-                            <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>{{ __('غير مدفوعة') }}</option>
+                            <option value="">{{ __('all_status') }}</option>
+                            <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>{{ __('paid_status') }}</option>
+                            <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>{{ __('partial_status') }}</option>
+                            <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>{{ __('unpaid_status') }}</option>
                         </select>
                     </div>
 
                     {{-- من تاريخ --}}
                     <div class="col-md-2">
-                        <label class="form-label small fw-bold text-muted">{{ __('من تاريخ') }}</label>
+                        <label class="form-label small fw-bold text-muted">{{ __('from_date') }}</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
                             <input type="date" id="filterDateFrom" name="date_from" class="form-control enhanced-date-input auto-filter" value="{{ request('date_from') }}">
@@ -106,7 +105,7 @@
 
                     {{-- إلى تاريخ --}}
                     <div class="col-md-2">
-                        <label class="form-label small fw-bold text-muted">{{ __('إلى تاريخ') }}</label>
+                        <label class="form-label small fw-bold text-muted">{{ __('to_date') }}</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
                             <input type="date" id="filterDateTo" name="date_to" class="form-control enhanced-date-input auto-filter" value="{{ request('date_to') }}">
@@ -117,21 +116,21 @@
                     <div class="col-12 d-flex justify-content-between align-items-end mt-3 border-top pt-3">
                         <div class="d-flex gap-2">
                             <div class="input-group" style="width: 250px;">
-                                <span class="input-group-text bg-light small">{{ __('ترتيب بـ') }}</span>
+                                <span class="input-group-text bg-light small">{{ __('sort_by') }}</span>
                                 <select name="sort_by" class="form-select form-select-sm bg-light border-start-0" onchange="document.getElementById('filterForm').submit()">
-                                    <option value="invoice_date" {{ request('sort_by') == 'invoice_date' ? 'selected' : '' }}>{{ __('تاريخ الفاتورة') }}</option>
-                                    <option value="grand_total" {{ request('sort_by') == 'grand_total' ? 'selected' : '' }}>{{ __('المبلغ الإجمالي') }}</option>
-                                    <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>{{ __('تاريخ الإدخال') }}</option>
+                                    <option value="invoice_date" {{ request('sort_by') == 'invoice_date' ? 'selected' : '' }}>{{ __('invoice_date') }}</option>
+                                    <option value="grand_total" {{ request('sort_by') == 'grand_total' ? 'selected' : '' }}>{{ __('grand_total') }}</option>
+                                    <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>{{ __('created_at') }}</option>
                                 </select>
                                 <select name="order_by" class="form-select form-select-sm bg-light" style="max-width: 80px;" onchange="document.getElementById('filterForm').submit()">
-                                    <option value="desc" {{ request('order_by') == 'desc' ? 'selected' : '' }}>{{ __('تنازل') }}</option>
-                                    <option value="asc" {{ request('order_by') == 'asc' ? 'selected' : '' }}>{{ __('تصاعدي') }}</option>
+                                    <option value="desc" {{ request('order_by') == 'desc' ? 'selected' : '' }}>{{ __('descending') }}</option>
+                                    <option value="asc" {{ request('order_by') == 'asc' ? 'selected' : '' }}>{{ __('ascending') }}</option>
                                 </select>
                             </div>
                         </div>
                         <div>
-                            <a href="{{ route('store.purchases.index') }}" class="btn btn-light border text-muted">{{ __('إعادة ضبط') }}</a>
-                            <button type="submit" class="btn btn-secondary px-4"><i class="fas fa-filter me-1"></i> {{ __('تطبيق الفلتر') }}</button>
+                            <a href="{{ route('store.purchases.index') }}" class="btn btn-light border text-muted">{{ __('reset') }}</a>
+                            <button type="submit" class="btn btn-secondary px-4"><i class="fas fa-filter me-1"></i> {{ __('apply_filter') }}</button>
                         </div>
                     </div>
                 </div>
@@ -143,8 +142,8 @@
     <div class="card border-0 shadow-sm">
         {{-- ترويسة الطباعة فقط (تظهر فقط عند الطباعة) --}}
         <div class="d-none d-print-block p-4 text-center border-bottom">
-            <h3>{{ __('تقرير المشتريات') }}</h3>
-            <p>{{ __('من') }}: {{ request('date_from') ?? 'البداية' }} | {{ __('إلى') }}: {{ request('date_to') ?? 'الآن' }}</p>
+            <h3>{{ __('purchases_report') }}</h3>
+            <p>{{ __('from') }}: {{ request('date_from') ?? 'البداية' }} | {{ __('to') }}: {{ request('date_to') ?? 'الآن' }}</p>
         </div>
 
         <div class="card-body p-0">
@@ -153,14 +152,14 @@
                     <thead class="bg-light text-muted small text-uppercase">
                         <tr>
                             <th>#</th>
-                            <th>{{ __('رقم الفاتورة') }}</th>
-                            <th>{{ __('المورد') }}</th>
-                            <th>{{ __('التاريخ') }}</th>
-                            <th>{{ __('الحالة') }}</th>
-                            <th>{{ __('الإجمالي') }}</th>
-                            <th>{{ __('المدفوع') }}</th>
-                            <th>{{ __('المتبقي') }}</th>
-                            <th class="no-print">{{ __('إجراءات') }}</th>
+                            <th>{{ __('invoice_number_label') }}</th>
+                            <th>{{ __('supplier_label') }}</th>
+                            <th>{{ __('date_label') }}</th>
+                            <th>{{ __('status_label') }}</th>
+                            <th>{{ __('total_label') }}</th>
+                            <th>{{ __('paid_label') }}</th>
+                            <th>{{ __('remaining_label') }}</th>
+                            <th class="no-print">{{ __('actions_label') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -180,7 +179,7 @@
                                             </div>
                                         </div>
                                     @else
-                                        <span class="text-muted">{{ __('مورد محذوف') }}</span>
+                                        <span class="text-muted">{{ __('deleted_supplier') }}</span>
                                     @endif
                                 </td>
                                {{-- عرض التاريخ والوقت بتنسيق 12 ساعة (مثال: 2023-10-25 02:30 PM) --}}
@@ -192,11 +191,11 @@
 </td>
                                 <td>
                                     @if($purchase->payment_status == 'paid')
-                                        <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">{{ __('مدفوع') }}</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">{{ __('paid_status') }}</span>
                                     @elseif($purchase->payment_status == 'partial')
-                                        <span class="badge bg-warning bg-opacity-10 text-warning px-2 py-1">{{ __('جزئي') }}</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-warning px-2 py-1">{{ __('partial_status') }}</span>
                                     @else
-                                        <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">{{ __('غير مدفوع') }}</span>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">{{ __('unpaid_status') }}</span>
                                     @endif
                                 </td>
                                 <td class="fw-bold">{{ number_format($purchase->grand_total, 2) }}</td>
@@ -214,10 +213,10 @@
         <i class="fa fa-edit"></i>
     </a>
 
-    <form action="{{ route('store.purchases.destroy', $purchase->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('{{ __('هل أنت متأكد من حذف هذه الفاتورة؟ سيتم عكس المخزون وحساب المورد.') }}');">
+    <form action="{{ route('store.purchases.destroy', $purchase->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('{{ __('confirm_delete_invoice_msg') }}');">
         @csrf
         @method('DELETE')
-        <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ __('حذف') }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ __('delete') }}">
             <i class="fa fa-trash"></i>
         </button>
     </form>
@@ -227,14 +226,14 @@
                             <tr>
                                 <td colspan="9" class="text-center py-5">
                                     <img src="{{ asset('images/no-data.svg') }}" alt="No Data" style="width: 80px; opacity: 0.5" class="mb-3">
-                                    <p class="text-muted">{{ __('لا توجد مشتريات تطابق الفلتر الحالي') }}</p>
+                                    <p class="text-muted">{{ __('no_purchases_found') }}</p>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                     <tfoot class="bg-light fw-bold">
                         <tr class="table-active">
-                            <td colspan="5" class="text-end">{{ __('الإجماليات (للصفحة الحالية):') }}</td>
+                            <td colspan="5" class="text-end">{{ __('totals_current_page') }}</td>
                             <td>{{ number_format($purchases->sum('grand_total'), 2) }}</td>
                             <td class="text-success">{{ number_format($purchases->sum('paid_amount'), 2) }}</td>
                             <td class="text-danger">{{ number_format($purchases->sum('grand_total') - $purchases->sum('paid_amount'), 2) }}</td>
@@ -282,7 +281,7 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">{{ __('تفاصيل الفاتورة') }}</h5>
+        <h5 class="modal-title">{{ __('invoice_details') }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body" id="invoiceModalBody">
@@ -303,7 +302,7 @@
         var content = document.getElementById('invoiceModalBody').innerHTML;
         var mywindow = window.open('', 'PRINT', 'height=600,width=800');
 
-        mywindow.document.write('<html dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}"><head><title>{{ __('طباعة الفاتورة') }}</title>');
+        mywindow.document.write('<html dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}"><head><title>{{ __('print_invoice') }}</title>');
         // استدعاء ملفات الستايل الخاصة بالمشروع ليظهر التنسيق (Bootstrap)
         mywindow.document.write('<link href="{{ asset("css/app.css") }}" rel="stylesheet">');
         // تنسيقات إضافية لتحسين شكل الطباعة
@@ -335,9 +334,9 @@
         if (typeof Swal !== 'undefined') {
             let progressTimer;
             Swal.fire({
-                title: '{{ __('جاري تجهيز ملف التقرير...') }}',
+                title: '{{ __('preparing_report_file') }}',
                 html: `
-                    <div class="mb-3">{{ __('يرجى الانتظار قليلاً لجمع البيانات وتكوين ملف PDF...') }}</div>
+                    <div class="mb-3">{{ __('wait_for_pdf_generation') }}</div>
                     <div class="progress" style="height: 20px;">
                         <div id="swal-progress-bar-wa" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
                     </div>
@@ -378,23 +377,23 @@
                 if (typeof Swal !== 'undefined') Swal.close();
                 
                 if (data.url) {
-                    const message = `*{{ __('تقرير سجل المشتريات') }}*\n` +
-                                    `{{ __('المتجر:') }} {{ auth()->user()->store->name }}\n` +
-                                    `{{ __('تاريخ التقرير:') }} {{ now()->format('Y-m-d') }}\n` +
-                                    `{{ __('مرفق لكم التقرير التفصيلي كملف PDF.') }}`;
+                    const message = `*{{ __('purchases_log_report') }}*\n` +
+                                    `{{ __('store_name') }}: {{ auth()->user()->store->name }}\n` +
+                                    `{{ __('report_date') }} {{ now()->format('Y-m-d') }}\n` +
+                                    `{{ __('pdf_report_attached') }}`;
                     
                     const filename = data.filename || "purchase_report.pdf";
                     // إرسال المرفق عبر المودال العالمي
                     if (typeof triggerWhatsappPrompt === 'function') {
-                        triggerWhatsappPrompt('', message, "إرسال سجل المشتريات كمرفق PDF", data.url, filename);
+                        triggerWhatsappPrompt('', message, "{{ __('send_purchases_report_pdf') }}", data.url, filename);
                     } else {
                         alert('حدث خطأ: وظيفة إرسال الواتساب غير متوفرة');
                     }
                 } else {
                     if (typeof Swal !== 'undefined') {
-                        Swal.fire('{{ __('خطأ') }}', '{{ __('فشل تجهيز ملف التقرير') }}', 'error');
+                        Swal.fire('{{ __('error_title') }}', '{{ __('report_preparation_failed') }}', 'error');
                     } else {
-                        alert('{{ __('فشل تجهيز ملف التقرير') }}');
+                        alert('{{ __('report_preparation_failed') }}');
                     }
                 }
             })
@@ -402,9 +401,9 @@
                 if (typeof Swal !== 'undefined') Swal.close();
                 console.error(err);
                 if (typeof Swal !== 'undefined') {
-                    Swal.fire('{{ __('خطأ') }}', '{{ __('حدث خطأ أثناء التواصل مع السيرفر') }}', 'error');
+                    Swal.fire('{{ __('error_title') }}', '{{ __('server_connection_error') }}', 'error');
                 } else {
-                    alert('{{ __('حدث خطأ أثناء التواصل مع السيرفر') }}');
+                    alert('{{ __('server_connection_error') }}');
                 }
             });
     }
@@ -418,9 +417,9 @@
         if (typeof Swal !== 'undefined') {
             let progressTimer;
             Swal.fire({
-                title: 'جاري تجهيز طلب الإرسال...',
+                title: '{{ __('preparing_report_file') }}',
                 html: `
-                    <div class="mb-3">يرجى الانتظار بينما يتم تجهيز ملف PDF والاتصال بخدمة البريد الإلكتروني...</div>
+                    <div class="mb-3">{{ __('wait_for_pdf_generation') }}</div>
                     <div class="progress" style="height: 20px;">
                         <div id="swal-progress-bar-email" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
                     </div>
@@ -457,25 +456,25 @@
                 if (typeof Swal !== 'undefined') Swal.close();
                 
                 if (data.url) {
-                    const message = `*تقرير سجل المشتريات*\n` +
-                                    `المتجر: {{ auth()->user()->store->name }}\n` +
-                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
-                                    `مرفق لكم التقرير التفصيلي كملف PDF.`;
+                    const message = `*{{ __('purchases_log_report') }}*\n` +
+                                    `{{ __('store_name') }} {{ auth()->user()->store->name }}\n` +
+                                    `{{ __('report_date') }} {{ now()->format('Y-m-d') }}\n` +
+                                    `{{ __('pdf_report_attached') }}`;
                     
                     const filename = data.filename || "purchase_report.pdf";
                     if (typeof triggerEmailPrompt === 'function') {
-                        triggerEmailPrompt('', message, "إرسال سجل المشتريات كمرفق PDF", data.url, filename);
+                        triggerEmailPrompt('', message, "{{ __('send_purchases_report_pdf') }}", data.url, filename);
                     } else {
-                        alert('حدث خطأ: وظيفة إرسال البريد غير متوفرة');
+                        alert('{{ __('server_connection_error') }}');
                     }
                 } else {
-                    alert('فشل تجهيز ملف التقرير');
+                    alert('{{ __('report_preparation_failed') }}');
                 }
             })
             .catch(err => {
                 if (typeof Swal !== 'undefined') Swal.close();
                 console.error(err);
-                alert('حدث خطأ أثناء التواصل مع السيرفر');
+                alert('{{ __('server_connection_error') }}');
             });
     }
 
