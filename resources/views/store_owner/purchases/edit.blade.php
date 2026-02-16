@@ -16,36 +16,36 @@
             <div class="col-lg-12 mb-4">
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-warning bg-opacity-10 text-dark d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-edit me-2"></i> تعديل فاتورة / إكمال مسودة (#{{ $purchase->invoice_number }})</h5>
+                        <h5 class="mb-0"><i class="fas fa-edit me-2"></i> {{ __('edit_invoice_title') }} (#{{ $purchase->invoice_number }})</h5>
                         <div class="d-flex align-items-center">
-                             <span id="saveStatus" class="badge bg-white text-success me-3 d-none"><i class="fas fa-check"></i> محفوظ</span>
-                             <a href="{{ route('store.purchases.index') }}" class="btn btn-sm btn-light text-dark fw-bold">العودة</a>
+                             <span id="saveStatus" class="badge bg-white text-success me-3 d-none"><i class="fas fa-check"></i> {{ __('saved_status') }}</span>
+                             <a href="{{ route('store.purchases.index') }}" class="btn btn-sm btn-light text-dark fw-bold">{{ __('back_btn') }}</a>
                         </div>
                     </div>
                     <div class="card-body bg-light">
                         <div class="row g-3 align-items-end">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">المورد <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ __('supplier_label') }} <span class="text-danger">*</span></label>
                                 <div class="position-relative">
                                     <div class="input-group">
-                                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSupplierModal" title="مورد جديد"><i class="fas fa-plus"></i></button>
+                                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSupplierModal" title="{{ __('new_supplier') }}"><i class="fas fa-plus"></i></button>
                                         {{-- ملء بيانات المورد القديم --}}
                                         <input type="text" id="supplierSearchInput" class="form-control" 
                                                value="{{ $purchase->supplier ? ($purchase->supplier->company_name ?? $purchase->supplier->contact_name) : '' }}" 
-                                               placeholder="ابحث عن مورد..." autocomplete="off">
+                                               placeholder="{{ __('search_supplier_placeholder') }}" autocomplete="off">
                                         <input type="hidden" name="supplier_id" id="supplierId" value="{{ $purchase->supplier_id }}" required>
                                     </div>
                                     <div id="supplierResults" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1000; display: none;"></div>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">تاريخ وتوقيت الفاتورة</label>
-                                <input type="datetime-local" name="invoice_date" class="form-control custom-date-input" 
-                                       value="{{ \Carbon\Carbon::parse($purchase->invoice_date)->format('Y-m-d\TH:i') }}" required>
+                                <label class="form-label fw-bold">{{ __('invoice_date_time') }}</label>
+                                <input type="text" name="invoice_date" class="form-control custom-date-input" 
+                                       value="{{ \Carbon\Carbon::parse($purchase->invoice_date)->format('Y-m-d H:i') }}" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">رقم الفاتورة</label>
-                                <input type="text" name="invoice_number" class="form-control" value="{{ $purchase->invoice_number }}" placeholder="مثال: INV-1001">
+                                <label class="form-label">{{ __('invoice_number_label') }}</label>
+                                <input type="text" name="invoice_number" class="form-control" value="{{ $purchase->invoice_number }}" placeholder="{{ __('invoice_number_placeholder') }}">
                             </div>
                         </div>
                     </div>
@@ -60,8 +60,8 @@
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text bg-white border-end-0"><i class="fas fa-search"></i></span>
                                 <input type="text" id="productSearch" class="form-control border-start-0" 
-                                       placeholder="ابحث باسم المنتج أو امسح الباركود..." autocomplete="off">
-                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quickProductModal"><i class="fas fa-plus-circle me-1"></i> منتج جديد</button>
+                                       placeholder="{{ __('search_product_placeholder') }}" autocomplete="off">
+                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quickProductModal"><i class="fas fa-plus-circle me-1"></i> {{ __('new_product') }}</button>
                             </div>
                             <div id="searchResults" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1000; top: 100%; display: none;"></div>
                         </div>
@@ -70,19 +70,19 @@
                             <table class="table table-bordered text-center align-middle mb-0" id="itemsTable">
                                 <thead class="bg-dark text-white small">
                                      <tr>
-                                        <th style="width: 10%">صورة</th>
-                                        <th style="width: 7%">المنتج</th>
-                                        <th style="width: 14%">الباركود</th>
-                                        <th style="width: 9%">الوحدة</th>
-                                        <th style="width: 6%">الكمية</th>
-                                        <th style="width: 8%">سعر الشراء</th>
-                                        <th style="width: 7%">الربح %</th> 
-                                        <th style="width: 7%">الخصم</th>
-                                        <th style="width: 7%">سعر المبيع</th>
-                                        <th width="5%">تاريخ الانتهاء</th>
-                                        <th width="5%">تنبيه قبل (يوم)</th>
-                                        <th style="width: 7%">الضريبة</th>
-                                        <th style="width: 14%">الإجمالي</th>
+                                        <th style="width: 10%">{{ __('image_label') }}</th>
+                                        <th style="width: 7%">{{ __('product_label') }}</th>
+                                        <th style="width: 14%">{{ __('barcode_label') }}</th>
+                                        <th style="width: 9%">{{ __('unit_label') }}</th>
+                                        <th style="width: 6%">{{ __('qty_label') }}</th>
+                                        <th style="width: 8%">{{ __('buy_price_label') }}</th>
+                                        <th style="width: 7%">{{ __('profit_percent_label') }}</th> 
+                                        <th style="width: 7%">{{ __('discount_label') }}</th>
+                                        <th style="width: 7%">{{ __('sell_price_label') }}</th>
+                                        <th width="5%">{{ __('expiry_date_label') }}</th>
+                                        <th width="5%">{{ __('alert_days_label') }}</th>
+                                        <th style="width: 7%">{{ __('tax_label') }}</th>
+                                        <th style="width: 14%">{{ __('total_label') }}</th>
                                         <th style="width: 2%"></th>
                                     </tr>
                                 </thead>
@@ -97,29 +97,29 @@
             <div class="col-lg-5 ms-auto">
                 <div class="card shadow border-primary">
                     <div class="card-header bg-primary bg-opacity-10 py-2">
-                        <h6 class="mb-0 fw-bold text-primary">ملخص الدفع</h6>
+                        <h6 class="mb-0 fw-bold text-primary">{{ __('payment_summary') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>المجموع الفرعي:</span> <span id="subTotalDisplay" class="fw-bold">{{ $purchase->sub_total }}</span>
+                            <span>{{ __('subtotal_label') }}:</span> <span id="subTotalDisplay" class="fw-bold">{{ $purchase->sub_total }}</span>
                         </div>
                         <div class="input-group input-group-sm mb-3">
-                            <span class="input-group-text">خصم إضافي</span>
+                            <span class="input-group-text">{{ __('additional_discount') }}</span>
                             <input type="number" name="discount" id="discountInput" class="form-control text-center fw-bold text-danger" value="{{ $purchase->discount_amount }}" step="any" oninput="calculateGrandTotal()">
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-top border-bottom py-2 mb-3">
-                            <span class="fs-5 fw-bold">الصافي النهائي:</span>
+                            <span class="fs-5 fw-bold">{{ __('final_net_label') }}:</span>
                             <span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">{{ $purchase->grand_total }}</span>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="small text-muted mb-1">المدفوعات</label>
+                            <label class="small text-muted mb-1">{{ __('payments_label') }}</label>
                             <div id="paymentsContainer">
                                 <div class="input-group mb-2 payment-row">
                                     <select name="payments[0][method]" class="form-select" style="max-width: 120px;">
-                                        <option value="cash" {{ $purchase->payment_method == 'cash' ? 'selected' : '' }}>💰 نقدي</option>
-                                        <option value="card" {{ $purchase->payment_method == 'card' ? 'selected' : '' }}>💳 بطاقة</option>
-                                        <option value="bank" {{ $purchase->payment_method == 'bank' ? 'selected' : '' }}>🏦 تحويل</option>
+                                        <option value="cash" {{ $purchase->payment_method == 'cash' ? 'selected' : '' }}>{{ __('cash_method') }}</option>
+                                        <option value="card" {{ $purchase->payment_method == 'card' ? 'selected' : '' }}>{{ __('card_method') }}</option>
+                                        <option value="bank" {{ $purchase->payment_method == 'bank' ? 'selected' : '' }}>{{ __('bank_method') }}</option>
                                     </select>
                                     <input type="number" name="payments[0][amount]" class="form-control text-center payment-input" value="{{ $purchase->paid_amount }}" step="any" oninput="calculateGrandTotal()">
                                 </div>
@@ -127,10 +127,10 @@
                         </div>
 
                         <div class="alert p-2 text-center fw-bold" id="balanceAlert" style="display: none;">
-                            <span id="balanceLabel">المتبقي:</span> <span id="balanceAmount">0.00</span>
+                            <span id="balanceLabel">{{ __('remaining_label') }}:</span> <span id="balanceAmount">0.00</span>
                         </div>
                         
-                        <button type="submit" class="btn btn-warning w-100 btn-lg mt-3" id="saveBtn"><i class="fas fa-save me-2"></i> حفظ التعديلات واعتماد الفاتورة</button>
+                        <button type="submit" class="btn btn-warning w-100 btn-lg mt-3" id="saveBtn"><i class="fas fa-save me-2"></i> {{ __('save_invoice_btn') }}</button>
                     </div>
                 </div>
             </div>
@@ -139,29 +139,19 @@
 </div>
 
 {{-- نفس المودالات --}}
-<div class="modal fade" id="addSupplierModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-success text-white"><h5 class="modal-title">إضافة مورد جديد</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="quickSupplierForm"><div class="mb-2"><label class="small fw-bold">الاسم *</label><input type="text" id="suppName" name="name" class="form-control" required></div><div class="mb-2"><label class="small">الشركة</label><input type="text" id="suppComp" name="company" class="form-control"></div><button type="submit" class="btn btn-success w-100">حفظ وإضافة</button></form></div></div></div></div>
-<div class="modal fade" id="quickProductModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-success text-white"><h5 class="modal-title">إضافة منتج سريع</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">قريباً...</div></div></div></div>
+<div class="modal fade" id="addSupplierModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-success text-white"><h5 class="modal-title">{{ __('add_new_supplier_title') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="quickSupplierForm"><div class="mb-2"><label class="small fw-bold">{{ __('name_label') }} *</label><input type="text" id="suppName" name="name" class="form-control" required></div><div class="mb-2"><label class="small">{{ __('company_label') }}</label><input type="text" id="suppComp" name="company" class="form-control"></div><button type="submit" class="btn btn-success w-100">{{ __('save_add_btn') }}</button></form></div></div></div></div>
+<div class="modal fade" id="quickProductModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-success text-white"><h5 class="modal-title">{{ __('quick_add_product_title') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">{{ __('coming_soon_msg') }}</div></div></div></div>
 {{-- 🔥 كود تجهيز الصور للمنتجات القديمة 🔥 --}}
 @php
-    // نمر على كل عنصر في الفاتورة ونحدد الصورة الصحيحة له
-    foreach($purchase->items as $item) {
-        $img = asset('images/default-product.png'); // الصورة الافتراضية
-
-        // 1. محاولة جلب صورة الوحدة (إذا وجدت)
-        if($item->unit && $item->unit->getFirstMediaUrl('unit_images')) {
-            $img = $item->unit->getFirstMediaUrl('unit_images');
-        } 
-        // 2. محاولة جلب صورة المنتج الأساسية
-        elseif ($item->product && $item->product->getFirstMediaUrl('products')) {
-            $img = $item->product->getFirstMediaUrl('products');
-        }
-        
-        // نضيف رابط الصورة للمنتج لكي يقرأه الجافاسكربت
-        $item->product->image_url = $img;
-    }
+    // هذا الكود لم يعد ضرورياً لأن البيانات تأتي جاهزة من الكنترولر (itemsData)
 @endphp
 
 @section('scripts')
+{{-- 🔥 Flatpickr Localization 🔥 --}}
+@if(app()->getLocale() != 'en')
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/{{ app()->getLocale() == 'pt-BR' ? 'pt' : app()->getLocale() }}.js"></script>
+@endif
+
 <script>
     // --- المتغيرات العامة ---
     let rowIdx = 0;
@@ -170,6 +160,22 @@
     // التأكد من أن البيانات تأتي مصفوفة سليمة حتى لو كانت فارغة
     const oldItems = @json($itemsData ?? []); 
     window.productsData = {}; // 🟢 تهيئة مصفوفة المنتجات 
+
+    // Localization helper
+    const LANG = {
+        buy: "{{ __('buy_label') }}",
+        profit_percent: "{{ __('profit_percent_label') }}",
+        sell: "{{ __('sell_label') }}",
+        loss: "{{ __('loss_warning') }}",
+        low_profit: "{{ __('low_profit_warning') }}",
+        credit_for_you: "{{ __('credit_for_you') }}",
+        paid_settled: "{{ __('paid_settled') }}",
+        remaining_due: "{{ __('remaining_due') }}",
+        updated_related_units: "{{ __('updated_related_units') }}"
+    };
+
+    // Current Locale for JS
+    const CURRENT_LOCALE = "{{ app()->getLocale() == 'pt-BR' ? 'pt' : app()->getLocale() }}";
 
     // --- دوال التنسيق والحسابات ---
 
@@ -289,9 +295,9 @@ function formatNum(num) {
 
             {{-- 🟢 عرض التاريخ المخزن 🟢 --}}
             <td>
-                <input type="date" name="items[${rowIdx}][expiry_date]" 
-                       class="form-control form-control-sm text-center" 
-                       value="${expiryValue}" title="تاريخ الانتهاء">
+                <input type="text" name="items[${rowIdx}][expiry_date]" 
+                       class="form-control form-control-sm text-center expiry-date-input" 
+                       value="${expiryValue}" title="${LANG.expiry_date || 'تاريخ الانتهاء'}" placeholder="YYYY-MM-DD">
             </td>
 
             {{-- 🟢 عرض أيام التنبيه المخزنة 🟢 --}}
@@ -307,11 +313,18 @@ function formatNum(num) {
         `;
         document.getElementById('tableBody').appendChild(tr);
         
+        // 🔥 Initialize Flatpickr for Expiry Date 🔥
+        flatpickr(tr.querySelector('.expiry-date-input'), {
+            dateFormat: "Y-m-d",
+            locale: CURRENT_LOCALE,
+            allowInput: true
+        });
+
         const detailsTr = document.createElement('tr');
         detailsTr.id = `details_${rowIdx}`;
         detailsTr.style.display = 'none';
         detailsTr.className = "bg-light";
-        detailsTr.innerHTML = `<td colspan="14"><div class="p-3 border rounded bg-white"><h6 class="fw-bold text-primary mb-2"><i class="fas fa-sitemap"></i> تحديث الوحدات المرتبطة</h6><div id="related_units_container_${rowIdx}"></div></div></td>`;
+        detailsTr.innerHTML = `<td colspan="14"><div class="p-3 border rounded bg-white"><h6 class="fw-bold text-primary mb-2"><i class="fas fa-sitemap"></i> ${LANG.updated_related_units}</h6><div id="related_units_container_${rowIdx}"></div></div></td>`;
         document.getElementById('tableBody').appendChild(detailsTr);
 
         renderRelatedUnits(rowIdx, selectedUnitId); // 🟢 استدعاء الدالة الموحدة
@@ -401,7 +414,7 @@ function formatNum(num) {
         
         if(balDiv) {
             balDiv.style.display = 'block';
-            let msg = diff >= 0 ? (diff > 0 ? `رصيد لك: ${diff}` : 'خالص') : `متبقي عليك: ${Math.abs(diff)}`;
+            let msg = diff >= 0 ? (diff > 0 ? `${LANG.credit_for_you}: ${diff}` : LANG.paid_settled) : `${LANG.remaining_due}: ${Math.abs(diff)}`;
             let cls = diff >= 0 ? 'alert-success' : 'alert-danger';
             balDiv.className = `alert p-2 text-center fw-bold ${cls}`;
             document.getElementById('balanceLabel').innerText = msg;
@@ -461,10 +474,10 @@ function formatNum(num) {
                 if(subWarningDiv){
                     subWarningDiv.innerHTML = '';
                     if (newSubProfit <= 0) {
-                        subWarningDiv.innerHTML = `<span class="text-danger fw-bold small">خسارة ⚠️</span>`;
+                        subWarningDiv.innerHTML = `<span class="text-danger fw-bold small">${LANG.loss}</span>`;
                     } 
                     else if (newSubProfit < originalSubProfit - 0.1) {
-                        subWarningDiv.innerHTML = `<span class="text-warning text-dark fw-bold small">📉 انخفاض الربح</span>`;
+                        subWarningDiv.innerHTML = `<span class="text-warning text-dark fw-bold small">${LANG.low_profit}</span>`;
                     }
                 }
             });
@@ -520,20 +533,20 @@ function formatNum(num) {
                     </div>
                     <div class="col-md-3">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light text-muted">شراء</span>
+                            <span class="input-group-text bg-light text-muted">${LANG.buy}</span>
                             <input type="text" class="form-control text-center bg-light sub-cost text-danger fw-bold" 
                                    value="${formatNum(calculatedCost)}" readonly>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text">ربح %</span>
+                            <span class="input-group-text">${LANG.profit_percent}</span>
                             <input type="text" inputmode="decimal" class="form-control text-center sub-profit" value="${formatNum(uProfit)}" oninput="calcSubUnitSell(this)" onfocus="this.select()">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text">بيع</span>
+                            <span class="input-group-text">${LANG.sell}</span>
                             <input type="text" inputmode="decimal" class="form-control text-center fw-bold sub-sell text-success" 
                                    value="${formatNum(uSell)}" oninput="calcSubUnitProfit(this)" onfocus="this.select()">
                         </div>
@@ -582,10 +595,10 @@ function formatNum(num) {
         warningDiv.innerHTML = ''; 
 
         if (profitVal <= 0) {
-            warningDiv.innerHTML = `<span class="text-danger fw-bold small">خسارة ⚠️</span>`;
+            warningDiv.innerHTML = `<span class="text-danger fw-bold small">${LANG.loss}</span>`;
         } 
         else if (profitVal < originalProfit - 0.1) {
-            warningDiv.innerHTML = `<span class="text-warning text-dark fw-bold small">📉 انخفاض الربح</span>`;
+            warningDiv.innerHTML = `<span class="text-warning text-dark fw-bold small">${LANG.low_profit}</span>`;
         }
     }
 
@@ -625,7 +638,15 @@ function formatNum(num) {
 
     // --- تشغيل عند التحميل (DOMContentLoaded) ---
     document.addEventListener("DOMContentLoaded", function() {
-        
+        // 🔥 Initialize Date Picker 🔥
+        flatpickr("input[name='invoice_date']", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            locale: CURRENT_LOCALE,
+            time_24hr: true,
+            allowInput: true
+        });
+
         // 1. تشغيل البحث عن الموردين والمنتجات
         setupSearch('supplierSearchInput', 'supplierResults', '/store-owner/contacts/search', function(s) {
             document.getElementById('supplierSearchInput').value = s.contact_name;

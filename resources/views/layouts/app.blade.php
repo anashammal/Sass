@@ -1540,7 +1540,7 @@
                         <div class="d-flex align-items-center">
                             <div class="flex-grow-1" style="white-space: normal;">
                                 <div class="fw-bold text-danger small">{{ $batch->product->name_ar ?? 'منتج' }}</div>
-                                <small class="text-muted" style="font-size: 0.7rem">انتهى: {{ $batch->expiry_date->format('Y-m-d') }}</small>
+                                <small class="text-muted" style="font-size: 0.7rem">{{ __('expired_date_label', ['date' => $batch->expiry_date->format('Y-m-d')]) }}</small>
                             </div>
                             <i class="fas fa-cog text-danger ms-2"></i>
                         </div>
@@ -1560,10 +1560,10 @@
                                 <div class="d-flex justify-content-between">
                                     {{-- 🔥 هنا الإصلاح: (float) تزيل الأصفار الزائدة --}}
                                     <small class="text-danger fw-bold" style="font-size: 0.75rem">
-                                        الباقي: {{ (float)$prod->current_stock }}
+                                        {{ __('remaining_stock_label', ['count' => (float)$prod->current_stock]) }}
                                     </small>
                                     <small class="text-muted" style="font-size: 0.7rem">
-                                        (حد التنبيه: {{ (float)$prod->alert_quantity }})
+                                        {{ __('alert_limit_label', ['count' => (float)$prod->alert_quantity]) }}
                                     </small>
                                 </div>
                             </div>
@@ -1583,7 +1583,7 @@
                             <div class="flex-grow-1" style="white-space: normal;">
                                 <div class="fw-bold text-dark small">{{ $batch->product->name_ar ?? 'منتج' }}</div>
                                 <small class="text-warning fw-bold" style="font-size: 0.7rem">
-                                    بقي {{ $days }} يوم ({{ (float)$batch->quantity }})
+                                    {{ __('days_remaining_label', ['days' => $days]) }} ({{ (float)$batch->quantity }})
                                 </small>
                             </div>
                             <i class="fas fa-cog text-warning ms-2"></i>
@@ -1596,7 +1596,7 @@
             @if($totalAlerts == 0)
                 <div class="text-center py-4 text-muted">
                     <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
-                    <p class="mb-0 small">لا توجد تنبيهات حالياً.</p>
+                    <p class="mb-0 small">{{ __('no_notifications_label') }}</p>
                 </div>
             @endif
 

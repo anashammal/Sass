@@ -526,11 +526,10 @@ class PurchaseController extends Controller
             if(!$item->product) continue;
             
             // Image Logic
-            $img = asset('images/default-product.png');
-            if($item->unit && $item->unit->getFirstMediaUrl('unit_images')) {
-                $img = $item->unit->getFirstMediaUrl('unit_images');
-            } elseif ($item->product->getFirstMediaUrl('products')) {
-                $img = $item->product->getFirstMediaUrl('products');
+            // ✅ Fix: Use the accessor which handles dynamic URLs correctly (Local vs Online)
+            $img = $item->product->image_url;
+            if($item->unit && $item->unit->hasMedia('unit_images')) {
+                $img = $item->unit->image;
             }
 
             // Map Units Manually
