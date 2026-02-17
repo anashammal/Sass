@@ -855,5 +855,20 @@
     "paid_settled": "Settled",
     "remaining_due": "Remaining Due",
     "updated_related_units": "Update Related Units",
-    "expenses_title": "Expenses"
+    "expenses_title": "Expenses",
+    "please_fill_out_this_field": "Please fill out this field",
+    "تصنيفات المصاريف": "Expense Categories",
+    "إضافة تصنيف جديد": "Add New Category",
+    "اسم التصنيف": "Category Name",
+    "النوع": "Type",
+    "الوصف": "Description",
+    "ثابت (Fixed)": "Fixed",
+    "متغير (Variable)": "Variable",
+    "هل أنت متأكد من الحذف؟": "Are you sure you want to delete?",
+    "لا توجد تصنيفات مضافة بعد": "No categories added yet",
+    "نوع المصروف": "Expense Type",
+    "وصف (اختياري)": "Description (Optional)",
+    "مثال: إيجار، رواتب...": "Ex: Rent, Salaries...",
+    "تعديل التصنيف": "Edit Category",
+    "إجراءات": "Actions"
 }

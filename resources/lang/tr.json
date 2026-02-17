@@ -848,5 +848,20 @@
     "coming_soon_msg": "Yakında...",
     "buy_label": "Alış",
     "sell_label": "Satış",
-    "loss_warning": "Zarar"
+    "loss_warning": "Zarar",
+    "please_fill_out_this_field": "Lütfen bu alanı doldurun",
+    "تصنيفات المصاريف": "Gider Kategorileri",
+    "إضافة تصنيف جديد": "Yeni Kategori Ekle",
+    "اسم التصنيف": "Kategori Adı",
+    "النوع": "Tür",
+    "الوصف": "Açıklama",
+    "ثابت (Fixed)": "Sabit",
+    "متغير (Variable)": "Değişken",
+    "هل أنت متأكد من الحذف؟": "Silmek istediğinizden emin misiniz?",
+    "لا توجد تصنيفات مضافة بعد": "Henüz kategori eklenmedi",
+    "نوع المصروف": "Gider Türü",
+    "وصف (اختياري)": "Açıklama (İsteğe Bağlı)",
+    "مثال: إيجار، رواتب...": "Örn: Kira, Maaşlar...",
+    "تعديل التصنيف": "Kategoriyi Düzenle",
+    "إجراءات": "İşlemler"
 }

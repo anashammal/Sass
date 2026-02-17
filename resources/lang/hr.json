@@ -844,5 +844,20 @@
     "تحميل وفتح الملف الآن": "Preuzmi i otvori datoteku sada",
     "ملف غير مدعوم للمعاينة المباشرة": "Datoteka nije podržana za pregled uživo",
     "الامتداد:": "Ekstenzija:",
-    "تحميل المرفق": "Preuzmi privitak"
+    "تحميل المرفق": "Preuzmi privitak",
+    "please_fill_out_this_field": "Molimo ispunite ovo polje",
+    "تصنيفات المصاريف": "Kategorije troškova",
+    "إضافة تصنيف جديد": "Dodaj novu kategoriju",
+    "اسم التصنيف": "Naziv kategorije",
+    "النوع": "Tip",
+    "الوصف": "Opis",
+    "ثابت (Fixed)": "Fiksno",
+    "متغير (Variable)": "Varijabilno",
+    "هل أنت متأكد من الحذف؟": "Jeste li sigurni da želite obrisati?",
+    "لا توجد تصنيفات مضافة بعد": "Nema dodanih kategorija još",
+    "نوع المصروف": "Vrsta troška",
+    "وصف (اختياري)": "Opis (neobavezno)",
+    "مثال: إيجار، رواتب...": "Npr: Najamnina, Plaće...",
+    "تعديل التصنيف": "Uredi kategoriju",
+    "إجراءات": "Radnje"
 }

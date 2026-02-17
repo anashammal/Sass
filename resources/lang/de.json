@@ -849,5 +849,20 @@
     "coming_soon_msg": "Demnächst...",
     "buy_label": "Kauf",
     "sell_label": "Verkauf",
-    "loss_warning": "Verlust"
+    "loss_warning": "Verlust",
+    "please_fill_out_this_field": "Bitte füllen Sie dieses Feld aus",
+    "تصنيفات المصاريف": "Ausgabenkategorien",
+    "إضافة تصنيف جديد": "Neue Kategorie hinzufügen",
+    "اسم التصنيف": "Kategoriename",
+    "النوع": "Typ",
+    "الوصف": "Beschreibung",
+    "ثابت (Fixed)": "Fix",
+    "متغير (Variable)": "Variabel",
+    "هل أنت متأكد من الحذف؟": "Sind Sie sicher, dass Sie löschen möchten?",
+    "لا توجد تصنيفات مضافة بعد": "Keine Kategorien hinzugefügt",
+    "نوع المصروف": "Ausgabenart",
+    "وصف (اختياري)": "Beschreibung (Optional)",
+    "مثال: إيجار، رواتب...": "Bsp: Miete, Gehälter...",
+    "تعديل التصنيف": "Kategorie bearbeiten",
+    "إجراءات": "Aktionen"
 }

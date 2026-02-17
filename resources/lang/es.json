@@ -842,5 +842,20 @@
     "current_qty_label": "Cant. Actual: ",
     "product_default_label": "Producto",
     "choose_file_btn": "Elegir Archivo",
-    "no_file_chosen_label": "Ningún archivo seleccionado"
+    "no_file_chosen_label": "Ningún archivo seleccionado",
+    "please_fill_out_this_field": "Por favor, complete este campo",
+    "تصنيفات المصاريف": "Categorías de gastos",
+    "إضافة تصنيف جديد": "Añadir nueva categoría",
+    "اسم التصنيف": "Nombre de la categoría",
+    "النوع": "Tipo",
+    "الوصف": "Descripción",
+    "ثابت (Fixed)": "Fijo",
+    "متغير (Variable)": "Variable",
+    "هل أنت متأكد من الحذف؟": " ¿Está seguro de que desea eliminar?",
+    "لا توجد تصنيفات مضافة بعد": "No se han añadido categorías",
+    "نوع المصروف": "Tipo de gasto",
+    "وصف (اختياري)": "Descripción (Opcional)",
+    "مثال: إيجار، رواتب...": "Ej: Alquiler, Salarios...",
+    "تعديل التصنيف": "Editar categoría",
+    "إجراءات": "Acciones"
 }

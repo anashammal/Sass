@@ -849,5 +849,19 @@
     "ملف غير مدعوم للمعاينة المباشرة": "Fichier non pris en charge pour l'aperçu direct",
     "الامتداد:": "Extension :",
     "تحميل المرفق": "Télécharger la pièce jointe",
-    "please_fill_out_this_field": "Veuillez remplir ce champ"
+    "please_fill_out_this_field": "Veuillez remplir ce champ",
+    "تصنيفات المصاريف": "Catégories de dépenses",
+    "إضافة تصنيف جديد": "Ajouter une nouvelle catégorie",
+    "اسم التصنيف": "Nom de la catégorie",
+    "النوع": "Type",
+    "الوصف": "Description",
+    "ثابت (Fixed)": "Fixe",
+    "متغير (Variable)": "Variable",
+    "هل أنت متأكد من الحذف؟": "Êtes-vous sûr de vouloir supprimer ?",
+    "لا توجد تصنيفات مضافة بعد": "Aucune catégorie ajoutée",
+    "نوع المصروف": "Type de dépense",
+    "وصف (اختياري)": "Description (Facultatif)",
+    "مثال: إيجار، رواتب...": "Ex: Loyer, Salaires...",
+    "تعديل التصنيف": "Modifier la catégorie",
+    "إجراءات": "Actions"
 }
