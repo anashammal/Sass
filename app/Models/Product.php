@@ -103,6 +103,39 @@ class Product extends Model implements HasMedia
     }
 
     /**
+     * 🔥 Accessor for dynamic product name based on locale
+     */
+    public function getNameAttribute()
+    {
+        $locale = app()->getLocale();
+        
+        // 1. Priority: Specific Language Column
+        if ($locale === 'ar' && !empty($this->attributes['name_ar'])) {
+            return $this->attributes['name_ar'];
+        }
+
+        if ($locale !== 'ar' && !empty($this->attributes['name_en'])) {
+            return $this->attributes['name_en'];
+        }
+
+        // 2. Priority: Standard 'name' column (Common in single-language or tenant setups)
+        if (!empty($this->attributes['name'])) {
+            return $this->attributes['name'];
+        }
+
+        // 3. Fallback: Any available name
+        if (!empty($this->attributes['name_ar'])) {
+            return $this->attributes['name_ar'];
+        }
+
+        if (!empty($this->attributes['name_en'])) {
+            return $this->attributes['name_en'];
+        }
+
+        return __('product_default_label');
+    }
+
+    /**
      * 🔥 إعادة حساب تكلفة الوجبة بناءً على أسعار الخامات (المكونات)
      */
     public function recalculateMealCost()

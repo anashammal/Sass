@@ -716,5 +716,6 @@
     "coming_soon_msg": "Em breve...",
     "buy_label": "Compra",
     "sell_label": "Venda",
-    "loss_warning": "Prejuízo"
+    "loss_warning": "Prejuízo",
+    "please_fill_out_this_field": "Por favor, preencha este campo"
 }
