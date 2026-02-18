@@ -607,7 +607,7 @@ class PosController extends Controller
                 return [
                     'id' => $s->id,
                     'invoice_number' => 'INV-' . $s->id,
-                    'customer_name' => optional($s->contact)->contact_name ?? 'عميل نقدي',
+                    'customer_name' => optional($s->contact)->contact_name ?? __('cash_customer'),
                     'user_name' => optional($s->user)->name ?? 'غير محدد',
                     'total' => (float)$s->total,
                     'paid' => (float)$s->paid,
