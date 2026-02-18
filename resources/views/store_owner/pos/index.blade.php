@@ -362,7 +362,7 @@
 {{-- ============================================ --}}
 
 {{-- 1. نافذة سجل الفواتير --}}
-<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-light py-2">
