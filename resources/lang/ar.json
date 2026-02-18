@@ -451,5 +451,19 @@
     "cash_in_drawer": "المبلغ النقدي في الدرج (العهدة)",
     "confirm_open_drawer": "تأكيد وفتح الصندوق 🚀",
     "sales_history": "سجل المبيعات",
-    "cash_customer": "عميل نقدي"
+    "cash_customer": "عميل نقدي",
+    "sales_report_title": "تقرير المبيعات",
+    "detailed_sales_report": "سجل المبيعات التفصيلي",
+    "report_time": "وقت التقرير",
+    "remaining_amount": "مبلغ المتبقي",
+    "paid_amount": "مبلغ المدفوع",
+    "total_amount": "مبلغ الإجمالي",
+    "invoices_count": "عدد الفواتير",
+    "invoices_index_click_to_go": "فهرس الفواتير - اضغط على الرقم للانتقال",
+    "invoices_and_items_details": "تفاصيل الفواتير والبنود",
+    "back_to_index": "العودة للفهرس",
+    "invoice_number": "رقم الفاتورة",
+    "selling_price": "سعر البيع",
+    "partial": "جزئي",
+    "unpaid": "غير مدفوع"
 }

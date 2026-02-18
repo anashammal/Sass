@@ -953,5 +953,19 @@
     "cash_in_drawer": "Dinheiro na Gaveta (Fundo)",
     "confirm_open_drawer": "Confirmar e Abrir 🚀",
     "sales_history": "Histórico de Vendas",
-    "cash_customer": "Cliente a Dinheiro"
+    "cash_customer": "Cliente a Dinheiro",
+    "sales_report_title": "Relatório de Vendas",
+    "detailed_sales_report": "Relatório Detalhado de Vendas",
+    "report_time": "Hora do Relatório",
+    "remaining_amount": "Valor Restante",
+    "paid_amount": "Valor Pago",
+    "total_amount": "Valor Total",
+    "invoices_count": "Contagem de Faturas",
+    "invoices_index_click_to_go": "Índice de Faturas - Clique no Número para Ir",
+    "invoices_and_items_details": "Detalhes de Faturas e Itens",
+    "back_to_index": "Voltar ao Índice",
+    "invoice_number": "Número da Fatura",
+    "selling_price": "Preço de Venda",
+    "partial": "Parcial",
+    "unpaid": "Não Pago"
 }

@@ -1054,5 +1054,19 @@
     "cash_in_drawer": "抽屉现金 (备用金)",
     "confirm_open_drawer": "确认并开启 🚀",
     "sales_history": "销售历史",
-    "cash_customer": "现金客户"
+    "cash_customer": "现金客户",
+    "sales_report_title": "销售报告",
+    "detailed_sales_report": "详细销售报告",
+    "report_time": "报告时间",
+    "remaining_amount": "剩余金额",
+    "paid_amount": "已付金额",
+    "total_amount": "总金额",
+    "invoices_count": "发票数量",
+    "invoices_index_click_to_go": "发票索引 - 点击号码跳转",
+    "invoices_and_items_details": "发票和项目详情",
+    "back_to_index": "返回索引",
+    "invoice_number": "发票号码",
+    "selling_price": "销售价格",
+    "partial": "部分",
+    "unpaid": "未付"
 }

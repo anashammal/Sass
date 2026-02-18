@@ -1037,5 +1037,21 @@
     "has_returns": "Tiene devoluciones",
     "date": "Fecha",
     "value": "Valor",
-    "debt": "Deuda"
+    "debt": "Deuda",
+    "sales_history": "Historial de ventas",
+    "cash_customer": "Cliente al contado",
+    "sales_report_title": "Informe de ventas",
+    "detailed_sales_report": "Informe detallado de ventas",
+    "report_time": "Hora del informe",
+    "remaining_amount": "Importe restante",
+    "paid_amount": "Importe pagado",
+    "total_amount": "Importe total",
+    "invoices_count": "Cantidad de facturas",
+    "invoices_index_click_to_go": "Índice de facturas - Haga clic en el número para ir",
+    "invoices_and_items_details": "Detalles de facturas y artículos",
+    "back_to_index": "Volver al índice",
+    "invoice_number": "Número de factura",
+    "selling_price": "Precio de venta",
+    "partial": "Parcial",
+    "unpaid": "No pagado"
 }

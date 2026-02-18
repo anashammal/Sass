@@ -1060,5 +1060,19 @@
     "cash_in_drawer": "Bargeld in Schublade (Wechselgeld)",
     "confirm_open_drawer": "Bestätigen & Öffnen 🚀",
     "sales_history": "Verkaufshistorie",
-    "cash_customer": "Barzahler"
+    "cash_customer": "Barzahler",
+    "sales_report_title": "Verkaufsbericht",
+    "detailed_sales_report": "Detaillierter Verkaufsbericht",
+    "report_time": "Berichtszeit",
+    "remaining_amount": "Restbetrag",
+    "paid_amount": "Gezahlter Betrag",
+    "total_amount": "Gesamtbetrag",
+    "invoices_count": "Anzahl der Rechnungen",
+    "invoices_index_click_to_go": "Rechnungsindex - Klicken Sie auf die Nummer",
+    "invoices_and_items_details": "Rechnungs- und Artikeldetails",
+    "back_to_index": "Zurück zum Index",
+    "invoice_number": "Rechnungsnummer",
+    "selling_price": "Verkaufspreis",
+    "partial": "Teilweise",
+    "unpaid": "Unbezahlt"
 }

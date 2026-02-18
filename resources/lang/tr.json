@@ -1059,5 +1059,19 @@
     "cash_in_drawer": "Çekmecedeki Nakit (Fon)",
     "confirm_open_drawer": "Onayla ve Aç 🚀",
     "sales_history": "Satış Geçmişi",
-    "cash_customer": "Peşin Müşteri"
+    "cash_customer": "Peşin Müşteri",
+    "sales_report_title": "Satış Raporu",
+    "detailed_sales_report": "Detaylı Satış Raporu",
+    "report_time": "Rapor Saati",
+    "remaining_amount": "Kalan Tutar",
+    "paid_amount": "Ödenen Tutar",
+    "total_amount": "Toplam Tutar",
+    "invoices_count": "Fatura Sayısı",
+    "invoices_index_click_to_go": "Fatura İndeksi - Gitmek için Numaraya Tıklayın",
+    "invoices_and_items_details": "Fatura ve Ürün Detayları",
+    "back_to_index": "İndekse Dön",
+    "invoice_number": "Fatura Numarası",
+    "selling_price": "Satış Fiyatı",
+    "partial": "Kısmi",
+    "unpaid": "Ödenmemiş"
 }

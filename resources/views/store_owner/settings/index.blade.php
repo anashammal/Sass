@@ -802,8 +802,8 @@
                 $('#wa_qr').hide(); $('#wa_connected').show(); $('#wa_error').hide();
                 if(res.user) {
                     let cleanNumber = (res.user.id || '').split(':')[0];
-                    $('#wa_number_display').text(cleanNumber);
-                    $('#wa_name_display').text(res.user.name || 'مستخدم واتساب');
+                    $('#wa_number').text(cleanNumber);
+                    $('#wa_name').text(res.user.name || 'مستخدم واتساب');
                 }
                 isWhatsAppConfirmed = true; enforceNotificationRules(true);
                 $('#wa_status_badge').text('متصل').removeClass().addClass('badge bg-success text-white');
@@ -815,7 +815,7 @@
                     }
                 } else if (res.qr !== lastQrCode) {
                     document.getElementById("qrcode_canvas").innerHTML = "";
-                    new QRCode(document.getElementById("qrcode_canvas"), { text: res.qr, width: 160, height: 160, correctLevel : QRCode.Level.M });
+                    new QRCode(document.getElementById("qrcode_canvas"), { text: res.qr, width: 160, height: 160, correctLevel : QRCode.CorrectLevel.M });
                     lastQrCode = res.qr;
                 }
                 isWhatsAppConfirmed = false; enforceNotificationRules(false);

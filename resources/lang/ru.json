@@ -1055,5 +1055,19 @@
     "cash_in_drawer": "Наличные в ящике (Размен)",
     "confirm_open_drawer": "Подтвердить и открыть 🚀",
     "sales_history": "История продаж",
-    "cash_customer": "Оплата наличными"
+    "cash_customer": "Оплата наличными",
+    "sales_report_title": "Отчет о продажах",
+    "detailed_sales_report": "Подробный отчет о продажах",
+    "report_time": "Время отчета",
+    "remaining_amount": "Оставшаяся сумма",
+    "paid_amount": "Оплаченная сумма",
+    "total_amount": "Общая сумма",
+    "invoices_count": "Количество счетов",
+    "invoices_index_click_to_go": "Индекс счетов - Нажмите на номер для перехода",
+    "invoices_and_items_details": "Детали счетов и товаров",
+    "back_to_index": "Назад к индексу",
+    "invoice_number": "Номер счета",
+    "selling_price": "Цена продажи",
+    "partial": "Частично",
+    "unpaid": "Не оплачено"
 }

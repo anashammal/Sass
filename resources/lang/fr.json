@@ -1060,5 +1060,19 @@
     "cash_in_drawer": "Espèces dans le tiroir (Fond)",
     "confirm_open_drawer": "Confirmer et ouvrir 🚀",
     "sales_history": "Historique des ventes",
-    "cash_customer": "Client au comptant"
+    "cash_customer": "Client au comptant",
+    "sales_report_title": "Rapport des ventes",
+    "detailed_sales_report": "Rapport détaillé des ventes",
+    "report_time": "Heure du rapport",
+    "remaining_amount": "Montant restant",
+    "paid_amount": "Montant payé",
+    "total_amount": "Montant total",
+    "invoices_count": "Nombre de factures",
+    "invoices_index_click_to_go": "Index des factures - Cliquez sur le numéro pour y aller",
+    "invoices_and_items_details": "Détails des factures et articles",
+    "back_to_index": "Retour à l'index",
+    "invoice_number": "Numéro de facture",
+    "selling_price": "Prix de vente",
+    "partial": "Partiel",
+    "unpaid": "Impayé"
 }

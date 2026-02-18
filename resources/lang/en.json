@@ -1073,5 +1073,19 @@
     "cash_in_drawer": "Cash in Drawer (Float)",
     "confirm_open_drawer": "Confirm & Open Box 🚀",
     "sales_history": "Sales History",
-    "cash_customer": "Cash Customer"
+    "cash_customer": "Cash Customer",
+    "sales_report_title": "Sales Report",
+    "detailed_sales_report": "Detailed Sales Report",
+    "report_time": "Report Time",
+    "remaining_amount": "Remaining Amount",
+    "paid_amount": "Paid Amount",
+    "total_amount": "Total Amount",
+    "invoices_count": "Invoices Count",
+    "invoices_index_click_to_go": "Invoices Index - Click Number to Go",
+    "invoices_and_items_details": "Invoices & Items Details",
+    "back_to_index": "Back to Index",
+    "invoice_number": "Invoice Number",
+    "selling_price": "Selling Price",
+    "partial": "Partial",
+    "unpaid": "Unpaid"
 }
