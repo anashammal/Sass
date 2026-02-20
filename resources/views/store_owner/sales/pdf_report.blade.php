@@ -201,11 +201,7 @@
         @endif
 
         <div class="store-name">
-            @if(app()->getLocale() == 'ar')
-                {{ $arabicService->shape($store->name) }}
-            @else
-                {{ $store->name }}
-            @endif
+            {{ $arabicService->shape($store->name) }}
         </div>
         <div class="report-title">
             @if(app()->getLocale() == 'ar')
@@ -291,18 +287,10 @@
                 </td>
                 <td>{{ $s->created_at->format('Y-m-d H:i') }}</td>
                 <td>
-                    @if(app()->getLocale() == 'ar')
-                        {{ $arabicService->shape($s->contact->contact_name ?? __('cash_customer')) }}
-                    @else
-                        {{ $s->contact->contact_name ?? __('cash_customer') }}
-                    @endif
+                    {{ $arabicService->shape($s->contact->contact_name ?? __('cash_customer')) }}
                 </td>
                 <td>
-                    @if(app()->getLocale() == 'ar')
-                        {{ $arabicService->shape($s->user->name ?? '---') }}
-                    @else
-                        {{ $s->user->name ?? '---' }}
-                    @endif
+                    {{ $arabicService->shape($s->user->name ?? '---') }}
                 </td>
                 <td>
                     <a href="#sale-{{ $s->id }}" class="invoice-link">
@@ -343,11 +331,7 @@
                     </td>
                     <td align="{{ app()->getLocale() == 'ar' ? 'right' : 'left' }}" width="50%">
                         <strong>@if(app()->getLocale() == 'ar') {{ $arabicService->shape(__('customer')) }}: @else {{ __('customer') }}: @endif</strong> 
-                        @if(app()->getLocale() == 'ar')
-                            {{ $arabicService->shape($s->contact->contact_name ?? __('cash_customer')) }}
-                        @else
-                            {{ $s->contact->contact_name ?? __('cash_customer') }}
-                        @endif
+                        {{ $arabicService->shape($s->contact->contact_name ?? __('cash_customer')) }}
                     </td>
                 </tr>
                 <tr>
@@ -387,11 +371,7 @@
                     <td>{{ number_format($item->price, 2) }}</td>
                     <td>{{ $item->quantity }}</td>
                     <td>
-                        @if(app()->getLocale() == 'ar')
-                            {{ $arabicService->shape($item->product->name ?? '---') }}
-                        @else
-                            {{ $item->product->name ?? '---' }}
-                        @endif
+                        {{ $arabicService->shape($item->product->name ?? '---') }}
                     </td>
                     <td>{{ $loop->iteration }}</td>
                 </tr>

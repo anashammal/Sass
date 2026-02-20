@@ -38,4 +38,13 @@ return [
         'key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
+    'kuveyt_turk' => [
+        'client_id' => env('KUVEYT_TURK_CLIENT_ID'),
+        'merchant_id' => env('KUVEYT_TURK_MERCHANT_ID'),
+        'username' => env('KUVEYT_TURK_USERNAME'),
+        'password' => env('KUVEYT_TURK_PASSWORD'),
+        'private_key' => env('KUVEYT_TURK_PRIVATE_KEY'),
+        'env' => env('KUVEYT_TURK_ENV', 'production'),
+    ],
+
 ];

@@ -68,6 +68,19 @@ Route::get('/', function () {
 // إيقاف التسجيل العام
 Auth::routes(['register' => false]);
 
+// Kuveyt Turk Test Routes
+Route::get('/k-test', [App\Http\Controllers\TestKuveytController::class, 'index'])->name('k-test.index');
+Route::post('/k-test/pay', [App\Http\Controllers\TestKuveytController::class, 'pay'])->name('k-test.pay');
+Route::post('/k-test/callback', [App\Http\Controllers\TestKuveytController::class, 'callback'])->name('k-test.callback');
+Route::get('/k-debug', function() {
+    return [
+        'config_client_id' => config('services.kuveyt_turk.client_id'),
+        'env_client_id' => env('KUVEYT_TURK_CLIENT_ID'),
+        'env_merchant_id' => env('KUVEYT_TURK_MERCHANT_ID'),
+        'app_env' => app()->environment(),
+    ];
+});
+
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 Route::get('lang/{locale}', [LocaleController::class, 'switch'])->name('lang.switch');
 
