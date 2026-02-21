@@ -42,7 +42,10 @@ class ReportController extends Controller
             // 1. حساب المدة
             $start = Carbon::parse($shift->opened_at);
             $end = Carbon::parse($endTime);
-            $shift->duration = $start->diff($end)->format('%H ساعة و %I دقيقة');
+            $shift->duration = __('shift_duration_format', [
+                'h' => $start->diff($end)->format('%H'),
+                'm' => $start->diff($end)->format('%I')
+            ]);
 
             // 2. جلب المبيعات المرتبطة بهذه الوردية
             $salesQuery = Sale::where('user_id', $shift->user_id)

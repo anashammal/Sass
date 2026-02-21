@@ -2170,8 +2170,8 @@
         if(!currentViewedInvoiceId) return;
         
         Swal.fire({
-            title: 'جاري التجهيز...',
-            text: 'يتم الآن إنشاء ملف PDF للفاتورة...',
+            title: "{{ __('preparing_report') }}",
+            text: "{{ __('generating_pdf_invoice') }}",
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading()
         });
@@ -2201,8 +2201,8 @@
         if(!currentViewedInvoiceId) return;
         
         Swal.fire({
-            title: 'جاري التجهيز...',
-            text: 'يتم الآن إنشاء ملف PDF للفاتورة...',
+            title: "{{ __('preparing_report') }}",
+            text: "{{ __('generating_pdf_invoice') }}",
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading()
         });

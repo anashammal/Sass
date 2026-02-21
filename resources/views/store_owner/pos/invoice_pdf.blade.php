@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>{{ $arabicService->shape('فاتورة ضريبية مبسطة') }} / Simplified Tax Invoice #{{ $sale->id }}</title>
+    <title>{{ $arabicService->shape(__('simplified_tax_invoice')) }} / Simplified Tax Invoice #{{ $sale->id }}</title>
     <style>
         body { 
             font-family: 'DejaVu Sans', sans-serif; 
-            direction: rtl; 
-            text-align: right; 
+            direction: {{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}; 
+            text-align: {{ app()->getLocale() == 'ar' ? 'right' : 'left' }}; 
             font-size: 12px; 
         }
         .header { 
@@ -27,7 +27,7 @@
             border-collapse: collapse; 
             margin-bottom: 20px; 
             font-size: 12px; 
-            direction: rtl; /* Force RTL on table */
+            direction: {{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}; /* Force RTL on table */
         }
         .table th, .table td { 
             border: 1px solid #ddd; 
@@ -50,8 +50,8 @@
             padding: 5px 0; 
             border-bottom: 1px dashed #eee; 
         }
-        .total-row span:first-child { float: right; font-weight: bold; }
-        .total-row span:last-child { float: left; }
+        .total-row span:first-child { float: {{ app()->getLocale() == 'ar' ? 'right' : 'left' }}; font-weight: bold; }
+        .total-row span:last-child { float: {{ app()->getLocale() == 'ar' ? 'left' : 'right' }}; }
         .clearfix { clear: both; }
 
         .total-row.final { 
@@ -150,24 +150,24 @@
         <h1 style="margin: 0;">{{ $arabicService->shape($store->name) }}</h1>
         <div class="store-info" style="margin-bottom: 5px;">
             {{ $arabicService->shape($store->address) }} <br>
-            @if($store->phone_number) {{ $store->phone_number }} {{ $arabicService->shape('هاتف:') }} / Phone: @endif | 
-            @if($store->tax_number) {{ $store->tax_number }} {{ $arabicService->shape('الرقم الضريبي:') }} / VAT No: @endif
+            @if($store->phone_number) {{ $store->phone_number }} {{ $arabicService->shape(__('phone') . ':') }} / Phone: @endif | 
+            @if($store->tax_number) {{ $store->tax_number }} {{ $arabicService->shape(__('vat_no') . ':') }} / VAT No: @endif
         </div>
-        <h2 style="margin: 5px 0;">{{ $arabicService->shape('فاتورة ضريبية مبسطة') }}</h2>
+        <h2 style="margin: 5px 0;">{{ $arabicService->shape(__('simplified_tax_invoice')) }}</h2>
         <h3 style="margin: 0; font-size: 14px; color: #555;">Simplified Tax Invoice</h3>
     </div>
 
     <table class="meta-table">
         <tr>
             <td width="50%">
-                <strong>{{ $arabicService->shape('رقم الفاتورة:') }} / Invoice No:</strong> INV-{{ $sale->id }}<br>
-                <strong>{{ $arabicService->shape('التاريخ:') }} / Date:</strong> {{ $sale->created_at->format('Y-m-d h:i A') }}<br>
-                <strong>{{ $arabicService->shape('بواسطة:') }} / Cashier:</strong> {{ $arabicService->shape($sale->user->name ?? '---') }}
+                <strong>{{ $arabicService->shape(__('invoice_number') . ':') }} / Invoice No:</strong> INV-{{ $sale->id }}<br>
+                <strong>{{ $arabicService->shape(__('date') . ':') }} / Date:</strong> {{ $sale->created_at->format('Y-m-d h:i A') }}<br>
+                <strong>{{ $arabicService->shape(__('cashier') . ':') }} / Cashier:</strong> {{ $arabicService->shape($sale->user->name ?? '---') }}
             </td>
             <td width="50%">
-                <strong>{{ $arabicService->shape('العميل:') }} / Customer:</strong> {{ $arabicService->shape($sale->contact ? $sale->contact->contact_name : 'عميل نقدي') }}<br>
-                @if($sale->contact && $sale->contact->phone) <strong>{{ $arabicService->shape('الهاتف:') }} / Phone:</strong> {{ $sale->contact->phone }}<br> @endif
-                @if($sale->contact && $sale->contact->tax_number) <strong>{{ $arabicService->shape('الرقم الضريبي:') }} / Customer VAT:</strong> {{ $sale->contact->tax_number }} @endif
+                <strong>{{ $arabicService->shape(__('customer') . ':') }} / Customer:</strong> {{ $arabicService->shape($sale->contact ? $sale->contact->contact_name : 'عميل نقدي') }}<br>
+                @if($sale->contact && $sale->contact->phone) <strong>{{ $arabicService->shape(__('phone') . ':') }} / Phone:</strong> {{ $sale->contact->phone }}<br> @endif
+                @if($sale->contact && $sale->contact->tax_number) <strong>{{ $arabicService->shape(__('vat_no') . ':') }} / Customer VAT:</strong> {{ $sale->contact->tax_number }} @endif
             </td>
         </tr>
     </table>
@@ -175,10 +175,10 @@
     <table class="table">
         <thead>
             <tr>
-                <th width="20%">{{ $arabicService->shape('الإجمالي') }} / Total</th>
-                <th width="15%">{{ $arabicService->shape('السعر') }} / Price</th>
-                <th width="10%">{{ $arabicService->shape('الكمية') }} / Qty</th>
-                <th width="50%">{{ $arabicService->shape('المنتج') }} / Product</th>
+                <th width="20%">{{ $arabicService->shape(__('total')) }} / Total</th>
+                <th width="15%">{{ $arabicService->shape(__('price')) }} / Price</th>
+                <th width="10%">{{ $arabicService->shape(__('quantity')) }} / Qty</th>
+                <th width="50%">{{ $arabicService->shape(__('product')) }} / Product</th>
                 <th width="5%">#</th>
             </tr>
         </thead>
@@ -198,35 +198,35 @@
     <div style="page-break-inside: avoid;">
         <div class="total-area">
             <div class="total-row">
-                <span>{{ $arabicService->shape('المجموع الفرعي:') }} / Subtotal:</span>
+                <span>{{ $arabicService->shape(__('subtotal') . ':') }} / Subtotal:</span>
                 <span>{{ number_format(($sale->total + $sale->discount) - ($sale->tax ?? 0), 2) }}</span>
                 <div class="clearfix"></div>
             </div>
             @if($sale->discount > 0)
             <div class="total-row" style="color: #c0392b;">
-                <span>{{ $arabicService->shape('الخصم:') }} / Discount:</span>
+                <span>{{ $arabicService->shape(__('discount') . ':') }} / Discount:</span>
                 <span>-{{ number_format($sale->discount, 2) }}</span>
                 <div class="clearfix"></div>
             </div>
             @endif
             <div class="total-row">
-                <span>{{ $arabicService->shape('ضريبة القيمة المضافة (15%):') }} / VAT (15%):</span>
+                <span>{{ $arabicService->shape(__('vat_15') . ':') }} / VAT (15%):</span>
                 <span>{{ number_format($sale->tax ?? 0, 2) }}</span>
                 <div class="clearfix"></div>
             </div>
             <div class="total-row final">
-                <span>{{ $arabicService->shape('الإجمالي النهائي:') }} / Total:</span>
+                <span>{{ $arabicService->shape(__('final_total') . ':') }} / Total:</span>
                 <span>{{ number_format($sale->total, 2) }} {{ $store->currency ?? 'SAR' }}</span>
                 <div class="clearfix"></div>
             </div>
             <div class="total-row">
-                <span>{{ $arabicService->shape('المدفوع:') }} / Paid:</span>
+                <span>{{ $arabicService->shape(__('paid') . ':') }} / Paid:</span>
                 <span>{{ number_format($sale->paid, 2) }}</span>
                 <div class="clearfix"></div>
             </div>
             @if($sale->due > 0)
             <div class="total-row" style="color: #d35400;">
-                <span>{{ $arabicService->shape('المتبقي (آجل):') }} / Due:</span>
+                <span>{{ $arabicService->shape(__('due') . ':') }} / Due:</span>
                 <span>{{ number_format($sale->due, 2) }}</span>
                 <div class="clearfix"></div>
             </div>
@@ -236,16 +236,16 @@
         <div class="footer" style="padding-top: 5px; margin-top: 10px;">
             <div style="page-break-inside: avoid;">
                 @if($sale->show_iban && $store->iban)
-                    <div style="margin-bottom: 10px; padding: 10px; border: 1px dashed #ccc; display: inline-block; text-align: right; width: 85%; direction: rtl;">
-                        <strong style="font-size: 13px; text-decoration: underline;">{{ $arabicService->shape('تفاصيل الدفع البنكي:') }}</strong><br>
+                    <div style="margin-bottom: 10px; padding: 10px; border: 1px dashed #ccc; display: inline-block; text-align: {{ app()->getLocale() == 'ar' ? 'right' : 'left' }}; width: 85%; direction: {{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }};">
+                        <strong style="font-size: 13px; text-decoration: underline;">{{ $arabicService->shape(__('bank_payment_details') . ':') }}</strong><br>
                         <div style="margin-top: 3px;">
-                            {{ $arabicService->shape($store->iban_bank_name) }} {{ $arabicService->shape('البنك:') }} 
+                            {{ $arabicService->shape($store->iban_bank_name) }} {{ $arabicService->shape(__('bank') . ':') }} 
                             @if($store->bank_country) - {{ $arabicService->shape($store->bank_country) }} @endif <br>
-                            {{ $arabicService->shape($store->bank_account_holder) }} {{ $arabicService->shape('صاحب الحساب:') }} <br>
+                            {{ $arabicService->shape($store->bank_account_holder) }} {{ $arabicService->shape(__('account_holder') . ':') }} <br>
                             <span dir="ltr" style="font-weight: bold;">TR{{ $store->iban }}</span> {{ $arabicService->shape('IBAN:') }} 
                         </div>
                         <div style="margin-top: 5px; color: #2980b9; font-weight: bold; font-size: 10px;">
-                            ({{ $store->phone_number }}) {{ $arabicService->shape('في حال أي سداد، يرجى إرسال إشعار السداد لرقم الواتساب') }} 
+                            ({{ $store->phone_number }}) {{ $arabicService->shape(__('whatsapp_payment_notice')) }} 
                         </div>
                     </div>
                 @endif
@@ -254,14 +254,14 @@
                 <div class="marks-container" style="margin-top: 10px;">
                     @if($sale->show_stamp && $stamp)
                     <div class="stamp-box">
-                        <div style="margin-bottom: 3px; font-weight: bold; text-decoration: underline;">{{ $arabicService->shape('ختم المتجر') }}</div>
+                        <div style="margin-bottom: 3px; font-weight: bold; text-decoration: underline;">{{ $arabicService->shape(__('store_stamp')) }}</div>
                         <img src="{{ $stamp }}" width="110" style="transform: rotate(-10deg);">
                     </div>
                     @endif
 
                     @if($sale->show_signature && $signature)
                     <div class="signature-box">
-                        <div style="margin-bottom: 3px; font-weight: bold; text-decoration: underline;">{{ $arabicService->shape('توقيع المسؤول') }}</div>
+                        <div style="margin-bottom: 3px; font-weight: bold; text-decoration: underline;">{{ $arabicService->shape(__('manager_signature')) }}</div>
                         <img src="{{ $signature }}" width="110">
                     </div>
                     @endif
@@ -270,7 +270,7 @@
             </div>
 
             <div style="margin-top: 15px;">
-                <p style="margin: 2px 0;">{{ $arabicService->shape('شكرًا لتعاملكم معنا!') }}</p>
+                <p style="margin: 2px 0;">{{ $arabicService->shape(__('thank_you_for_business')) }}</p>
                 @if($store->website) <p style="margin: 2px 0;">{{ $store->website }}</p> @endif
             </div>
         </div>
