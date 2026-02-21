@@ -4,16 +4,16 @@
 <div class="container-fluid py-4">
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center bg-primary text-white">
-            <h5 class="m-0 fw-bold"><i class="fas fa-history me-2"></i>سجل تعديلات المخزون</h5>
+            <h5 class="m-0 fw-bold"><i class="fas fa-history me-2"></i>{{ __('inventory_logs_title') }}</h5>
             <div class="d-flex gap-2 no-print">
                 <button onclick="window.print()" class="btn btn-sm btn-light">
-                    <i class="fas fa-print me-1"></i> طباعة
+                    <i class="fas fa-print me-1"></i> {{ __('print_btn') }}
                 </button>
                 <button onclick="shareViaWhatsApp()" class="btn btn-sm btn-success shadow-sm">
-                    <i class="fab fa-whatsapp me-1"></i> واتساب
+                    <i class="fab fa-whatsapp me-1"></i> {{ __('whatsapp_btn') }}
                 </button>
                 <button onclick="shareViaEmail()" class="btn btn-sm btn-info text-white shadow-sm">
-                    <i class="fas fa-envelope me-1"></i> بريد إلكتروني
+                    <i class="fas fa-envelope me-1"></i> {{ __('email_btn') }}
                 </button>
             </div>
         </div>
@@ -21,40 +21,40 @@
             {{-- فلاتر البحث --}}
             <form id="filterForm" method="GET" action="{{ route('reports.inventory_logs') }}" class="row g-3 mb-4 no-print">
                 <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">البحث (منتج / باركود)</label>
+                    <label class="form-label fw-bold small text-muted">{{ __('search_product_barcode') }}</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" name="search" class="form-control" placeholder="اسم المنتج أو الباركود..." value="{{ request('search') }}">
+                        <input type="text" name="search" class="form-control" placeholder="{{ __('search_product_barcode_placeholder') }}" value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label fw-bold small text-muted">الموظف</label>
+                    <label class="form-label fw-bold small text-muted">{{ __('employee') }}</label>
                     <select name="user_id" class="form-select auto-filter">
-                        <option value="">الكل</option>
+                        <option value="">{{ __('all_filter') }}</option>
                         @foreach($users as $user)
                             <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label fw-bold small text-muted">من تاريخ</label>
-                    <input type="date" name="date_from" class="form-control auto-filter" value="{{ request('date_from') }}">
+                    <label class="form-label fw-bold small text-muted">{{ __('from_date') }}</label>
+                    <input type="text" name="date_from" class="form-control auto-filter enhanced-date-input bg-white" placeholder="{{ __('from_date') }}" value="{{ request('date_from') }}">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label fw-bold small text-muted">إلى تاريخ</label>
-                    <input type="date" name="date_to" class="form-control auto-filter" value="{{ request('date_to') }}">
+                    <label class="form-label fw-bold small text-muted">{{ __('to_date') }}</label>
+                    <input type="text" name="date_to" class="form-control auto-filter enhanced-date-input bg-white" placeholder="{{ __('to_date') }}" value="{{ request('date_to') }}">
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label fw-bold small text-muted">الصفوف</label>
+                    <label class="form-label fw-bold small text-muted">{{ __('rows_count') }}</label>
                     <select name="per_page" class="form-select auto-filter">
                         <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
                         <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
                         <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
-                        <option value="all" {{ request('per_page') == 'all' ? 'selected' : '' }}>الكل</option>
+                        <option value="all" {{ request('per_page') == 'all' ? 'selected' : '' }}>{{ __('all_filter') }}</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <a href="{{ route('reports.inventory_logs') }}" class="btn btn-outline-secondary w-100" title="إعادة تعيين"><i class="fas fa-undo me-1"></i> إعادة تعيين</a>
+                    <a href="{{ route('reports.inventory_logs') }}" class="btn btn-outline-secondary w-100" title="{{ __('reset_filter') }}"><i class="fas fa-undo me-1"></i> {{ __('reset_filter') }}</a>
                 </div>
             </form>
 
@@ -87,7 +87,7 @@
         
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                title: 'جاري تجهيز تقرير المخزون...',
+                title: '{{ __("preparing_inventory_report") }}',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
@@ -98,25 +98,25 @@
             .then(data => {
                 if (typeof Swal !== 'undefined') Swal.close();
                 if (data.url) {
-                    const message = `*تقرير سجل تعديلات المخزون*\n` +
-                                    `المتجر: {{ auth()->user()->store->name }}\n` +
-                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
-                                    `مرفق لكم التقرير التفصيلي للتعديلات اليدوية.`;
+                    const message = `{{ __("inventory_report_whatsapp_text") }}` +
+                                    `{{ auth()->user()->store->name }}\n` +
+                                    `{{ __("report_date") }}{{ now()->format('Y-m-d') }}\n` +
+                                    `{{ __("attached_detailed_manual_adjustments_report") }}`;
                     
                     const filename = data.filename || "inventory_log_report.pdf";
                     if (typeof triggerWhatsappPrompt === 'function') {
-                        triggerWhatsappPrompt('', message, "إرسال سجل التعديلات كمرفق PDF", data.url, filename);
+                        triggerWhatsappPrompt('', message, '{{ __("send_logs_pdf_attachment") }}', data.url, filename);
                     } else {
-                        alert('حدث خطأ: وظيفة إرسال الواتساب غير متوفرة');
+                        alert('{{ __("error_whatsapp_func_unavailable") }}');
                     }
                 } else {
-                    alert('فشل تجهيز ملف التقرير');
+                    alert('{{ __("failed_prepare_report_file") }}');
                 }
             })
             .catch(err => {
                 if (typeof Swal !== 'undefined') Swal.close();
                 console.error(err);
-                alert('حدث خطأ أثناء التواصل مع السيرفر');
+                alert('{{ __("error_communicate_server") }}');
             });
     }
 
@@ -128,7 +128,7 @@
         
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                title: 'جاري تجهيز طلب الإرسال...',
+                title: '{{ __("preparing_send_request") }}',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
@@ -139,25 +139,25 @@
             .then(data => {
                 if (typeof Swal !== 'undefined') Swal.close();
                 if (data.url) {
-                    const message = `*تقرير سجل تعديلات المخزون*\n` +
-                                    `المتجر: {{ auth()->user()->store->name }}\n` +
-                                    `تاريخ التقرير: {{ now()->format('Y-m-d') }}\n` +
-                                    `مرفق لكم التقرير التفصيلي للتعديلات اليدوية.`;
+                    const message = `{{ __("inventory_report_whatsapp_text") }}` +
+                                    `{{ auth()->user()->store->name }}\n` +
+                                    `{{ __("report_date") }}{{ now()->format('Y-m-d') }}\n` +
+                                    `{{ __("attached_detailed_manual_adjustments_report") }}`;
                     
                     const filename = data.filename || "inventory_log_report.pdf";
                     if (typeof triggerEmailPrompt === 'function') {
-                        triggerEmailPrompt('', message, "إرسال سجل التعديلات كمرفق PDF", data.url, filename);
+                        triggerEmailPrompt('', message, '{{ __("send_logs_pdf_attachment") }}', data.url, filename);
                     } else {
-                        alert('حدث خطأ: وظيفة إرسال البريد غير متوفرة');
+                        alert('{{ __("error_email_func_unavailable") }}');
                     }
                 } else {
-                    alert('فشل تجهيز ملف التقرير');
+                    alert('{{ __("failed_prepare_report_file") }}');
                 }
             })
             .catch(err => {
                 if (typeof Swal !== 'undefined') Swal.close();
                 console.error(err);
-                alert('حدث خطأ أثناء التواصل مع السيرفر');
+                alert('{{ __("error_communicate_server") }}');
             });
     }
     
