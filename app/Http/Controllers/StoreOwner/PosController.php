@@ -720,6 +720,98 @@ class PosController extends Controller
         return view('store_owner.pos.withdrawals', compact('withdrawals', 'totalCost', 'totalSale'));
     }
 
+    // تصدير PDF للمسحوبات
+    public function withdrawalsPdf(Request $request)
+    {
+        try {
+            $store = Auth::user()->store;
+            $storeId = $store->id;
+            
+            $query = Sale::where('store_id', $storeId)
+                         ->where('is_withdrawal', true)
+                         ->with(['items.product.baseUnit', 'items.product.units']);
+
+            if ($request->filled('from_date')) $query->whereDate('created_at', '>=', $request->from_date);
+            if ($request->filled('to_date')) $query->whereDate('created_at', '<=', $request->to_date);
+
+            $withdrawals = $query->latest()->get();
+
+            // حساب الإجماليات
+            $totalCost = 0;
+            $totalSale = 0;
+
+            $withdrawals->transform(function($sale) use (&$totalCost, &$totalSale) {
+                $cost = 0;
+                $itemsCount = 0;
+                
+                foreach($sale->items as $item) {
+                    $itemCost = 0;
+                    if (!is_null($item->cost) && $item->cost > 0) {
+                         $itemCost = $item->cost;
+                    } 
+                    else {
+                        $prod = $item->product;
+                        if ($prod) {
+                            $u = null;
+                            if($item->unit_id) {
+                                 $u = $prod->units->where('id', $item->unit_id)->first();
+                            } else {
+                                 $u = $prod->baseUnit;
+                            }
+
+                            if ($u && !empty($u->cost_price) && $u->cost_price > 0) {
+                                $itemCost = (float)$u->cost_price * $item->quantity;
+                            } else {
+                                $baseCost = (float)$prod->last_cost_price;
+                                $factor = ($u) ? (float)$u->conversion_factor : 1;
+                                $itemCost = ($baseCost * $factor) * $item->quantity;
+                            }
+                        }
+                    }
+
+                    $cost += $itemCost;
+                    $itemsCount++;
+                }
+
+                $totalCost += $cost;
+                $totalSale += $sale->total;
+
+                $sale->calculated_cost = $cost;
+                $sale->items_count = $itemsCount;
+                return $sale;
+            });
+
+            // زيادة الزمن والذاكرة للتقارير الكبيرة
+            set_time_limit(300);
+            ini_set('memory_limit', '512M');
+
+            $arabicService = new \App\Services\ArabicTextService();
+            
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('store_owner.pos.pdf_withdrawals', compact('withdrawals', 'store', 'totalCost', 'totalSale', 'arabicService'))
+                      ->setPaper('a4', 'portrait')
+                      ->setOptions([
+                          'isHtml5ParserEnabled' => true,
+                          'isRemoteEnabled' => true,
+                          'isFontSubsettingEnabled' => true,
+                          'defaultFont' => 'DejaVu Sans'
+                      ]);
+
+            $filename = 'withdrawals_report_' . date('Ymd_His') . '_' . uniqid() . '.pdf';
+            $path = public_path('temp_reports');
+            if (!file_exists($path)) mkdir($path, 0777, true);
+            $pdf->save($path . '/' . $filename);
+            
+            return response()->json([
+                'url' => asset('temp_reports/' . $filename),
+                'filename' => $filename
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error generating withdrawals PDF: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to generate PDF', 'message' => $e->getMessage()], 500);
+        }
+    }
+
     // 5. تفاصيل الفاتورة
     public function getSaleDetails($id)
     {

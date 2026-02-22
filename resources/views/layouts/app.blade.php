@@ -1339,10 +1339,12 @@
     <div class="d-none d-md-flex align-items-center ms-3 me-3 user-select-none" 
          id="system_clock_container" title="توقيت {{ $displayCity }}">
 
+        {{-- الحاويات للساعتين --}}
+        
         {{-- 🅰️ النوع: عقارب (Analog) --}}
-        @if($clockType == 'analog')
+        <div id="clock_analog_wrapper" class="{{ $clockType == 'analog' ? 'd-flex' : 'd-none' }} align-items-center me-2 pe-3">
             <div class="analog-wrapper me-2">
-                <div class="analog-face {{ $clockTheme }}">
+                <div class="analog-face {{ $clockType == 'analog' ? $clockTheme : '' }}" id="analog_face_el">
                     {{-- العلامات --}}
                     @for($i=1; $i<=12; $i++)
                         <div class="marker m-{{$i}}"></div>
@@ -1356,149 +1358,200 @@
                 </div>
             </div>
             
-            <div class="d-flex flex-column justify-content-center" style="line-height: 1.1;">
+            <div class="d-none d-lg-flex flex-column justify-content-center" style="line-height: 1.1;">
                 <span class="fw-bold" style="font-size: 0.7rem; color: #888;">{{ $displayCity }}</span>
                 <span id="analog_text_date" class="fw-bold text-dark" style="font-size: 0.75rem; font-family: 'Nunito', sans-serif;">--/--</span>
             </div>
-
-            <style>
-                .analog-wrapper { position: relative; }
-                .analog-face { width: 50px; height: 50px; border-radius: 50%; position: relative; overflow: hidden; }
-                .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom center; border-radius: 50px; z-index: 2; }
-                .marker { position: absolute; background: rgba(0,0,0,0.3); width: 2px; height: 4px; left: 50%; transform-origin: 50% 25px; top: 0; margin-left: -1px; }
-                
-                /* توزيع العلامات */
-                @for($i=1; $i<=12; $i++)
-                    .m-{{$i}} { transform: rotate({{ $i * 30 }}deg); }
-                @endfor
-
-                .center-cap { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; }
-
-                /* 1. Theme: Royal Gold */
-                .analog-face.royal_gold { background: #111; border: 2px solid #d4af37; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
-                .royal_gold .marker { background: #d4af37; }
-                .royal_gold .hour-hand { width: 4px; height: 14px; background: #d4af37; margin-left: -2px; }
-                .royal_gold .min-hand { width: 2px; height: 20px; background: #fff; margin-left: -1px; }
-                .royal_gold .sec-hand { width: 1px; height: 22px; background: red; margin-left: -0.5px; }
-                .royal_gold .center-cap { background: #d4af37; }
-
-                /* 2. Theme: Sport Red */
-                .analog-face.sport_red { background: #f0f0f0; border: 2px solid #333; }
-                .sport_red .marker { background: #333; height: 3px; }
-                .sport_red .hour-hand { width: 4px; height: 12px; background: #333; margin-left: -2px; }
-                .sport_red .min-hand { width: 2px; height: 18px; background: #666; margin-left: -1px; }
-                .sport_red .sec-hand { width: 1px; height: 22px; background: #d32f2f; margin-left: -0.5px; }
-                .sport_red .center-cap { background: #333; }
-
-                /* 3. Theme: Ocean */
-                .analog-face.ocean { background: radial-gradient(circle, #0f2027, #203a43, #2c5364); border: 2px solid #fff; }
-                .ocean .marker { background: rgba(255,255,255,0.6); }
-                .ocean .hour-hand { width: 3px; height: 13px; background: #fff; margin-left: -1.5px; }
-                .ocean .min-hand { width: 2px; height: 19px; background: #00d2ff; margin-left: -1px; }
-                .ocean .sec-hand { width: 1px; height: 24px; background: #a8c0ff; margin-left: -0.5px; }
-                .ocean .center-cap { background: #fff; }
-            </style>
+        </div>
 
         {{-- 🅱️ النوع: رقمي (Digital) --}}
-        @else 
-            <div class="digital-container {{ $clockTheme }} d-flex align-items-center">
-                <div class="time-box">
-                    <span id="live_sys_time">--:--:--</span>
-                    <span id="live_sys_ampm" class="ampm">AM</span>
-                </div>
-                <div class="date-box ms-2 ps-2 border-start">
-                    <div class="city">{{ $displayCity }}</div>
-                    <div id="live_sys_date" class="date">--/--</div>
-                </div>
+        <div id="clock_digital_wrapper" class="digital-container {{ $clockType == 'digital' ? $clockTheme : '' }} {{ $clockType == 'digital' ? 'd-flex' : 'd-none' }} align-items-center">
+            <div class="time-box">
+                <span id="live_sys_time">--:--:--</span>
+                <span id="live_sys_ampm" class="ampm">AM</span>
             </div>
+            <div class="date-box ms-2 ps-2 border-start d-none d-lg-block">
+                <div class="city">{{ $displayCity }}</div>
+                <div id="live_sys_date" class="date">--/--</div>
+            </div>
+        </div>
 
-            <style>
-                .digital-container { padding: 4px 15px; border-radius: 50px; font-family: 'Nunito', sans-serif; transition: all 0.3s; min-width: 160px; }
-                .time-box { font-size: 1.25rem; font-weight: 800; letter-spacing: 1.5px; line-height: 1; display: flex; align-items: baseline; }
-                .ampm { font-size: 0.6rem; font-weight: 700; margin-left: 4px; text-transform: uppercase; opacity: 0.8; }
-                .city { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; opacity: 0.7; margin-bottom: 2px; }
-                .date { font-size: 0.75rem; font-weight: 700; line-height: 1; }
+        {{-- CSS Themes --}}
+        <style>
+            /* ==== الأساسيات الرقمية ==== */
+            .digital-container { padding: 4px 15px; border-radius: 50px; font-family: 'Nunito', sans-serif; transition: all 0.3s; min-width: 140px; }
+            .time-box { font-size: 1.25rem; font-weight: 800; letter-spacing: 1px; line-height: 1; display: flex; align-items: baseline; }
+            .ampm { font-size: 0.6rem; font-weight: 700; margin-left: 4px; text-transform: uppercase; opacity: 0.8; }
+            .city { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; opacity: 0.7; margin-bottom: 2px; }
+            .date { font-size: 0.75rem; font-weight: 700; line-height: 1; }
 
-                /* 1. Theme: Galaxy (تدرج بنفسجي وأزرق) */
-                .galaxy { background: linear-gradient(135deg, #4158D0 0%, #C850C0 100%); color: #fff; box-shadow: 0 4px 15px rgba(200, 80, 192, 0.25); border: 1px solid rgba(255,255,255,0.2); }
-                .galaxy .border-start { border-color: rgba(255,255,255,0.3) !important; }
-                .galaxy .time-box { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            /* Digital 1: Minimal Light (أبيض نقي وأنيق) */
+            .minimal_light { background: #ffffff; border: 1px solid #eaeaea; color: #333333; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+            .minimal_light .time-box { color: #111827; font-family: 'Inter', -apple-system, sans-serif; font-weight: 800; }
+            .minimal_light .ampm { color: #6b7280; font-weight: 600; }
+            .minimal_light .city { color: #9ca3af; font-weight: 600; }
+            .minimal_light .date { color: #4b5563; }
+            .minimal_light .border-start { border-color: #f3f4f6 !important; }
 
-                /* 2. Theme: HUD (Cyber - أسود وأخضر) */
-                .hud { background: #0a0a0a; border: 1px solid #00ff41; color: #00ff41; box-shadow: 0 0 8px rgba(0,255,65,0.15); font-family: 'Courier New', monospace; border-radius: 8px; }
-                .hud .border-start { border-color: rgba(0,255,65,0.4) !important; }
-                .hud .time-box { letter-spacing: 0px; text-shadow: 0 0 5px rgba(0,255,65,0.6); font-family: 'Courier New', monospace; }
-                .hud .date { font-family: 'Courier New', monospace; }
+            /* Digital 2: Glass (زجاجي شفاف وعصري) */
+            .glass { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); color: #ffffff; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); border-radius: 12px; }
+            .glass .time-box { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .glass .border-start { border-color: rgba(255,255,255,0.2) !important; }
+            .glass .city { color: rgba(255,255,255,0.8); }
+            .glass .ampm { color: rgba(255,255,255,0.9); }
 
-                /* 3. Theme: Ultra (برتقالي وأسود - Apple Style) */
-                .modern_white { background: #1c1c1e; border: 1px solid #333; color: #ff9f0a; border-radius: 12px; }
-                .modern_white .time-box { color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; }
-                .modern_white .ampm { color: #ff9f0a; }
-                .modern_white .city { color: #8e8e93; }
-                .modern_white .date { color: #ff9f0a; }
-                .modern_white .border-start { border-color: #3a3a3c !important; }
-            </style>
-        @endif
+            /* Digital 3: Midnight (أزرق ليلي فخم) */
+            .midnight { background: #0f172a; border: 1px solid #1e293b; color: #38bdf8; border-radius: 10px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.4); }
+            .midnight .time-box { color: #e0f2fe; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); letter-spacing: 2px;}
+            .midnight .ampm { color: #38bdf8; }
+            .midnight .city { color: #64748b; }
+            .midnight .date { color: #7dd3fc; }
+            .midnight .border-start { border-color: #334155 !important; }
+
+            /* Digital 4: Sunset (تدرج غروب دافئ) */
+            .sunset { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(253, 160, 133, 0.3); border: none;}
+            .sunset .time-box { text-shadow: 0 2px 4px rgba(0,0,0,0.15); font-weight: 900;}
+            .sunset .ampm { color: rgba(255,255,255,0.9); }
+            .sunset .city { color: rgba(255,255,255,0.85); }
+            .sunset .border-start { border-color: rgba(255,255,255,0.3) !important; }
+
+            /* Digital 5: Aurora (شفق قطبي داكن) */
+            .aurora { background: #18181b; border: 1px solid #27272a; color: #a7f3d0; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+            .aurora .time-box { background: -webkit-linear-gradient(45deg, #34d399, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; letter-spacing: 1px;}
+            .aurora .ampm { color: #10b981; }
+            .aurora .city { color: #52525b; }
+            .aurora .date { color: #6ee7b7; }
+            .aurora .border-start { border-color: #3f3f46 !important; }
+
+
+            /* ==== الأساسيات لعقارب الساعة ==== */
+            .analog-wrapper { position: relative; }
+            .analog-face { width: 44px; height: 44px; border-radius: 50%; position: relative; overflow: hidden; background: #fff; border: 2px solid #ddd; transition: all 0.3s; }
+            .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom center; border-radius: 50px; z-index: 2; transition: transform 0.05s linear; }
+            .marker { position: absolute; background: rgba(0,0,0,0.2); width: 2px; height: 4px; left: 50%; transform-origin: 50% 22px; top: 0; margin-left: -1px; }
+            .center-cap { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; background: #333; }
+            @for($i=1; $i<=12; $i++) .m-{{$i}} { transform: rotate({{ $i * 30 }}deg); } @endfor
+
+            /* Analog 1: Classic */
+            .classic { background: #fff; border: 2px solid #ccc; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+            .classic .marker { background: #333; }
+            .classic .hour-hand { width: 4px; height: 12px; background: #333; margin-left: -2px; }
+            .classic .min-hand { width: 2px; height: 18px; background: #666; margin-left: -1px; }
+            .classic .sec-hand { width: 1px; height: 20px; background: #d32f2f; margin-left: -0.5px; }
+
+            /* Analog 2: Modern */
+            .modern { background: #111; border: 2px solid #444; box-shadow: 0 0 8px rgba(0,0,0,0.2); }
+            .modern .marker { background: rgba(255,255,255,0.2); height: 3px; }
+            .modern .hour-hand { width: 3px; height: 12px; background: #00bcd4; margin-left: -1.5px; }
+            .modern .min-hand { width: 2px; height: 16px; background: #fff; margin-left: -1px; }
+            .modern .sec-hand { width: 1px; height: 20px; background: #ff9800; margin-left: -0.5px; }
+            .modern .center-cap { background: #00bcd4; }
+
+            /* Analog 3: Station (Swiss Railway) */
+            .station { background: #fff; border: 3px solid #111; box-shadow: none; }
+            .station .marker { background: #111; width: 3px; height: 5px; margin-left: -1.5px; font-weight: bold; }
+            .station .hour-hand { width: 4px; height: 12px; background: #111; margin-left: -2px; border-radius: 0; }
+            .station .min-hand { width: 3px; height: 18px; background: #111; margin-left: -1.5px; border-radius: 0; }
+            .station .sec-hand { width: 2px; height: 20px; background: #e50000; margin-left: -1px; border-radius: 0; }
+            .station .center-cap { width: 8px; height: 8px; background: #e50000; z-index: 10; }
+
+            /* Analog 4: Minimalist */
+            .minimalist { background: #fdfdfd; border: 1px solid #eee; }
+            .minimalist .marker { display: none; } /* No markers */
+            .minimalist .hour-hand { width: 2px; height: 12px; background: #000; margin-left: -1px; }
+            .minimalist .min-hand { width: 1px; height: 18px; background: #aaa; margin-left: -0.5px; }
+            .minimalist .sec-hand { display: none; } /* No second hand */
+            .minimalist .center-cap { background: #000; width: 4px; height: 4px; }
+
+            /* Analog 5: Vintage */
+            .vintage { background: #f4e8d2; border: 2px solid #8b5a2b; box-shadow: inset 0 0 10px rgba(139, 90, 43, 0.3); }
+            .vintage .marker { background: #5c3a21; }
+            .vintage .hour-hand { width: 4px; height: 10px; background: #3e2723; margin-left: -2px; border-radius: 2px 2px 0 0; }
+            .vintage .min-hand { width: 2px; height: 18px; background: #4e342e; margin-left: -1px; }
+            .vintage .sec-hand { width: 1px; height: 20px; background: #c62828; margin-left: -0.5px; opacity: 0.8; }
+            .vintage .center-cap { background: #5c3a21; }
+        </style>
+
     </div>
 
     {{-- المحرك (Script) --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const targetTz = "{{ $sysTz }}";
-            const type = "{{ $clockType }}";
 
             function updateSystemClock() {
                 const now = new Date();
                 const localTimeStr = now.toLocaleString("en-US", { timeZone: targetTz });
                 const storeTime = new Date(localTimeStr);
 
-                if (type === 'analog') {
-                    const seconds = storeTime.getSeconds();
-                    const minutes = storeTime.getMinutes();
-                    const hours = storeTime.getHours();
-                    
-                    const secDeg = ((seconds / 60) * 360);
-                    const minDeg = ((minutes / 60) * 360) + ((seconds/60)*6);
-                    const hourDeg = ((hours / 12) * 360) + ((minutes/60)*30);
+                // Update Analog 
+                const seconds = storeTime.getSeconds();
+                const minutes = storeTime.getMinutes();
+                const hours = storeTime.getHours();
+                
+                const secDeg = ((seconds / 60) * 360);
+                const minDeg = ((minutes / 60) * 360) + ((seconds/60)*6);
+                const hourDeg = ((hours / 12) * 360) + ((minutes/60)*30);
 
-                    const sHand = document.getElementById('hand_s');
-                    const mHand = document.getElementById('hand_m');
-                    const hHand = document.getElementById('hand_h');
-                    
-                    if(sHand) sHand.style.transform = `rotate(${secDeg}deg)`;
-                    if(mHand) mHand.style.transform = `rotate(${minDeg}deg)`;
-                    if(hHand) hHand.style.transform = `rotate(${hourDeg}deg)`;
-                    
-                    const dateEl = document.getElementById('analog_text_date');
-                    if(dateEl) dateEl.innerText = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(storeTime);
+                const sHand = document.getElementById('hand_s');
+                const mHand = document.getElementById('hand_m');
+                const hHand = document.getElementById('hand_h');
+                
+                if(sHand) sHand.style.transform = `rotate(${secDeg}deg)`;
+                if(mHand) mHand.style.transform = `rotate(${minDeg}deg)`;
+                if(hHand) hHand.style.transform = `rotate(${hourDeg}deg)`;
+                
+                const aDateEl = document.getElementById('analog_text_date');
+                if(aDateEl) aDateEl.innerText = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(storeTime);
 
-                } else {
-                    const timeEl = document.getElementById('live_sys_time');
-                    const ampmEl = document.getElementById('live_sys_ampm');
-                    const dateEl = document.getElementById('live_sys_date');
-                    
-                    if(timeEl) {
-                        let hours = storeTime.getHours();
-                        let minutes = storeTime.getMinutes();
-                        let seconds = storeTime.getSeconds();
-                        let ampm = hours >= 12 ? 'PM' : 'AM';
-                        
-                        hours = hours % 12;
-                        hours = hours ? hours : 12; 
-                        minutes = minutes < 10 ? '0'+minutes : minutes;
-                        seconds = seconds < 10 ? '0'+seconds : seconds;
-                        
-                        timeEl.innerText = hours + ':' + minutes + ':' + seconds;
-                        if(ampmEl) ampmEl.innerText = ampm;
-                    }
-                    if(dateEl) {
-                        dateEl.innerText = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(storeTime);
-                    }
+                // Update Digital
+                const timeEl = document.getElementById('live_sys_time');
+                const ampmEl = document.getElementById('live_sys_ampm');
+                const dateEl = document.getElementById('live_sys_date');
+                
+                if(timeEl) {
+                    let h24 = storeTime.getHours();
+                    let h12 = h24 % 12;
+                    h12 = h12 ? h12 : 12; 
+                    let mins = minutes < 10 ? '0'+minutes : minutes;
+                    let secs = seconds < 10 ? '0'+seconds : seconds;
+                    timeEl.innerText = h12 + ':' + mins + ':' + secs;
+                    if(ampmEl) ampmEl.innerText = h24 >= 12 ? 'PM' : 'AM';
+                }
+                if(dateEl) {
+                    dateEl.innerText = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(storeTime);
                 }
             }
             setInterval(updateSystemClock, 1000);
             updateSystemClock();
         });
+
+        // Global function to live preview clock in settings
+        window.updateLiveClockPreview = function(newType, newTheme) {
+            const digWrap = document.getElementById('clock_digital_wrapper');
+            const anaWrap = document.getElementById('clock_analog_wrapper');
+            const anaFace = document.getElementById('analog_face_el');
+            
+            if (newType === 'digital') {
+                anaWrap.classList.remove('d-flex');
+                anaWrap.classList.add('d-none');
+                
+                digWrap.classList.remove('d-none');
+                digWrap.classList.add('d-flex');
+                
+                // Remove old themes
+                digWrap.className = `digital-container d-flex align-items-center ${newTheme}`;
+            } else {
+                digWrap.classList.remove('d-flex');
+                digWrap.classList.add('d-none');
+                
+                anaWrap.classList.remove('d-none');
+                anaWrap.classList.add('d-flex');
+                
+                // Remove old themes
+                anaFace.className = `analog-face ${newTheme}`;
+            }
+        };
     </script>
 @endauth
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
@@ -1741,19 +1794,58 @@
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('reports.inventory_logs') ? 'active' : '' }}" href="{{ route('reports.inventory_logs') }}">
                     <i class="fas fa-history"></i> 
-                    <span>{{ __('سجل تعديلات المخزون') }}</span>
+                    <span>{{ __('inventory_logs_title') }}</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('store.pos.withdrawals') ? 'active' : '' }}" href="{{ route('store.pos.withdrawals') }}">
                     <i class="fas fa-hand-holding-usd"></i> 
-                    <span>{{ __('مسحوبات المالك') }}</span>
+                    <span>{{ __('owner_withdrawals_report_title') }}</span>
                 </a>
             </li>
         </ul>
     </div>
 </li>
-                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('store.settings.*') ? 'active' : '' }}" href="{{ route('store.settings.index') }}"><i class="fa fa-cogs"></i> {{ __('الإعدادات') }}</a></li>
+<li class="nav-item">
+    <a class="nav-link w-100 d-flex justify-content-between align-items-center {{ request()->routeIs('store.settings.*') ? 'active' : '' }}" data-bs-toggle="collapse" href="#settingsSubmenu" role="button" aria-expanded="{{ request()->routeIs('store.settings.*') ? 'true' : 'false' }}" aria-controls="settingsSubmenu">
+        <span><i class="fa fa-cogs"></i> {{ __('الإعدادات') }}</span>
+        <i class="fas fa-chevron-left fa-sm drop-icon"></i>
+    </a>
+    <div class="collapse {{ request()->routeIs('store.settings.*') ? 'show' : '' }} submenu-container" id="settingsSubmenu">
+        <ul class="nav flex-column ps-3 submenu-list">
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('store.settings.general') ? 'active' : '' }}" href="{{ route('store.settings.general') }}">
+                    <i class="fas fa-sliders-h"></i> 
+                    <span>{{ __('إعدادات عامة') }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('store.settings.notifications') ? 'active' : '' }}" href="{{ route('store.settings.notifications') }}">
+                    <i class="fas fa-bell"></i> 
+                    <span>{{ __('إعدادات الإشعارات') }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('store.settings.billing') ? 'active' : '' }}" href="{{ route('store.settings.billing') }}">
+                    <i class="fas fa-file-invoice-dollar"></i> 
+                    <span>{{ __('المالية والفوترة') }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('store.settings.identity') ? 'active' : '' }}" href="{{ route('store.settings.identity') }}">
+                    <i class="fas fa-palette"></i> 
+                    <span>{{ __('الهوية البصرية') }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('store.settings.timezone') ? 'active' : '' }}" href="{{ route('store.settings.timezone') }}">
+                    <i class="fas fa-clock"></i> 
+                    <span>{{ __('التوقيت والساعة') }}</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</li>
                             @endif
                         </ul>
                     </div>

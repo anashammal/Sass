@@ -4,22 +4,33 @@
 <div class="container-fluid py-4">
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-file-invoice-dollar me-2"></i> تقرير مسحوبات المالك</h5>
-            <a href="{{ route('store.pos.index') }}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> العودة للكاشير</a>
+            <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-file-invoice-dollar me-2"></i> {{ __('owner_withdrawals_report_title') }}</h5>
+            <div class="d-flex gap-2 no-print">
+                <button onclick="window.print()" class="btn btn-sm btn-light">
+                    <i class="fas fa-print me-1"></i> {{ __('print_btn') }}
+                </button>
+                <button onclick="shareViaWhatsApp()" class="btn btn-sm btn-success shadow-sm">
+                    <i class="fab fa-whatsapp me-1"></i> {{ __('whatsapp_btn') }}
+                </button>
+                <button onclick="shareViaEmail()" class="btn btn-sm btn-info text-white shadow-sm">
+                    <i class="fas fa-envelope me-1"></i> {{ __('email_btn') }}
+                </button>
+                <a href="{{ route('store.pos.index') }}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> {{ __('back_to_cashier') }}</a>
+            </div>
         </div>
         
         <div class="card-body">
             {{-- فلاتر البحث --}}
             <div class="row g-3 mb-4 bg-light p-3 rounded">
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">من تاريخ</label>
+                    <label class="form-label fw-bold">{{ __('from_date') }}</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
                         <input type="date" id="filterDateFrom" class="form-control enhanced-date-input auto-filter">
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">إلى تاريخ</label>
+                    <label class="form-label fw-bold">{{ __('to_date') }}</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-muted"></i></span>
                         <input type="date" id="filterDateTo" class="form-control enhanced-date-input auto-filter">
@@ -27,7 +38,7 @@
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
                     <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
-                        <i class="fas fa-undo me-1"></i> إعادة تعيين
+                        <i class="fas fa-undo me-1"></i> {{ __('reset_filter') }}
                     </button>
                 </div>
             </div>
@@ -36,13 +47,13 @@
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
                     <div class="p-3 bg-danger bg-opacity-10 text-danger rounded border border-danger">
-                        <label class="small text-muted fw-bold">إجمالي التكلفة (رأس المال - سعر الشراء)</label>
+                        <label class="small text-muted fw-bold">{{ __('total_cost_capital_purchase_price') }}</label>
                         <h3 class="fw-bold mb-0" id="displayTotalCost">{{ number_format($totalCost, 2) }}</h3>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="p-3 bg-success bg-opacity-10 text-success rounded border border-success">
-                        <label class="small text-muted fw-bold">إجمالي سعر البيع (Selling Price)</label>
+                        <label class="small text-muted fw-bold">{{ __('total_selling_price_display') }}</label>
                         <h3 class="fw-bold mb-0" id="displayTotalSale">{{ number_format($totalSale, 2) }}</h3>
                     </div>
                 </div>
@@ -53,12 +64,12 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>رقم المسحوب</th>
-                            <th>عدد المواد</th>
-                            <th>التكلفة</th>
-                            <th>سعر البيع</th>
-                            <th>التاريخ</th>
-                            <th>إجراءات</th>
+                            <th>{{ __('withdrawal_number') }}</th>
+                            <th>{{ __('items_count_lbl') }}</th>
+                            <th>{{ __('total_cost_lbl') }}</th>
+                            <th>{{ __('selling_price_lbl') }}</th>
+                            <th>{{ __('date_label') }}</th>
+                            <th>{{ __('actions') }}</th>
                         </tr>
                     </thead>
                     <tbody id="withdrawalsTableBody">
@@ -80,7 +91,7 @@
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">تفاصيل المسحوبات</h5>
+                <h5 class="modal-title">{{ __('withdrawal_details_title') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="detailsModalBody">
@@ -165,20 +176,20 @@
         $.get("{{ url('store-owner/pos/sale-details') }}/" + id, function(res) {
             let html = `
                 <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
-                    <h5>${res.sale.is_withdrawal ? 'مسحوبات رقم ' + res.sale.withdrawal_number : 'فاتورة ' + res.sale.id}</h5>
+                    <h5>${res.sale.is_withdrawal ? '{{ __("withdrawal_number_val") }} ' + res.sale.withdrawal_number : '{{ __("invoice_lbl") }} ' + res.sale.id}</h5>
                     <span>${new Date(res.sale.created_at).toLocaleDateString()}</span>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-sm text-center align-middle" style="min-width: 600px;">
                         <thead class="bg-primary text-white">
                             <tr>
-                                <th>المنتج</th>
-                                <th>الباركود</th>
-                                <th>الكمية</th>
-                                <th>التكلفة<br><small>(للوحدة)</small></th>
-                                <th>إجمالي<br>التكلفة</th>
-                                <th>سعر<br>البيع</th>
-                                <th>الإجمالي<br><small>(سعر البيع)</small></th>
+                                <th>{{ __("product_name_lbl") }}</th>
+                                <th>{{ __("barcode_lbl") }}</th>
+                                <th>{{ __("quantity_lbl") }}</th>
+                                <th>{!! __("unit_cost_lbl") !!}</th>
+                                <th>{!! __("total_cost_lbl") !!}</th>
+                                <th>{!! __("selling_price_lbl") !!}</th>
+                                <th>{!! __("total_sale_lbl") !!}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -200,7 +211,7 @@
             html += `</tbody>
                     <tfoot>
                         <tr class="fw-bold bg-light">
-                            <td colspan="4" class="text-end">الإجمالي النهائي</td>
+                            <td colspan="4" class="text-end">{{ __("final_total") }}</td>
                             <td class="text-danger fs-5">${totalCostSum.toFixed(2)}</td>
                             <td></td>
                             <td class="text-dark fs-5">${res.sale.total}</td>
@@ -214,22 +225,108 @@
     }
 
     function returnItems(id) {
-        if(confirm('هل أنت متأكد من إرجاع هذه المسحوبات؟ سيتم حذف العملية وإرجاع المواد للمخزون.')) {
+        if(confirm('{{ __("confirm_return_withdrawal") }}')) {
             $.ajax({
                 url: "{{ route('store.pos.delete-sale', ':id') }}".replace(':id', id),
                 type: 'DELETE',
                 data: { _token: "{{ csrf_token() }}" },
                 success: function(res) {
-                    alert(res.message || 'تمت العملية بنجاح');
+                    alert(res.message || '{{ __("operation_successful") }}');
                     location.reload();
                 },
                 error: function(xhr) {
-                    let msg = 'فشل في إرجاع المسحوبات';
+                    let msg = '{{ __("failed_return_withdrawal") }}';
                     if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                    alert('خطأ: ' + msg);
+                    alert('{{ __("error_prefix") }}' + msg);
                 }
             });
         }
+    }
+
+    // تصدير PDF للمسحوبات وإرساله
+    function buildWithdrawalsExportUrl(type) {
+        let fromDate = document.getElementById('filterDateFrom').value;
+        let toDate = document.getElementById('filterDateTo').value;
+        let url = "{{ route('store.pos.withdrawals.pdf') }}?type=" + type;
+        if(fromDate) url += "&from_date=" + fromDate;
+        if(toDate) url += "&to_date=" + toDate;
+        return url;
+    }
+
+    function shareViaWhatsApp() {
+        let fetchUrl = buildWithdrawalsExportUrl('whatsapp');
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '{{ __("preparing_withdrawals_report") }}',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                if (data.url) {
+                    const message = `{{ __("withdrawals_report_whatsapp_text") }}` +
+                                    `{{ auth()->user()->store->name ?? '' }}\n` +
+                                    `{{ __("report_date") }}{{ now()->format('Y-m-d') }}\n` +
+                                    `{{ __("attached_detailed_withdrawals_report") }}`;
+                    
+                    const filename = data.filename || "withdrawals_report.pdf";
+                    if (typeof triggerWhatsappPrompt === 'function') {
+                        triggerWhatsappPrompt('', message, '{{ __("send_withdrawals_pdf_attachment") }}', data.url, filename);
+                    } else {
+                        alert('{{ __("error_whatsapp_func_unavailable") }}');
+                    }
+                } else {
+                    alert('{{ __("failed_prepare_report_file") }}');
+                }
+            })
+            .catch(err => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                console.error(err);
+                alert('{{ __("error_communicate_server") }}');
+            });
+    }
+
+    function shareViaEmail() {
+        let fetchUrl = buildWithdrawalsExportUrl('email');
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '{{ __("preparing_send_request") }}',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                if (data.url) {
+                    const message = `{{ __("withdrawals_report_whatsapp_text") }}` +
+                                    `{{ auth()->user()->store->name ?? '' }}\n` +
+                                    `{{ __("report_date") }}{{ now()->format('Y-m-d') }}\n` +
+                                    `{{ __("attached_detailed_withdrawals_report") }}`;
+                    
+                    const filename = data.filename || "withdrawals_report.pdf";
+                    if (typeof triggerEmailPrompt === 'function') {
+                        triggerEmailPrompt('', message, '{{ __("send_withdrawals_pdf_attachment") }}', data.url, filename);
+                    } else {
+                        alert('{{ __("error_email_func_unavailable") }}');
+                    }
+                } else {
+                    alert('{{ __("failed_prepare_report_file") }}');
+                }
+            })
+            .catch(err => {
+                if (typeof Swal !== 'undefined') Swal.close();
+                console.error(err);
+                alert('{{ __("error_communicate_server") }}');
+            });
     }
 </script>
 @endsection

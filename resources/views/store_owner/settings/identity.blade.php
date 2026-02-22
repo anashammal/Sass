@@ -1,197 +1,149 @@
-@extends('layouts.app') {{-- (استبدل هذا باسم ملف الـ layout الرئيسي عندك إذا كان مختلفاً) --}}
+@extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h2>إعدادات الهوية البصرية</h2>
-    <p>إدارة شعار متجرك، الختم الإلكتروني، والتوقيع المستخدم في الفواتير.</p>
+<div class="container pb-5">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3 class="mb-0 text-primary fw-bold"><i class="fas fa-palette me-2"></i> الهوية البصرية للعلامة التجارية</h3>
+        </div>
+    </div>
 
-    {{-- لعرض رسائل النجاح أو الأخطاء --}}
     @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <strong>حدث خطأ:</strong>
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+        <div class="alert alert-success shadow-sm border-0">
+            <i class="fa fa-check-circle me-2"></i> {{ session('success') }}
         </div>
     @endif
 
-    {{-- فورم الرفع الرئيسي --}}
-    {{--!! -- تصحيح المسار: تم تغيير 'tenant.' إلى 'store.' --!! --}}
-    <form action="{{ route('store.settings.identity.update') }}" method="POST" enctype="multipart/form-data">
+    <form method="POST" action="{{ route('store.settings.update-identity') }}" enctype="multipart/form-data">
         @csrf
 
-        {{-- قسم الشعار --}}
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">1. شعار المتجر (يظهر في كل الصفحات)</h5>
-                <p class="card-text">سيظهر هذا الشعار في رأس جميع صفحات متجرك وعلى الفواتير. إذا لم يتم رفع شعار، سيظهر شعار "Tech-Sys" الافتراضي.</p>
-                
-                @if($logoUrl)
-                    <div class="mb-2">
-                        <strong>الشعار الحالي:</strong><br>
-                        <img src="{{ $logoUrl }}" alt="الشعار الحالي" style="max-height: 100px; background: #f0f0f0; padding: 5px; border-radius: 4px;">
+        <div class="row mb-4 justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 mb-4 h-100">
+                    <div class="card-header bg-white text-primary fw-bold border-bottom">
+                        <i class="fa fa-paint-brush me-2"></i> ملفات الهوية البصرية
                     </div>
-                    
-                    {{-- فورم حذف الشعار --}}
-                    {{--!! -- تصحيح المسار: تم تغيير 'tenant.' إلى 'store.' --!! --}}
-                    <form action="{{ route('store.settings.identity.destroy') }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف الشعار؟');">
-                        @csrf
-                        @method('DELETE')
-                        <input type="hidden" name="type" value="logo">
-                        <button type="submit" class="btn btn-sm btn-danger">حذف الشعار الحالي</button>
-                    </form>
-                @else
-                    <div class="alert alert-info">لم يتم رفع شعار. سيتم استخدام شعار Tech-Sys الافتراضي.</div>
-                @endif
-                
-                <div class="mt-3">
-                    <label for="logo" class="form-label"> {{ __('رفع شعار جديد (اختياري):') }} </label>
-                    <div class="localized-file-wrapper">
-                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
-                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
+                    <div class="card-body">
+                        
+                        {{-- الشعار --}}
+                        <div class="mb-5 text-center">
+                            <label class="form-label fw-bold d-block">شعار المتجر (Logo)</label>
+                            <div class="mb-3 p-3 border rounded bg-light d-inline-block position-relative" style="min-width: 200px; min-height: 120px;">
+                                @if($store->logo_path)
+                                    <img id="preview_logo" src="{{ $store->logo_url }}?t={{ time() }}" height="100" alt="Logo" style="mix-blend-mode: multiply;">
+                                @else
+                                    <div class="text-muted p-4 d-flex flex-column justify-content-center align-items-center h-100" id="placeholder_logo">
+                                        <i class="fas fa-image fa-2x mb-2 opacity-50"></i>
+                                        <span>لا يوجد شعار</span>
+                                    </div>
+                                    <img id="preview_logo" src="" height="100" style="display:none; mix-blend-mode: multiply;">
+                                @endif
+                            </div>
+                            <div class="localized-file-wrapper mx-auto" style="max-width: 300px;">
+                                <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn w-100 text-center">
+                                    <i class="fas fa-upload me-1"></i> تحميل شعار جديد
+                                </button>
+                                <div class="localized-file-name text-center mt-1 small text-muted">لم يتم اختيار ملف</div>
+                                <input type="file" name="logo" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_logo', 'placeholder_logo'); updateFileName(this)">
+                            </div>
+                        </div>
+
+                        <hr class="text-muted opacity-25">
+
+                        {{-- الختم --}}
+                        <div class="mb-5 text-center mt-4">
+                            <label class="form-label fw-bold d-block">الختم الإلكتروني (Stamp)</label>
+                            <div class="mb-3 p-3 border rounded bg-light d-inline-block position-relative" style="min-width: 200px; min-height: 120px;">
+                                @if($store->stamp_path)
+                                    <img id="preview_stamp" src="{{ $store->stamp_url }}?t={{ time() }}" height="100" alt="Stamp" style="mix-blend-mode: multiply;">
+                                @else
+                                    <div class="text-muted p-4 d-flex flex-column justify-content-center align-items-center h-100" id="placeholder_stamp">
+                                        <i class="fas fa-stamp fa-2x mb-2 opacity-50"></i>
+                                        <span>لا يوجد ختم</span>
+                                    </div>
+                                    <img id="preview_stamp" src="" height="100" style="display:none; mix-blend-mode: multiply;">
+                                @endif
+                            </div>
+                            <div class="localized-file-wrapper mx-auto" style="max-width: 300px;">
+                                <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn w-100 text-center">
+                                    <i class="fas fa-upload me-1"></i> تحميل ختم إلكتروني
+                                </button>
+                                <div class="localized-file-name text-center mt-1 small text-muted">لم يتم اختيار ملف</div>
+                                <input type="file" name="stamp" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_stamp', 'placeholder_stamp'); updateFileName(this)">
+                            </div>
+                        </div>
+
+                        <hr class="text-muted opacity-25">
+
+                        {{-- التوقيع --}}
+                        <div class="mb-4 text-center mt-4">
+                            <label class="form-label fw-bold d-block">التوقيع المعتمد (Signature)</label>
+                            <div class="mb-3 p-3 border rounded bg-light d-inline-block position-relative" style="min-width: 200px; min-height: 120px;">
+                                @if($store->signature_path)
+                                    <img id="preview_signature" src="{{ $store->signature_url }}?t={{ time() }}" height="80" alt="Sign" style="mix-blend-mode: multiply;">
+                                @else
+                                    <div class="text-muted p-4 d-flex flex-column justify-content-center align-items-center h-100" id="placeholder_sign">
+                                        <i class="fas fa-signature fa-2x mb-2 opacity-50"></i>
+                                        <span>لا يوجد توقيع</span>
+                                    </div>
+                                    <img id="preview_signature" src="" height="80" style="display:none; mix-blend-mode: multiply;">
+                                @endif
+                            </div>
+                            <div class="localized-file-wrapper mx-auto" style="max-width: 300px;">
+                                <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn w-100 text-center">
+                                    <i class="fas fa-upload me-1"></i> تحميل توقيع معتمد
+                                </button>
+                                <div class="localized-file-name text-center mt-1 small text-muted">لم يتم اختيار ملف</div>
+                                <input type="file" name="signature" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_signature', 'placeholder_sign'); updateFileName(this)">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-12 text-center">
+                        <button type="submit" class="btn btn-primary btn-lg px-5 shadow rounded-pill">
+                            <i class="fa fa-save me-2"></i> حفظ تحديثات الهوية
                         </button>
-                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
-                        <input type="file" name="logo" id="logo" class="@error('logo') is-invalid @enderror" accept="image/*" onchange="updateFileName(this)">
                     </div>
                 </div>
             </div>
         </div>
-
-        {{-- قسم الختم --}}
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">2. ختم المتجر (اختياري للفواتير)</h5>
-                <p class="card-text">ارفع صورة الختم (يفضل PNG بخلفية شفافة). ستتمكن من إضافته لأي فاتورة.</p>
-                @if($sealUrl)
-                    <div class="mb-2">
-                        <strong>الختم الحالي:</strong><br>
-                        <img src="{{ $sealUrl }}" alt="الختم الحالي" style="max-height: 100px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
-                    </div>
-                    
-                    {{-- فورم حذف الختم --}}
-                    {{--!! -- تصحيح المسار: تم تغيير 'tenant.' إلى 'store.' --!! --}}
-                    <form action="{{ route('store.settings.identity.destroy') }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف الختم؟');">
-                        @csrf
-                        @method('DELETE')
-                        <input type="hidden" name="type" value="seal">
-                        <button type="submit" class="btn btn-sm btn-danger">حذف الختم الحالي</button>
-                    </form>
-                @endif
-                <div class="mt-3">
-                    <label for="seal" class="form-label"> {{ __('رفع ختم جديد (اختياري - PNG فقط):') }} </label>
-                    <div class="localized-file-wrapper">
-                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
-                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
-                        </button>
-                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
-                        <input type="file" name="seal" id="seal" class="@error('seal') is-invalid @enderror" accept="image/png" onchange="updateFileName(this)">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- قسم التوقيع --}}
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">3. توقيع صاحب المتجر (اختياري للفواتير)</h5>
-                <p class="card-text">ارفع صورة التوقيع (يفضل PNG بخلفية شفافة).</p>
-                @if($signatureUrl)
-                    <div class="mb-2">
-                        <strong>التوقيع الحالي:</strong><br>
-                        <img src="{{ $signatureUrl }}" alt="التوقيع الحالي" style="max-height: 100px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
-                    </div>
-
-                    {{-- فورم حذف التوقيع --}}
-                    {{--!! -- تصحيح المسار: تم تغيير 'tenant.' إلى 'store.' --!! --}}
-                    <form action="{{ route('store.settings.identity.destroy') }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف التوقيع؟');">
-                        @csrf
-                        @method('DELETE')
-                        <input type="hidden" name="type" value="signature">
-                        <button type="submit" class="btn btn-sm btn-danger">حذف التوقيع الحالي</button>
-                    </form>
-                @endif
-                <div class="mt-3">
-                    <label for="signature" class="form-label"> {{ __('رفع توقيع جديد (اختياري - PNG فقط):') }} </label>
-                    <div class="localized-file-wrapper">
-                        <button type="button" class="btn btn-sm btn-outline-secondary localized-file-btn">
-                            <i class="fas fa-upload me-1"></i> {{ __('اختيار ملف') }}
-                        </button>
-                        <div class="localized-file-name text-start"> {{ __('لم يتم اختيار ملف') }} </div>
-                        <input type="file" name="signature" id="signature" class="@error('signature') is-invalid @enderror" accept="image/png" onchange="updateFileName(this)">
-                    </div>
-                </div>
-            </div>
-        </div>
-<div class="form-group mb-3">
-    <label class="form-label fw-bold">توقيت النظام (Timezone)</label>
-    <select name="timezone" class="form-select" dir="ltr"> {{-- dir="ltr" لعرض الوقت بشكل صحيح --}}
-        @php
-            $currentTz = auth()->user()->store->timezone ?? 'Asia/Riyadh';
-            
-            // قائمة شاملة بالتوقيت العالمي
-            $timezones = [
-                'Pacific/Midway'       => '(GMT-11:00) ميدواي، ساموا',
-                'America/Adak'         => '(GMT-10:00) هاواي-ألوتيان',
-                'Pacific/Honolulu'     => '(GMT-10:00) هاواي',
-                'America/Anchorage'    => '(GMT-09:00) ألاسكا',
-                'America/Los_Angeles'  => '(GMT-08:00) توقيت المحيط الهادئ (الولايات المتحدة وكندا)',
-                'America/Denver'       => '(GMT-07:00) التوقيت الجبلي (الولايات المتحدة وكندا)',
-                'America/Chicago'      => '(GMT-06:00) التوقيت المركزي (الولايات المتحدة وكندا)',
-                'America/New_York'     => '(GMT-05:00) التوقيت الشرقي (الولايات المتحدة وكندا)',
-                'America/Caracas'      => '(GMT-04:00) كاراكاس، لاباز',
-                'America/Santiago'     => '(GMT-04:00) سانتياغو',
-                'America/St_Johns'     => '(GMT-03:30) نيوفاوندلاند',
-                'America/Sao_Paulo'    => '(GMT-03:00) برازيليا',
-                'America/Argentina/Buenos_Aires' => '(GMT-03:00) بوينس آيرس، جورج تاون',
-                'Atlantic/Azores'      => '(GMT-01:00) جزر الأزور',
-                'Europe/London'        => '(GMT+00:00) لندن، دبلن، لشبونة (توقيت جرينتش)',
-                'Africa/Casablanca'    => '(GMT+00:00) الدار البيضاء، مونروفيا',
-                'Europe/Paris'         => '(GMT+01:00) أمستردام، برلين، روما، باريس، مدريد',
-                'Africa/Lagos'         => '(GMT+01:00) غرب وسط أفريقيا',
-                'Africa/Cairo'         => '(GMT+02:00) القاهرة',
-                'Europe/Kiev'          => '(GMT+02:00) هلسنكي، كييف، ريغا، صوفيا',
-                'Asia/Amman'           => '(GMT+02:00) عمّان',
-                'Asia/Beirut'          => '(GMT+02:00) بيروت',
-                'Asia/Jerusalem'       => '(GMT+02:00) القدس',
-                'Africa/Johannesburg'  => '(GMT+02:00) هراري، بريتوريا',
-                'Asia/Baghdad'         => '(GMT+03:00) بغداد',
-                'Asia/Riyadh'          => '(GMT+03:00) الكويت، الرياض، مكة المكرمة',
-                'Europe/Istanbul'      => '(GMT+03:00) إسطنبول',
-                'Europe/Moscow'        => '(GMT+03:00) موسكو، سان بطرسبرج',
-                'Asia/Tehran'          => '(GMT+03:30) طهران',
-                'Asia/Dubai'           => '(GMT+04:00) أبو ظبي، مسقط',
-                'Asia/Baku'            => '(GMT+04:00) باكو',
-                'Asia/Kabul'           => '(GMT+04:30) كابول',
-                'Asia/Karachi'         => '(GMT+05:00) إسلام آباد، كراتشي',
-                'Asia/Kolkata'         => '(GMT+05:30) تشيناي، كلكتا، مومباي، نيودلهي',
-                'Asia/Kathmandu'       => '(GMT+05:45) كاتماندو',
-                'Asia/Dhaka'           => '(GMT+06:00) دكا',
-                'Asia/Bangkok'         => '(GMT+07:00) بانكوك، هانوي، جاكرتا',
-                'Asia/Hong_Kong'       => '(GMT+08:00) بكين، هونغ كونغ، سنغافورة، كوالالمبور',
-                'Asia/Tokyo'           => '(GMT+09:00) أوساكا، سابورو، طوكيو',
-                'Asia/Seoul'           => '(GMT+09:00) سيول',
-                'Australia/Darwin'     => '(GMT+09:30) داروين',
-                'Australia/Sydney'     => '(GMT+10:00) كانبيرا، ملبورن، سيدني',
-                'Pacific/Guadalcanal'  => '(GMT+11:00) جزر سليمان، كاليدونيا الجديدة',
-                'Pacific/Auckland'     => '(GMT+12:00) أوكلاند، ويلينغتون',
-            ];
-        @endphp
-
-        @foreach($timezones as $tz => $label)
-            <option value="{{ $tz }}" {{ $currentTz == $tz ? 'selected' : '' }}>
-                {{ $label }}
-            </option>
-        @endforeach
-    </select>
-    <small class="text-muted">سيتم تطبيق هذا التوقيت على كافة الفواتير والتقارير في متجرك.</small>
-</div>
-        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
     </form>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    function previewImage(input, imgId, placeholderId) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                if(document.getElementById(placeholderId)) document.getElementById(placeholderId).style.display = 'none';
+                var img = document.getElementById(imgId); 
+                img.style.display = 'block'; 
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    
+    function updateFileName(input) {
+        let wrapper = input.closest('.localized-file-wrapper');
+        if(!wrapper) return;
+        let nameDisplay = wrapper.querySelector('.localized-file-name');
+        if(!nameDisplay) return;
+        
+        if (input.files && input.files[0]) {
+            nameDisplay.textContent = input.files[0].name;
+            nameDisplay.classList.add('text-success');
+            nameDisplay.classList.remove('text-muted');
+        } else {
+            nameDisplay.textContent = 'لم يتم اختيار ملف';
+            nameDisplay.classList.add('text-muted');
+            nameDisplay.classList.remove('text-success');
+        }
+    }
+</script>
 @endsection

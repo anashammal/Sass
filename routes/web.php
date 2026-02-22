@@ -131,8 +131,29 @@ Route::middleware(['auth'])->group(function () {
 
         // الموارد الأساسية
         Route::get('/dashboard', [StoreOwnerDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-        Route::put('/settings/{id}', [SettingsController::class, 'update'])->name('settings.update');
+        
+        // ==========================================
+        // ✅ روابط الإعدادات (مقسمة)
+        // ==========================================
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/general', [SettingsController::class, 'general'])->name('general');
+            Route::get('/notifications', [SettingsController::class, 'notifications'])->name('notifications');
+            Route::get('/billing', [SettingsController::class, 'billing'])->name('billing');
+            Route::get('/identity', [SettingsController::class, 'identity'])->name('identity');
+            Route::get('/timezone', [SettingsController::class, 'timezone'])->name('timezone');
+            
+            // روابط التحديث المشتركة
+            Route::put('/update-general/{id}', [SettingsController::class, 'updateGeneral'])->name('update-general');
+            Route::put('/update-notifications/{id}', [SettingsController::class, 'updateNotifications'])->name('update-notifications');
+            Route::put('/update-billing/{id}', [SettingsController::class, 'updateBilling'])->name('update-billing');
+            Route::put('/update-timezone/{id}', [SettingsController::class, 'updateTimezone'])->name('update-timezone');
+            Route::post('/update-identity', [SettingsController::class, 'updateIdentity'])->name('update-identity');
+        });
+        
+        // توافقية للإبقاء على الرابط القديم إذا استُدعي (توجيه للعامة)
+        Route::get('/settings', function() {
+            return redirect()->route('store.settings.general');
+        })->name('settings.index');
         Route::get('/store/setup', [OnboardingController::class, 'index'])->name('onboarding.setup');
         Route::post('/store/setup', [OnboardingController::class, 'update'])->name('onboarding.update');
         Route::post('/onboarding/send-otp', [OnboardingController::class, 'sendOtp'])->name('onboarding.send-otp');
@@ -196,6 +217,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('pos/save', [PosController::class, 'storeInvoice'])->name('pos.save');
         Route::get('pos/recent-sales', [PosController::class, 'getRecentSales'])->name('pos.recent-sales');
         Route::get('pos/withdrawals', [PosController::class, 'getWithdrawalsReport'])->name('pos.withdrawals');
+        Route::get('pos/withdrawals/pdf', [PosController::class, 'withdrawalsPdf'])->name('pos.withdrawals.pdf');
         Route::get('pos/sale-details/{id}', [PosController::class, 'getSaleDetails'])->name('pos.sale-details');
         Route::get('pos/sales/{id}/partial', [PosController::class, 'showSalePartial'])->name('pos.sales.partial');
         Route::delete('pos/delete-sale/{id}', [PosController::class, 'deleteSale'])->name('pos.delete-sale');
