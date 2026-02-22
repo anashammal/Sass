@@ -100,7 +100,10 @@ class SettingsController extends Controller
             'email' => 'nullable|email',
             'phone_number' => 'nullable|string|max:20',
             'tax_number' => 'nullable|string|max:100',
+            'country' => 'nullable|string|max:100',
+            'city' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:255',
+            'address_details' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
         ]);
@@ -109,7 +112,10 @@ class SettingsController extends Controller
         $store->phone_number = $request->phone_number;
         $store->email = $request->email;
         $store->tax_number = $request->tax_number;
+        $store->country = $request->country;
+        $store->city = $request->city;
         $store->address = $request->address;
+        $store->address_details = $request->address_details;
         $store->latitude = $request->latitude;
         $store->longitude = $request->longitude;
         $store->save();

@@ -35,6 +35,7 @@ class Store extends Model
         'daily_report_time',
         'type',
         'address',
+        'address_details',
         'latitude',
         'longitude',
         'iban_bank_name',
