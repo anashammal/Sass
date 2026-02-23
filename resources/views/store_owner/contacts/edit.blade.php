@@ -294,9 +294,27 @@
                                     const savedLat = parseFloat(document.getElementById("latitude").value);
                                     const savedLng = parseFloat(document.getElementById("longitude").value);
                                     
+                                    const defaultLocations = {
+                                        'ar': { lat: 24.4672, lng: 39.6112 }, // المدينة المنورة
+                                        'en': { lat: 51.5074, lng: -0.1278 }, // لندن
+                                        'ru': { lat: 55.7558, lng: 37.6173 }, // موسكو
+                                        'tr': { lat: 39.9334, lng: 32.8597 }, // أنقرة
+                                        'zh': { lat: 39.9042, lng: 116.4074 },// بكين
+                                        'fr': { lat: 48.8566, lng: 2.3522 },  // باريس
+                                        'es': { lat: 40.4168, lng: -3.7038 }, // مدريد
+                                        'de': { lat: 52.5200, lng: 13.4050 }, // برلين
+                                        'pt': { lat: 38.7223, lng: -9.1393 }, // لشبونة
+                                        'pt-BR': { lat: -15.7975, lng: -47.8919 }, // برازيليا
+                                        'ja': { lat: 35.6895, lng: 139.6917 },// طوكيو
+                                        'hr': { lat: 45.8150, lng: 15.9819 }  // زغرب
+                                    };
+
+                                    const currentLang = "{{ app()->getLocale() }}";
+                                    const defaultPos = defaultLocations[currentLang] || defaultLocations['ar'];
+                                    
                                     const initialPos = (!isNaN(savedLat) && !isNaN(savedLng)) 
                                         ? { lat: savedLat, lng: savedLng } 
-                                        : { lat: 24.7136, lng: 46.6753 }; // الرياض كافتراضي
+                                        : defaultPos;
                                     
                                     map = new google.maps.Map(document.getElementById("map"), {
                                         center: initialPos,
@@ -376,7 +394,7 @@
                                     }
                                 }
                             </script>
-                            <script async src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&libraries=places&callback=initMap"></script>
+                            <script async src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&libraries=places&language={{ app()->getLocale() }}&callback=initMap"></script>
 
                             {{-- المعلومات المالية (نقلت للأعلى) --}}
                             <div class="col-md-6 mb-3">

@@ -226,7 +226,29 @@
 // Define initMap in global scope FIRST (required for callback=initMap)
 var map, marker, geocoder, autocomplete;
 window.initMap = function() {
-    var defaultLocation = { lat: 21.4225, lng: 39.8262 };
+    const defaultLocations = {
+        'ar': { lat: 24.4672, lng: 39.6112 }, // المدينة المنورة
+        'en': { lat: 51.5074, lng: -0.1278 }, // لندن
+        'ru': { lat: 55.7558, lng: 37.6173 }, // موسكو
+        'tr': { lat: 39.9334, lng: 32.8597 }, // أنقرة
+        'zh': { lat: 39.9042, lng: 116.4074 },// بكين
+        'fr': { lat: 48.8566, lng: 2.3522 },  // باريس
+        'es': { lat: 40.4168, lng: -3.7038 }, // مدريد
+        'de': { lat: 52.5200, lng: 13.4050 }, // برلين
+        'pt': { lat: 38.7223, lng: -9.1393 }, // لشبونة
+        'pt-BR': { lat: -15.7975, lng: -47.8919 }, // برازيليا
+        'ja': { lat: 35.6895, lng: 139.6917 },// طوكيو
+        'hr': { lat: 45.8150, lng: 15.9819 }  // زغرب
+    };
+    const currentLang = '{{ app()->getLocale() }}';
+    var defaultLocation = defaultLocations[currentLang] || defaultLocations['ar'];
+    
+    // استخدام الإحداثيات المحفوظة إن وجدت
+    const savedLat = document.getElementById('latitude') ? document.getElementById('latitude').value : null;
+    const savedLng = document.getElementById('longitude') ? document.getElementById('longitude').value : null;
+    if (savedLat && savedLng) {
+        defaultLocation = { lat: parseFloat(savedLat), lng: parseFloat(savedLng) };
+    }
     
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 12,
@@ -688,9 +710,59 @@ $(function() {
     const phoneEl = document.getElementById("phone_input");
 
     // ===== POPULATE COUNTRIES =====
-    $country.empty().append('<option value="">🔍 ابحث عن دولتك...</option>');
+    $country.empty().append('<option value="">{{ __("Search for your country...") }}</option>');
     COUNTRIES.forEach(c => {
-        $country.append(`<option value="${c.code}" data-en="${c.en}" data-ar="${c.ar}">${toFlag(c.code)} ${c.ar} - ${c.en}</option>`);
+        // Translation array mapping
+        const translatedName = {!! json_encode([
+            'Afghanistan' => __('Afghanistan'), 'Albania' => __('Albania'), 'Algeria' => __('Algeria'),
+            'Andorra' => __('Andorra'), 'Angola' => __('Angola'), 'Argentina' => __('Argentina'),
+            'Armenia' => __('Armenia'), 'Australia' => __('Australia'), 'Austria' => __('Austria'),
+            'Azerbaijan' => __('Azerbaijan'), 'Bahrain' => __('Bahrain'), 'Bangladesh' => __('Bangladesh'),
+            'Belarus' => __('Belarus'), 'Belgium' => __('Belgium'), 'Benin' => __('Benin'),
+            'Bolivia' => __('Bolivia'), 'Bosnia And Herzegovina' => __('Bosnia And Herzegovina'), 'Botswana' => __('Botswana'),
+            'Brazil' => __('Brazil'), 'Brunei' => __('Brunei'), 'Bulgaria' => __('Bulgaria'),
+            'Cambodia' => __('Cambodia'), 'Cameroon' => __('Cameroon'), 'Canada' => __('Canada'),
+            'Chile' => __('Chile'), 'China' => __('China'), 'Colombia' => __('Colombia'),
+            'Costa Rica' => __('Costa Rica'), 'Croatia' => __('Croatia'), 'Cuba' => __('Cuba'),
+            'Cyprus' => __('Cyprus'), 'Czech Republic' => __('Czech Republic'), 'Denmark' => __('Denmark'),
+            'Djibouti' => __('Djibouti'), 'Dominican Republic' => __('Dominican Republic'), 'Ecuador' => __('Ecuador'),
+            'Egypt' => __('Egypt'), 'El Salvador' => __('El Salvador'), 'Estonia' => __('Estonia'),
+            'Ethiopia' => __('Ethiopia'), 'Fiji' => __('Fiji'), 'Finland' => __('Finland'),
+            'France' => __('France'), 'Georgia' => __('Georgia'), 'Germany' => __('Germany'),
+            'Ghana' => __('Ghana'), 'Greece' => __('Greece'), 'Guatemala' => __('Guatemala'),
+            'Honduras' => __('Honduras'), 'Hong Kong' => __('Hong Kong'), 'Hungary' => __('Hungary'),
+            'Iceland' => __('Iceland'), 'India' => __('India'), 'Indonesia' => __('Indonesia'),
+            'Iran' => __('Iran'), 'Iraq' => __('Iraq'), 'Ireland' => __('Ireland'),
+            'Israel' => __('Israel'), 'Italy' => __('Italy'), 'Jamaica' => __('Jamaica'),
+            'Japan' => __('Japan'), 'Jordan' => __('Jordan'), 'Kazakhstan' => __('Kazakhstan'),
+            'Kenya' => __('Kenya'), 'Kuwait' => __('Kuwait'), 'Kyrgyzstan' => __('Kyrgyzstan'),
+            'Laos' => __('Laos'), 'Latvia' => __('Latvia'), 'Lebanon' => __('Lebanon'),
+            'Libya' => __('Libya'), 'Lithuania' => __('Lithuania'), 'Luxembourg' => __('Luxembourg'),
+            'Malaysia' => __('Malaysia'), 'Maldives' => __('Maldives'), 'Malta' => __('Malta'),
+            'Mexico' => __('Mexico'), 'Moldova' => __('Moldova'), 'Monaco' => __('Monaco'),
+            'Mongolia' => __('Mongolia'), 'Montenegro' => __('Montenegro'), 'Morocco' => __('Morocco'),
+            'Myanmar' => __('Myanmar'), 'Nepal' => __('Nepal'), 'Netherlands' => __('Netherlands'),
+            'New Zealand' => __('New Zealand'), 'Nicaragua' => __('Nicaragua'), 'Nigeria' => __('Nigeria'),
+            'Norway' => __('Norway'), 'Oman' => __('Oman'), 'Pakistan' => __('Pakistan'),
+            'Palestine' => __('Palestine'), 'Panama' => __('Panama'), 'Paraguay' => __('Paraguay'),
+            'Peru' => __('Peru'), 'Philippines' => __('Philippines'), 'Poland' => __('Poland'),
+            'Portugal' => __('Portugal'), 'Qatar' => __('Qatar'), 'Romania' => __('Romania'),
+            'Russia' => __('Russia'), 'Rwanda' => __('Rwanda'), 'Saudi Arabia' => __('Saudi Arabia'),
+            'Senegal' => __('Senegal'), 'Serbia' => __('Serbia'), 'Singapore' => __('Singapore'),
+            'Slovakia' => __('Slovakia'), 'Slovenia' => __('Slovenia'), 'Somalia' => __('Somalia'),
+            'South Africa' => __('South Africa'), 'South Korea' => __('South Korea'), 'South Sudan' => __('South Sudan'),
+            'Spain' => __('Spain'), 'Sri Lanka' => __('Sri Lanka'), 'Sudan' => __('Sudan'),
+            'Sweden' => __('Sweden'), 'Switzerland' => __('Switzerland'), 'Syria' => __('Syria'),
+            'Taiwan' => __('Taiwan'), 'Tajikistan' => __('Tajikistan'), 'Tanzania' => __('Tanzania'),
+            'Thailand' => __('Thailand'), 'Tunisia' => __('Tunisia'), 'Turkey' => __('Turkey'),
+            'Turkmenistan' => __('Turkmenistan'), 'Uganda' => __('Uganda'), 'Ukraine' => __('Ukraine'),
+            'United Arab Emirates' => __('United Arab Emirates'), 'United Kingdom' => __('United Kingdom'), 'United States' => __('United States'),
+            'Uruguay' => __('Uruguay'), 'Uzbekistan' => __('Uzbekistan'), 'Venezuela' => __('Venezuela'),
+            'Vietnam' => __('Vietnam'), 'Yemen' => __('Yemen'), 'Zambia' => __('Zambia'),
+            'Zimbabwe' => __('Zimbabwe')
+        ]) !!}[c.en] || c.en;
+
+        $country.append(`<option value="${c.code}" data-en="${c.en}" data-ar="${c.ar}">${toFlag(c.code)} ${translatedName}</option>`);
     });
 
     // ===== INIT SELECT2 =====
@@ -751,6 +823,14 @@ $(function() {
     });
 
     // ===== CITY LOADER =====
+    let cityTranslations = {};
+    const currentLang = '{{ app()->getLocale() }}';
+    
+    // جلب ملف الترجمات إذا لم يكن محملاً
+    fetch('/translations.json').then(r => r.json()).then(data => {
+        if(data[currentLang]) cityTranslations = data[currentLang];
+    }).catch(e => console.error("Error loading translations: ", e));
+
     function loadCities(countryName) {
         $city.prop('disabled', true).empty().append('<option value="">⏳ جاري التحميل...</option>');
         $('#city_manual').addClass('d-none').prop('required', false);
@@ -765,7 +845,8 @@ $(function() {
                 if (!response.error && response.data && response.data.length > 0) {
                     $city.append('<option value="">اختر المدينة...</option>');
                     response.data.forEach(function(city) {
-                        $city.append(new Option(city, city));
+                        const translatedCity = cityTranslations[city] || city;
+                        $city.append(new Option(translatedCity, city));
                     });
                     $city.prop('disabled', false);
                 } else {
@@ -1477,8 +1558,59 @@ $(function() {
     COUNTRIES.forEach(function(c) {
         var code = c.code.toUpperCase();
         var ibanLen = IBAN_LENGTHS[code] || 24; // Default 24 if not found
+        
+        // Use the same translation array
+        const translatedName = {!! json_encode([
+            'Afghanistan' => __('Afghanistan'), 'Albania' => __('Albania'), 'Algeria' => __('Algeria'),
+            'Andorra' => __('Andorra'), 'Angola' => __('Angola'), 'Argentina' => __('Argentina'),
+            'Armenia' => __('Armenia'), 'Australia' => __('Australia'), 'Austria' => __('Austria'),
+            'Azerbaijan' => __('Azerbaijan'), 'Bahrain' => __('Bahrain'), 'Bangladesh' => __('Bangladesh'),
+            'Belarus' => __('Belarus'), 'Belgium' => __('Belgium'), 'Benin' => __('Benin'),
+            'Bolivia' => __('Bolivia'), 'Bosnia And Herzegovina' => __('Bosnia And Herzegovina'), 'Botswana' => __('Botswana'),
+            'Brazil' => __('Brazil'), 'Brunei' => __('Brunei'), 'Bulgaria' => __('Bulgaria'),
+            'Cambodia' => __('Cambodia'), 'Cameroon' => __('Cameroon'), 'Canada' => __('Canada'),
+            'Chile' => __('Chile'), 'China' => __('China'), 'Colombia' => __('Colombia'),
+            'Costa Rica' => __('Costa Rica'), 'Croatia' => __('Croatia'), 'Cuba' => __('Cuba'),
+            'Cyprus' => __('Cyprus'), 'Czech Republic' => __('Czech Republic'), 'Denmark' => __('Denmark'),
+            'Djibouti' => __('Djibouti'), 'Dominican Republic' => __('Dominican Republic'), 'Ecuador' => __('Ecuador'),
+            'Egypt' => __('Egypt'), 'El Salvador' => __('El Salvador'), 'Estonia' => __('Estonia'),
+            'Ethiopia' => __('Ethiopia'), 'Fiji' => __('Fiji'), 'Finland' => __('Finland'),
+            'France' => __('France'), 'Georgia' => __('Georgia'), 'Germany' => __('Germany'),
+            'Ghana' => __('Ghana'), 'Greece' => __('Greece'), 'Guatemala' => __('Guatemala'),
+            'Honduras' => __('Honduras'), 'Hong Kong' => __('Hong Kong'), 'Hungary' => __('Hungary'),
+            'Iceland' => __('Iceland'), 'India' => __('India'), 'Indonesia' => __('Indonesia'),
+            'Iran' => __('Iran'), 'Iraq' => __('Iraq'), 'Ireland' => __('Ireland'),
+            'Israel' => __('Israel'), 'Italy' => __('Italy'), 'Jamaica' => __('Jamaica'),
+            'Japan' => __('Japan'), 'Jordan' => __('Jordan'), 'Kazakhstan' => __('Kazakhstan'),
+            'Kenya' => __('Kenya'), 'Kuwait' => __('Kuwait'), 'Kyrgyzstan' => __('Kyrgyzstan'),
+            'Laos' => __('Laos'), 'Latvia' => __('Latvia'), 'Lebanon' => __('Lebanon'),
+            'Libya' => __('Libya'), 'Lithuania' => __('Lithuania'), 'Luxembourg' => __('Luxembourg'),
+            'Malaysia' => __('Malaysia'), 'Maldives' => __('Maldives'), 'Malta' => __('Malta'),
+            'Mexico' => __('Mexico'), 'Moldova' => __('Moldova'), 'Monaco' => __('Monaco'),
+            'Mongolia' => __('Mongolia'), 'Montenegro' => __('Montenegro'), 'Morocco' => __('Morocco'),
+            'Myanmar' => __('Myanmar'), 'Nepal' => __('Nepal'), 'Netherlands' => __('Netherlands'),
+            'New Zealand' => __('New Zealand'), 'Nicaragua' => __('Nicaragua'), 'Nigeria' => __('Nigeria'),
+            'Norway' => __('Norway'), 'Oman' => __('Oman'), 'Pakistan' => __('Pakistan'),
+            'Palestine' => __('Palestine'), 'Panama' => __('Panama'), 'Paraguay' => __('Paraguay'),
+            'Peru' => __('Peru'), 'Philippines' => __('Philippines'), 'Poland' => __('Poland'),
+            'Portugal' => __('Portugal'), 'Qatar' => __('Qatar'), 'Romania' => __('Romania'),
+            'Russia' => __('Russia'), 'Rwanda' => __('Rwanda'), 'Saudi Arabia' => __('Saudi Arabia'),
+            'Senegal' => __('Senegal'), 'Serbia' => __('Serbia'), 'Singapore' => __('Singapore'),
+            'Slovakia' => __('Slovakia'), 'Slovenia' => __('Slovenia'), 'Somalia' => __('Somalia'),
+            'South Africa' => __('South Africa'), 'South Korea' => __('South Korea'), 'South Sudan' => __('South Sudan'),
+            'Spain' => __('Spain'), 'Sri Lanka' => __('Sri Lanka'), 'Sudan' => __('Sudan'),
+            'Sweden' => __('Sweden'), 'Switzerland' => __('Switzerland'), 'Syria' => __('Syria'),
+            'Taiwan' => __('Taiwan'), 'Tajikistan' => __('Tajikistan'), 'Tanzania' => __('Tanzania'),
+            'Thailand' => __('Thailand'), 'Tunisia' => __('Tunisia'), 'Turkey' => __('Turkey'),
+            'Turkmenistan' => __('Turkmenistan'), 'Uganda' => __('Uganda'), 'Ukraine' => __('Ukraine'),
+            'United Arab Emirates' => __('United Arab Emirates'), 'United Kingdom' => __('United Kingdom'), 'United States' => __('United States'),
+            'Uruguay' => __('Uruguay'), 'Uzbekistan' => __('Uzbekistan'), 'Venezuela' => __('Venezuela'),
+            'Vietnam' => __('Vietnam'), 'Yemen' => __('Yemen'), 'Zambia' => __('Zambia'),
+            'Zimbabwe' => __('Zimbabwe')
+        ]) !!}[c.en] || c.en;
+
         $bankCountry.append('<option value="' + code + '" data-ar="' + c.ar + '" data-en="' + c.en + '" data-iban-len="' + ibanLen + '">' + 
-            c.ar + ' - ' + c.en + ' (' + code + ')</option>');
+            translatedName + ' (' + code + ')</option>');
     });
     
     $bankCountry.select2({
@@ -1598,5 +1730,5 @@ $(function() {
 </script>
 
 {{-- Load Google Maps API AFTER all functions are defined --}}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places&callback=initMap" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places&language={{ app()->getLocale() }}&callback=initMap" async defer></script>
 @endsection
