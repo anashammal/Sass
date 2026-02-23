@@ -27,10 +27,10 @@ class KuveytTurkService
             $this->identityUrl = 'https://identity.kuveytturk.com.tr/connect/token';
         }
 
-        $this->clientId = config('services.kuveyt_turk.client_id'); 
+        $this->clientId = config('services.kuveyt_turk.api_client_id') ?: config('services.kuveyt_turk.client_id'); 
         $this->merchantId = config('services.kuveyt_turk.merchant_id');
         $this->username = config('services.kuveyt_turk.username');
-        $this->password = config('services.kuveyt_turk.password');
+        $this->password = config('services.kuveyt_turk.api_client_secret') ?: config('services.kuveyt_turk.password');
         
         $pk = config('services.kuveyt_turk.private_key');
         if($pk) {

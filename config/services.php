@@ -44,6 +44,9 @@ return [
         'username' => env('KUVEYT_TURK_USERNAME'),
         'password' => env('KUVEYT_TURK_PASSWORD'),
         'private_key' => env('KUVEYT_TURK_PRIVATE_KEY'),
+        'api_client_id' => env('KUVEYT_TURK_API_CLIENT_ID'),
+        'api_client_secret' => env('KUVEYT_TURK_API_CLIENT_SECRET'),
+        'api_key' => env('KUVEYT_TURK_API_KEY'),
         'env' => env('KUVEYT_TURK_ENV', 'production'),
     ],
 
