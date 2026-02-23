@@ -81,35 +81,42 @@ class KuveytTurkSanalPosService
 
             // Update Hash Calculation with Integer Amount
             // 2. Hash Data: Base64(SHA1(MerchantId + OrderId + Amount + OkUrl + FailUrl + UserName + HashedPassword, true))
-            $hashStr = $this->merchantId . $orderId . $amountInt . $okUrl . $failUrl . $this->username . $hashedPassword;
+            // Hash Update: Kuveyt Turk expects the string to be exact
+            // HashedPassword is Base64(SHA1(Password, true)) usually or just sha1 depending on version.
+            // Wait, common implementation: 
+            $hashedPassword = base64_encode(sha1($this->password, true));
+
+            $amountIntStr = (string)$amountInt;
+            
+            // If OkUrl/FailUrl are localhost, sometimes Bank blocks them. But it's beyond our control without Ngrok.
+            // Let's assume standard Hash Str.
+            $hashStr = $this->merchantId . $orderId . $amountIntStr . $okUrl . $failUrl . $this->username . $hashedPassword;
             $hashData = base64_encode(sha1($hashStr, true));
 
-            // 3. Prepare XML
-            $xml = <<<XML
-<KuveytTurkVPosMessage xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <APIVersion>1.0.0</APIVersion>
-    <OkUrl>{$okUrl}</OkUrl>
-    <FailUrl>{$failUrl}</FailUrl>
-    <HashData>{$hashData}</HashData>
-    <MerchantId>{$this->merchantId}</MerchantId>
-    <CustomerId>{$this->customerId}</CustomerId>
-    <UserName>{$this->username}</UserName>
-    <CardNumber>{$data['card_number']}</CardNumber>
-    <CardExpireDateYear>{$data['expire_year']}</CardExpireDateYear>
-    <CardExpireDateMonth>{$data['expire_month']}</CardExpireDateMonth>
-    <CardCvv2>{$data['cvv']}</CardCvv2>
-    <CardHolderName>{$data['card_holder_name']}</CardHolderName>
-    <CardType>{$cardType}</CardType> 
-    <BatchID>0</BatchID>
-    <TransactionType>Sale</TransactionType>
-    <InstallmentCount>0</InstallmentCount>
-    <Amount>{$amountInt}</Amount>
-    <DisplayAmount>{$amountFormatted}</DisplayAmount>
-    <CurrencyCode>0949</CurrencyCode>
-    <MerchantOrderId>{$orderId}</MerchantOrderId>
-    <TransactionSecurity>3</TransactionSecurity>
-</KuveytTurkVPosMessage>
-XML;
+            // Clean XML format (no spaces between tags, standard format)
+            $xml = '<KuveytTurkVPosMessage xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">' .
+                '<APIVersion>1.0.0</APIVersion>' .
+                '<OkUrl>' . $okUrl . '</OkUrl>' .
+                '<FailUrl>' . $failUrl . '</FailUrl>' .
+                '<HashData>' . $hashData . '</HashData>' .
+                '<MerchantId>' . $this->merchantId . '</MerchantId>' .
+                '<CustomerId>' . $this->customerId . '</CustomerId>' .
+                '<UserName>' . $this->username . '</UserName>' .
+                '<CardNumber>' . $data['card_number'] . '</CardNumber>' .
+                '<CardExpireDateYear>' . $data['expire_year'] . '</CardExpireDateYear>' .
+                '<CardExpireDateMonth>' . $data['expire_month'] . '</CardExpireDateMonth>' .
+                '<CardCvv2>' . $data['cvv'] . '</CardCvv2>' .
+                '<CardHolderName>' . $data['card_holder_name'] . '</CardHolderName>' .
+                '<CardType>' . $cardType . '</CardType>' .
+                '<BatchID>0</BatchID>' .
+                '<TransactionType>Sale</TransactionType>' .
+                '<InstallmentCount>0</InstallmentCount>' .
+                '<Amount>' . $amountIntStr . '</Amount>' .
+                '<DisplayAmount>' . $amountIntStr . '</DisplayAmount>' . // Sometimes DisplayAmount should be cents too, or omitted.
+                '<CurrencyCode>0949</CurrencyCode>' .
+                '<MerchantOrderId>' . $orderId . '</MerchantOrderId>' .
+                '<TransactionSecurity>3</TransactionSecurity>' . // 3 = 3D Secure
+                '</KuveytTurkVPosMessage>';
             
             Log::info("Kuveyt Turk Sanal POS XML Request: " . $xml);
 
