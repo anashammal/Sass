@@ -34,10 +34,21 @@ class ProductController extends Controller
         
         // 3. مسار Spatie القديم (Legacy Spatie)
         // إذا كان الطلب: store_7/media/129/2.jpg -> نبحث عن 129/2.jpg
-        if (preg_match('/media\/(\d+\/.+)$/', $path, $matches)) {
+        // أو إذا كان الطلب: stores/7/QcFkn...jpg
+        if (preg_match('/media\/(\d+\/.+)$/', $path, $matches) || preg_match('/stores\/\d+\/(.+)$/', $path, $matches)) {
             $legacyPath = $matches[1];
             $possiblePaths[] = storage_path('app/public/' . $legacyPath);
             $possiblePaths[] = public_path('storage/' . $legacyPath);
+            
+            // للصور التي تحتوي اسم المجلد القديم داخل storage بشكل فعلي
+            $possiblePaths[] = storage_path('app/public/' . $path);
+        }
+        
+        // محاولة التقاط الرقم واسم الملف مباشرة من أي مسار بغض النظر عن البادئة
+        // مثال يطابق: /129/2.jpg أو /media/129/2.jpg أو /129/conversions/2-thumb.jpg
+        if (preg_match('/(\d+\/(?:conversions\/)?[^\/]+)$/', $path, $directMatches)) {
+             $possiblePaths[] = storage_path('app/public/' . $directMatches[1]);
+             $possiblePaths[] = public_path('storage/' . $directMatches[1]);
         }
         
         // 4. مسار مباشر في public (لبعض الحالات النادرة)
