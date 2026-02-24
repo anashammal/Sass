@@ -36,8 +36,9 @@ class ProductUnit extends Model implements HasMedia
             return route('serve.media.workaround', ['path' => 'images/default-product.png']);
         }
         
-        // ✅ الحل الجذري: نستخدم RegEx لالتقاط أي مسار يأتي بعد /storage/ بغض النظر عن الدومين
-        if (preg_match('/\/storage\/(.*)$/i', $url, $matches)) {
+        // ✅ الحل الجذري الشامل: التقاط المسار سواء احتوى على storage أو لا
+        // يطابق: /storage/stores/7/129/2.jpg أو /stores/7/129/2.jpg أو /store_7/media/...
+        if (preg_match('/\/storage\/(.*)$/i', $url, $matches) || preg_match('/(stores\/\d+\/.*)$/i', $url, $matches) || preg_match('/(store_\d+\/media\/.*)$/i', $url, $matches)) {
             $path = $matches[1];
             // 1. فك تشفير الرابط (لعلاج الأسماء العربية)
             $path = urldecode($path);
