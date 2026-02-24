@@ -54,9 +54,9 @@ class ProductUnit extends Model implements HasMedia
             $configPath = rtrim($configPath, '/');
 
             // إذا كان المسار مفقوداً في الرابط المولد، نحقنه يدوياً
-            if (!empty($configPath) && !str_contains($generatedUrl, $configPath)) {
+            if (!empty($configPath) && !\Illuminate\Support\Str::contains($generatedUrl, $configPath)) {
                 $schemeHost = request()->getSchemeAndHttpHost();
-                if (str_starts_with($generatedUrl, $schemeHost)) {
+                if (\Illuminate\Support\Str::startsWith($generatedUrl, $schemeHost)) {
                     return $schemeHost . $configPath . '/storage-files/' . $path;
                 }
             }

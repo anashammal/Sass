@@ -236,11 +236,11 @@ class Product extends Model implements HasMedia
 
             // 3. إذا كان Config يحتوي على مسار (مثل /system) ولكنه مفقود في الرابط المولد
             // نقوم بحقنه يدوياً بعد الدومين، مع الحفاظ على البروتوكول الحالي (http/https)
-            if (!empty($configPath) && !str_contains($generatedUrl, $configPath)) {
+            if (!empty($configPath) && !\Illuminate\Support\Str::contains($generatedUrl, $configPath)) {
                 $schemeHost = request()->getSchemeAndHttpHost(); // https://tech-sys.online
                 
                 // التأكد من أن الرابط يبدأ بالدومين الحالي قبل الحقن لتجنب أي تداخل
-                if (str_starts_with($generatedUrl, $schemeHost)) {
+                if (\Illuminate\Support\Str::startsWith($generatedUrl, $schemeHost)) {
                     // النتيجة: https://tech-sys.online/system/storage-files/...
                     return $schemeHost . $configPath . '/storage-files/' . $path;
                 }
