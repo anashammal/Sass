@@ -36,7 +36,7 @@ class TestKuveytController extends Controller
         $month = trim($parts[0] ?? '');
         $year = trim($parts[1] ?? '');
         $year = trim($parts[1] ?? '');
-        // Some Kuveyt Turk XML gateways demand 2-digit (YY), others 4-digit (YYYY). Let's try 4 (YYYY) since 2 (YY) failed.
+        // Kuveyt Turk Sandbox actually accepted 4-digit year (YYYY) in the successful request
         if (strlen($year) == 2) $year = '20' . $year;
 
         $data = [

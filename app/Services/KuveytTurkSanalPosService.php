@@ -72,8 +72,6 @@ class KuveytTurkSanalPosService
             }
             $hashedPassword = base64_encode(sha1($this->password, true));
 
-            $amountInt = (int)($data['amount'] * 100);
-            
             // Detect Card Type
             $firstDigit = substr($data['card_number'], 0, 1);
             $cardType = 'MasterCard'; // Default
@@ -85,18 +83,10 @@ class KuveytTurkSanalPosService
                 $cardType = 'Troy'; // Just incase
             }
 
-            // Update Hash Calculation with Integer Amount
-            // 2. Hash Data: Base64(SHA1(MerchantId + OrderId + Amount + OkUrl + FailUrl + UserName + HashedPassword, true))
-            // Hash Update: Kuveyt Turk expects the string to be exact
-            // HashedPassword is Base64(SHA1(Password, true)) usually or just sha1 depending on version.
-            // Wait, common implementation: 
+            $amountStr = number_format($data['amount'], 2, '.', '');
             $hashedPassword = base64_encode(sha1($this->password, true));
-
-            $amountIntStr = (string)$amountInt;
             
-            // If OkUrl/FailUrl are localhost, sometimes Bank blocks them. But it's beyond our control without Ngrok.
-            // Let's assume standard Hash Str.
-            $hashStr = $this->merchantId . $orderId . $amountIntStr . $okUrl . $failUrl . $this->username . $hashedPassword;
+            $hashStr = $this->merchantId . $orderId . $amountStr . $okUrl . $failUrl . $this->username . $hashedPassword;
             $hashData = trim(base64_encode(sha1($hashStr, true)));
 
             // Clean XML format (no spaces between tags, standard format)
@@ -117,8 +107,7 @@ class KuveytTurkSanalPosService
                 '<BatchID>0</BatchID>' .
                 '<TransactionType>Sale</TransactionType>' .
                 '<InstallmentCount>0</InstallmentCount>' .
-                '<Amount>' . $amountIntStr . '</Amount>' .
-                '<DisplayAmount>' . $amountIntStr . '</DisplayAmount>' . 
+                '<Amount>' . $amountStr . '</Amount>' .
                 '<CurrencyCode>0949</CurrencyCode>' .
                 '<MerchantOrderId>' . $orderId . '</MerchantOrderId>' .
                 '<TransactionSecurity>3</TransactionSecurity>' . // 3 = 3D Secure
