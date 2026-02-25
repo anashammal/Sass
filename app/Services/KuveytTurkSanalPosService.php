@@ -62,14 +62,6 @@ class KuveytTurkSanalPosService
             $orderId = $data['order_id'];
             $okUrl = route('k-test.callback');
             $failUrl = route('k-test.callback'); 
-
-            // Critical fix for Localhost testing:
-            // Since .env APP_URL is tech-sys.online, route() generates https://tech-sys.online
-            // But the browser is on localhost. The hash must match the exact URL the bank receives.
-            if ($this->customerId == '400235') {
-                 $okUrl = 'http://localhost/system/k-test/callback';
-                 $failUrl = 'http://localhost/system/k-test/callback';
-            }
             $hashedPassword = base64_encode(sha1($this->password, true));
 
             // Detect Card Type
