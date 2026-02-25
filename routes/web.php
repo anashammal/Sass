@@ -71,7 +71,7 @@ Auth::routes(['register' => false]);
 // Kuveyt Turk Test Routes
 Route::get('/k-test', [App\Http\Controllers\TestKuveytController::class, 'index'])->name('k-test.index');
 Route::post('/k-test/pay', [App\Http\Controllers\TestKuveytController::class, 'pay'])->name('k-test.pay');
-Route::post('/k-test/callback', [App\Http\Controllers\TestKuveytController::class, 'callback'])->name('k-test.callback');
+Route::any('/k-test/callback', [App\Http\Controllers\TestKuveytController::class, 'callback'])->name('k-test.callback');
 Route::get('/k-debug', function() {
     return [
         'config_client_id' => config('services.kuveyt_turk.client_id'),

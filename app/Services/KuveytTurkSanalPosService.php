@@ -62,6 +62,14 @@ class KuveytTurkSanalPosService
             $orderId = $data['order_id'];
             $okUrl = route('k-test.callback');
             $failUrl = route('k-test.callback'); 
+
+            // Critical fix for Localhost testing:
+            // Since .env APP_URL is tech-sys.online, route() generates https://tech-sys.online
+            // But the browser is on localhost. The hash must match the exact URL the bank receives.
+            if ($this->customerId == '400235') {
+                 $okUrl = 'http://localhost/system/k-test/callback';
+                 $failUrl = 'http://localhost/system/k-test/callback';
+            }
             $hashedPassword = base64_encode(sha1($this->password, true));
 
             $amountInt = (int)($data['amount'] * 100);
@@ -89,7 +97,7 @@ class KuveytTurkSanalPosService
             // If OkUrl/FailUrl are localhost, sometimes Bank blocks them. But it's beyond our control without Ngrok.
             // Let's assume standard Hash Str.
             $hashStr = $this->merchantId . $orderId . $amountIntStr . $okUrl . $failUrl . $this->username . $hashedPassword;
-            $hashData = base64_encode(sha1($hashStr, true));
+            $hashData = trim(base64_encode(sha1($hashStr, true)));
 
             // Clean XML format (no spaces between tags, standard format)
             $xml = '<KuveytTurkVPosMessage xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">' .
@@ -110,6 +118,7 @@ class KuveytTurkSanalPosService
                 '<TransactionType>Sale</TransactionType>' .
                 '<InstallmentCount>0</InstallmentCount>' .
                 '<Amount>' . $amountIntStr . '</Amount>' .
+                '<DisplayAmount>' . $amountIntStr . '</DisplayAmount>' . 
                 '<CurrencyCode>0949</CurrencyCode>' .
                 '<MerchantOrderId>' . $orderId . '</MerchantOrderId>' .
                 '<TransactionSecurity>3</TransactionSecurity>' . // 3 = 3D Secure
