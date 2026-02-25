@@ -60,10 +60,14 @@ class KuveytTurkSanalPosService
             
             $amountFormatted = number_format($data['amount'], 2, '.', '');
             $orderId = $data['order_id'];
-            // Production Bank API strictly rejects 'localhost' URLs. Force the live APP_URL.
-            $appUrl = rtrim(config('app.url', 'https://tech-sys.online/system'), '/');
-            $okUrl = $appUrl . '/k-test/callback';
-            $failUrl = $appUrl . '/k-test/callback'; 
+            $okUrl = route('k-test.callback');
+            $failUrl = route('k-test.callback'); 
+            
+            // Production Bank API strictly rejects 'localhost' URLs. Force a live domain.
+            if (strpos($okUrl, 'localhost') !== false || strpos($okUrl, '127.0.0.1') !== false) {
+                 $okUrl = 'https://tech-sys.online/system/k-test/callback';
+                 $failUrl = 'https://tech-sys.online/system/k-test/callback';
+            }
             $hashedPassword = base64_encode(sha1($this->password, true));
 
             // Detect Card Type

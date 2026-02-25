@@ -13,5 +13,6 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         '*k-test/callback',
+        '*k-test/pay',
     ];
 }
