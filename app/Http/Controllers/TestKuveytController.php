@@ -35,7 +35,8 @@ class TestKuveytController extends Controller
         $parts = explode('/', $request->expiry);
         $month = trim($parts[0] ?? '');
         $year = trim($parts[1] ?? '');
-        if (strlen($year) == 2) $year = '20' . $year;
+        // Kuveyt Turk requires 2-digit year (YY)
+        if (strlen($year) == 4) $year = substr($year, -2);
 
         $data = [
             'amount' => $request->amount,

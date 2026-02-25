@@ -110,7 +110,6 @@ class KuveytTurkSanalPosService
                 '<TransactionType>Sale</TransactionType>' .
                 '<InstallmentCount>0</InstallmentCount>' .
                 '<Amount>' . $amountIntStr . '</Amount>' .
-                '<DisplayAmount>' . $amountIntStr . '</DisplayAmount>' . // Sometimes DisplayAmount should be cents too, or omitted.
                 '<CurrencyCode>0949</CurrencyCode>' .
                 '<MerchantOrderId>' . $orderId . '</MerchantOrderId>' .
                 '<TransactionSecurity>3</TransactionSecurity>' . // 3 = 3D Secure
@@ -148,7 +147,7 @@ class KuveytTurkSanalPosService
 </head>
 <body onload="document.forms[0].submit()">
     <form method="post" action="{$url}">
-        <input type="hidden" name="AuthenticationXM" value='{$xml}'>
+        <input type="hidden" name="KuveytTurkVPosMessage" value='{$xml}'>
     </form>
     <p>Redirecting to 3D Secure Payment...</p>
 </body>
