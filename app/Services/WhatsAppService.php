@@ -65,8 +65,8 @@ class WhatsAppService
 
         try {
             $phone = preg_replace('/[^0-9]/', '', $phone);
-            if (str_starts_with($phone, '05') && strlen($phone) == 10) { $phone = '966' . substr($phone, 1); }
-            if (str_starts_with($phone, '5') && strlen($phone) == 9) { $phone = '966' . $phone; }
+            if (\Illuminate\Support\Str::startsWith($phone, '05') && strlen($phone) == 10) { $phone = '966' . substr($phone, 1); }
+            if (\Illuminate\Support\Str::startsWith($phone, '5') && strlen($phone) == 9) { $phone = '966' . $phone; }
 
             // تجهيز مسار الملف المحلي (يعمل محلياً و أونلاين إذا كان الملف على نفس السيرفر)
             $fullPath = null;
