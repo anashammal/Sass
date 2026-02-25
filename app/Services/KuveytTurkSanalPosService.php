@@ -15,25 +15,23 @@ class KuveytTurkSanalPosService
 
     public function __construct()
     {
-        // For Sanal POS, the URL is usually the same for Production
-        // Test environment (BoaTest) is separate, but we will use Production URL as per user env
-        // or toggle based on config.
-        // User provided Production credentials, so we default to Production.
+        $env = config('services.kuveyt_turk.env', 'sandbox');
         
-        $env = config('services.kuveyt_turk.env', 'production');
         if ($env === 'sandbox') {
+             // Test Environment Bilgileri (From Kuveyt Turk Email)
              $this->baseUrl = 'https://boatest.kuveytturk.com.tr/boa.virtualpos.services/Home/ThreeDModelPayGate';
+             $this->customerId = '400235';
+             $this->merchantId = '496';
+             $this->username   = 'apitest';
+             $this->password   = 'api123';
         } else {
+             // Production Environment
              $this->baseUrl = 'https://boa.kuveytturk.com.tr/sanalposservice/Home/ThreeDModelPayGate';
+             $this->customerId = config('services.kuveyt_turk.client_id'); 
+             $this->merchantId = config('services.kuveyt_turk.merchant_id');
+             $this->username   = config('services.kuveyt_turk.username');
+             $this->password   = config('services.kuveyt_turk.password');
         }
-
-        // Mapping from .env config
-        // CLIENT_ID in .env -> CustomerID (Müşteri No)
-        // MERCHANT_ID -> MerchantID (Mağaza No)
-        $this->customerId = config('services.kuveyt_turk.client_id'); 
-        $this->merchantId = config('services.kuveyt_turk.merchant_id');
-        $this->username   = config('services.kuveyt_turk.username');
-        $this->password   = config('services.kuveyt_turk.password');
     }
 
     public function startPayment($data)
@@ -168,27 +166,97 @@ HTML;
         }
 
         try {
-            // Simple XML parsing
+            Log::info("Kuveyt Turk 3D Response XML: " . urldecode($authResponse));
             $xml = simplexml_load_string(urldecode($authResponse));
             
+            // 00 means 3D authentication was successful
             if ($xml->ResponseCode == '00') {
-                return [
-                    'Success' => true,
-                    'Message' => 'Payment Successful',
-                    'OrderId' => (string)$xml->MerchantOrderId,
-                    'Ref' => (string)$xml->ProvisionNumber,
-                    'Raw' => $xml
-                ];
+                return $this->provisionPayment($xml);
             } else {
                  return [
                     'Success' => false,
-                    'Message' => 'Payment Failed: ' . (string)$xml->ResponseMessage,
+                    'Message' => '3D Authentication Failed: ' . (string)$xml->ResponseMessage,
                     'Code' => (string)$xml->ResponseCode,
                      'Raw' => $xml
                 ];
             }
         } catch (\Exception $e) {
              return ['Success' => false, 'Message' => 'XML Parse Error: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Step 2: Provision (Actually charge the card after 3D success)
+     */
+    private function provisionPayment($authXml)
+    {
+        $amountStr = (string)$authXml->VPosMessage->Amount;
+        $orderId = (string)$authXml->MerchantOrderId;
+        $md = (string)$authXml->MD; // MD value from 3D Secure
+        
+        // Hash for Provision: Base64(SHA1(MerchantId + MerchantOrderId + Amount + UserName + HashedPassword))
+        $hashedPassword = base64_encode(sha1($this->password, true));
+        $hashStr = $this->merchantId . $orderId . $amountStr . $this->username . $hashedPassword;
+        $hashData = base64_encode(sha1($hashStr, true));
+        
+        $provisionXml = '<KuveytTurkVPosMessage xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">' .
+            '<APIVersion>1.0.0</APIVersion>' .
+            '<HashData>' . $hashData . '</HashData>' .
+            '<MerchantId>' . $this->merchantId . '</MerchantId>' .
+            '<CustomerId>' . $this->customerId . '</CustomerId>' .
+            '<UserName>' . $this->username . '</UserName>' .
+            '<TransactionType>Sale</TransactionType>' .
+            '<InstallmentCount>0</InstallmentCount>' .
+            '<Amount>' . $amountStr . '</Amount>' .
+            '<MerchantOrderId>' . $orderId . '</MerchantOrderId>' .
+            '<TransactionSecurity>3</TransactionSecurity>' . // 3D Secure
+            '<KuveytTurkVPosAdditionalData>' .
+                '<AdditionalData>' .
+                    '<Key>MD</Key>' .
+                    '<Data>' . $md . '</Data>' .
+                '</AdditionalData>' .
+            '</KuveytTurkVPosAdditionalData>' .
+        '</KuveytTurkVPosMessage>';
+
+        Log::info("Kuveyt Turk Provision Request XML: " . $provisionXml);
+
+        $provisionUrl = str_replace('ThreeDModelPayGate', 'ThreeDModelProvisionGate', $this->baseUrl);
+
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/xml; charset=utf-8'
+            ])->post($provisionUrl, $provisionXml);
+
+            $body = $response->body();
+            Log::info("Kuveyt Turk Provision Response XML: " . $body);
+            
+            // Wait, Kuveyt might wrap response in envelope, so parse carefully
+            $resXml = @simplexml_load_string($body);
+            
+            // Handle error string if not XML
+            if (!$resXml) {
+                return ['Success' => false, 'Message' => 'Invalid Provision Response Format', 'Raw' => $body];
+            }
+
+            if ($resXml->ResponseCode == '00') {
+                return [
+                    'Success' => true,
+                    'Message' => 'Payment Completely Successful!',
+                    'OrderId' => $orderId,
+                    'Ref' => (string)$resXml->ProvisionNumber,
+                    'Raw' => $resXml
+                ];
+            } else {
+                return [
+                    'Success' => false,
+                    'Message' => 'Provision Failed: ' . (string)$resXml->ResponseMessage,
+                    'Code' => (string)$resXml->ResponseCode,
+                    'Raw' => $resXml
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::error("Kuveyt Turk Provision Error: " . $e->getMessage());
+            return ['Success' => false, 'Message' => 'Provision Exception: ' . $e->getMessage()];
         }
     }
 }

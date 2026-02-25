@@ -40,25 +40,26 @@
 
                         <div class="mb-3">
                             <label class="form-label">Card Holder Name</label>
-                            <input type="text" name="card_holder_name" class="form-control" placeholder="JOHN DOE" required>
+                            <input type="text" name="card_holder_name" class="form-control" value="Test User" required>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Card Number</label>
-                            <input type="text" name="card_number" class="form-control" placeholder="0000 0000 0000 0000" required>
+                            <input type="text" name="card_number" class="form-control" value="5188961939192544" required>
+                            <small class="text-muted">Kuveyt Turk Test Card</small>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Expiry (MM/YY)</label>
-                                    <input type="text" name="expiry" class="form-control" placeholder="MM/YY" required>
+                                    <input type="text" name="expiry" class="form-control" value="06/29" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">CVV</label>
-                                    <input type="text" name="cvv" class="form-control" placeholder="123" maxlength="4" required>
+                                    <input type="text" name="cvv" class="form-control" value="588" maxlength="4" required>
                                 </div>
                             </div>
                         </div>
