@@ -81,6 +81,28 @@ class ShiftController extends Controller
         // 4. المجموع الكلي للمبيعات
         $totalSales = $cashSales + $cardSales + $bankSales + $creditSales;
 
+        // 5. تفاصيل العملات الأجنبية في الدرج (الكاش فقط)
+        $foreignPayments = Payment::with('currency')
+            ->whereIn('sale_id', $salesIds)
+            ->where('method', 'cash')
+            ->whereNotNull('amount_in_foreign_currency')
+            ->get();
+
+        $foreignCurrencies = [];
+        foreach ($foreignPayments as $payment) {
+            $currencyId = $payment->currency_id;
+            if (!$currencyId) continue;
+            
+            if (!isset($foreignCurrencies[$currencyId])) {
+                $foreignCurrencies[$currencyId] = [
+                    'code' => $payment->currency->code,
+                    'symbol' => $payment->currency->symbol,
+                    'amount' => 0
+                ];
+            }
+            $foreignCurrencies[$currencyId]['amount'] += $payment->amount_in_foreign_currency;
+        }
+
         return response()->json([
             'start_cash' => number_format($shift->start_cash, 2),
             'cash_sales' => number_format($cashSales, 2),
@@ -89,6 +111,7 @@ class ShiftController extends Controller
             'credit_sales' => number_format($creditSales, 2),
             'total_sales' => number_format($totalSales, 2),
             'expected_cash' => $expectedCash, // رقم خام للحسابات
+            'foreign_currencies' => array_values($foreignCurrencies), // قائمة العملات
             // ✅ إصلاح التوقيت (+3 ساعات)
             'opened_at' => Carbon::parse($shift->opened_at)->addHours(3)->format('Y-m-d h:i A')
         ]);

@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
+<!-- Select2 CSS for Multi-Select support -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
 <div class="container pb-5">
     <div class="row mb-4">
         <div class="col-12 d-flex justify-content-between align-items-center">
@@ -112,6 +116,37 @@
                             <label class="form-label fw-bold">{{ __('Tax Number') }}</label>
                             <input type="text" name="tax_number" class="form-control" value="{{ old('tax_number', $store->tax_number) }}">
                         </div>
+
+                        <hr class="my-4">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-coins me-2"></i> {{ __('Currency Settings') }}</h6>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ __('Base Currency') }} <span class="text-danger">*</span></label>
+                            <select name="base_currency_id" class="form-select select2-basic" required>
+                                <option value="">{{ __('Select Base Currency') }}</option>
+                                @foreach(\App\Models\Currency::where('is_active', true)->get() as $currency)
+                                    <option value="{{ $currency->id }}" {{ $store->base_currency_id == $currency->id ? 'selected' : '' }}>
+                                        {{ $currency->name_ar }} ({{ $currency->code }}) - {{ $currency->symbol }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted d-block mt-1">{{ __('This is the main currency for products and reports.') }}</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ __('Accepted Sub-Currencies') }}</label>
+                            <select name="accepted_currencies[]" class="form-select select2-multiple" multiple="multiple">
+                                @php
+                                    $acceptedIds = $store->acceptedCurrencies->pluck('id')->toArray();
+                                @endphp
+                                @foreach(\App\Models\Currency::where('is_active', true)->get() as $currency)
+                                    <option value="{{ $currency->id }}" {{ in_array($currency->id, $acceptedIds) ? 'selected' : '' }}>
+                                        {{ $currency->name_ar }} ({{ $currency->code }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted d-block mt-1">{{ __('Customers can pay using these currencies at the POS.') }}</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,10 +164,14 @@
 @endsection
 
 @section('scripts')
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     $(document).ready(function() {
         if($.fn.select2) {
             $('.select2-basic').select2({ theme: 'bootstrap-5', width: '100%' });
+            $('.select2-multiple').select2({ theme: 'bootstrap-5', width: '100%', placeholder: '{{ __('Select Currencies') }}', allowClear: true });
         }
 
         // تهيئة حقل الهاتف الدولي

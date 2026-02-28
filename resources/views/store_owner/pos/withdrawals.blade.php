@@ -48,13 +48,13 @@
                 <div class="col-md-6">
                     <div class="p-3 bg-danger bg-opacity-10 text-danger rounded border border-danger">
                         <label class="small text-muted fw-bold">{{ __('total_cost_capital_purchase_price') }}</label>
-                        <h3 class="fw-bold mb-0" id="displayTotalCost">{{ number_format($totalCost, 2) }}</h3>
+                        <h3 class="fw-bold mb-0" id="displayTotalCost">{{ number_format($totalCost, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></h3>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="p-3 bg-success bg-opacity-10 text-success rounded border border-success">
                         <label class="small text-muted fw-bold">{{ __('total_selling_price_display') }}</label>
-                        <h3 class="fw-bold mb-0" id="displayTotalSale">{{ number_format($totalSale, 2) }}</h3>
+                        <h3 class="fw-bold mb-0" id="displayTotalSale">{{ number_format($totalSale, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></h3>
                     </div>
                 </div>
             </div>
@@ -152,8 +152,8 @@
             data: { from_date: fromDate, to_date: toDate, page: page },
             success: function(response) {
                 $('#withdrawalsTableBody').html(response.html);
-                $('#displayTotalCost').text(response.totals.cost);
-                $('#displayTotalSale').text(response.totals.sale);
+                $('#displayTotalCost').html(response.totals.cost + ' <small class="text-muted">{{ $globalCurrencySymbol }}</small>');
+                $('#displayTotalSale').html(response.totals.sale + ' <small class="text-muted">{{ $globalCurrencySymbol }}</small>');
                 
                 // تحديث الروابط
                 let paginationLinks = $(response.html).find('#paginationLinks').html();
@@ -212,9 +212,9 @@
                     <tfoot>
                         <tr class="fw-bold bg-light">
                             <td colspan="4" class="text-end">{{ __("final_total") }}</td>
-                            <td class="text-danger fs-5">${totalCostSum.toFixed(2)}</td>
+                            <td class="text-danger fs-5">${totalCostSum.toFixed(2)} <small>{{ $globalCurrencySymbol }}</small></td>
                             <td></td>
-                            <td class="text-dark fs-5">${res.sale.total}</td>
+                            <td class="text-dark fs-5">${res.sale.total} <small>{{ $globalCurrencySymbol }}</small></td>
                         </tr>
                     </tfoot>
                 </table>

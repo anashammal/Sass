@@ -85,6 +85,9 @@ class AppServiceProvider extends ServiceProvider
                     'near' => collect($alerts['near']),
                     'low_stock' => collect($alerts['low_stock']) // ✅ إرسال قائمة النقص
                 ]);
+
+                $globalCurrencySymbol = $user->store->baseCurrency->symbol ?? '$';
+                $view->with('globalCurrencySymbol', $globalCurrencySymbol);
             }
         });
     }

@@ -106,6 +106,9 @@ class SettingsController extends Controller
             'address_details' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'base_currency_id' => 'required|exists:currencies,id',
+            'accepted_currencies' => 'nullable|array',
+            'accepted_currencies.*' => 'exists:currencies,id',
         ]);
 
         $store->name = $request->store_name_update;
@@ -118,7 +121,22 @@ class SettingsController extends Controller
         $store->address_details = $request->address_details;
         $store->latitude = $request->latitude;
         $store->longitude = $request->longitude;
+        $store->base_currency_id = $request->base_currency_id;
         $store->save();
+
+        if ($request->has('accepted_currencies')) {
+            // Remove base currency from accepted if mistakenly selected
+            $accepted = array_diff($request->accepted_currencies, [$request->base_currency_id]);
+            
+            // Sync with pivot table
+            $syncData = [];
+            foreach ($accepted as $currencyId) {
+                $syncData[$currencyId] = ['store_id' => $store->id];
+            }
+            $store->acceptedCurrencies()->sync($syncData);
+        } else {
+            $store->acceptedCurrencies()->detach();
+        }
 
         return back()->with('success', 'تم تحديث الإعدادات العامة بنجاح');
     }

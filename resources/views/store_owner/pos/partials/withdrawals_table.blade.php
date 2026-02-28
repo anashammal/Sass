@@ -2,8 +2,8 @@
     <tr>
         <td class="fw-bold">{{ $sale['number'] }}</td>
         <td>{{ $sale['items_count'] }}</td>
-        <td class="text-danger fw-bold">{{ number_format($sale['total_cost'], 2) }}</td>
-        <td class="text-success fw-bold">{{ number_format($sale['total_sale'], 2) }}</td>
+        <td class="text-danger fw-bold">{{ number_format($sale['total_cost'], 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
+        <td class="text-success fw-bold">{{ number_format($sale['total_sale'], 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
         <td class="text-muted">{{ $sale['date'] }}</td>
         <td>
             <button class="btn btn-sm btn-outline-primary" onclick="viewInvoice({{ $sale['id'] }})">

@@ -5832,5 +5832,15 @@
     "Chatham-Kent": "Chatham-Kent",
     "Fort Wayne (IN)": "Fort Wayne (IN)",
     "Okazaki": "Okazaki",
-    "Lutsk": "Lutsk"
+    "Lutsk": "Lutsk",
+    "imported_rate": "インポートされたレート",
+    "approved_rate": "承認されたレート",
+    "approve": "承認",
+    "exchange_rate_confirmation": "為替レートの確認",
+    "equivalent": "相当額",
+    "exchange_rate": "為替レート",
+    "foreign_cash_in_drawer": "引き出しの外貨",
+    "admin_signature": "管理者のサイン",
+    "payment_method": "支払い方法",
+    "currency": "通貨"
 }

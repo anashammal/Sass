@@ -5834,5 +5834,15 @@
     "Chatham-Kent": "Chatham-Kent",
     "Fort Wayne (IN)": "Fort Wayne (IN)",
     "Okazaki": "Okazaki",
-    "Lutsk": "Lutsk"
+    "Lutsk": "Lutsk",
+    "imported_rate": "Uvezeni tečaj",
+    "approved_rate": "Odobreni tečaj",
+    "approve": "Odobriti",
+    "exchange_rate_confirmation": "Potvrda tečaja",
+    "equivalent": "Ekvivalent",
+    "exchange_rate": "Tečaj",
+    "foreign_cash_in_drawer": "Strana gotovina u ladici",
+    "admin_signature": "Potpis administratora",
+    "payment_method": "Način plaćanja",
+    "currency": "Valuta"
 }

@@ -23,7 +23,7 @@
                     </div>
                     <div>
                         <div class="kpi-label">{{ __('total_invoices') }} ({{ $totals['count'] }})</div>
-                        <div class="kpi-value english-num">{{ number_format($totals['sum_total'], 2) }}</div>
+                        <div class="kpi-value english-num">{{ number_format($totals['sum_total'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
                     </div>
                 </div>
             </div>
@@ -36,7 +36,7 @@
                     </div>
                     <div>
                         <div class="kpi-label">{{ __('total_paid') }}</div>
-                        <div class="kpi-value english-num">{{ number_format($totals['sum_paid'], 2) }}</div>
+                        <div class="kpi-value english-num">{{ number_format($totals['sum_paid'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
                     </div>
                 </div>
             </div>
@@ -49,7 +49,7 @@
                     </div>
                     <div>
                         <div class="kpi-label">{{ __('remaining_balance_credit') }}</div>
-                        <div class="kpi-value english-num">{{ number_format($totals['sum_due'], 2) }}</div>
+                        <div class="kpi-value english-num">{{ number_format($totals['sum_due'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
                     </div>
                 </div>
             </div>
@@ -198,10 +198,11 @@
                                         <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">{{ __('unpaid_status') }}</span>
                                     @endif
                                 </td>
-                                <td class="fw-bold">{{ number_format($purchase->grand_total, 2) }}</td>
-                                <td class="text-success small">{{ number_format($purchase->paid_amount, 2) }}</td>
+                                <td class="fw-bold">{{ number_format($purchase->grand_total, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
+                                <td class="text-success small">{{ number_format($purchase->paid_amount, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
                                 <td class="text-danger small fw-bold">
-                                    {{ number_format($purchase->grand_total - $purchase->paid_amount, 2) }}
+                                    {{ number_format($purchase->grand_total - $purchase->paid_amount, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
+                                </td>
                                 <td>
     <a href="javascript:void(0);" 
    data-url="{{ route('store.purchases.show', $purchase->id) }}" 
@@ -234,9 +235,9 @@
                     <tfoot class="bg-light fw-bold">
                         <tr class="table-active">
                             <td colspan="5" class="text-end">{{ __('totals_current_page') }}</td>
-                            <td>{{ number_format($purchases->sum('grand_total'), 2) }}</td>
-                            <td class="text-success">{{ number_format($purchases->sum('paid_amount'), 2) }}</td>
-                            <td class="text-danger">{{ number_format($purchases->sum('grand_total') - $purchases->sum('paid_amount'), 2) }}</td>
+                            <td>{{ number_format($purchases->sum('grand_total'), 2) }} <small>{{ $globalCurrencySymbol }}</small></td>
+                            <td class="text-success">{{ number_format($purchases->sum('paid_amount'), 2) }} <small>{{ $globalCurrencySymbol }}</small></td>
+                            <td class="text-danger">{{ number_format($purchases->sum('grand_total') - $purchases->sum('paid_amount'), 2) }} <small>{{ $globalCurrencySymbol }}</small></td>
                             <td class="no-print"></td>
                         </tr>
                     </tfoot>

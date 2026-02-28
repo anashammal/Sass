@@ -5834,5 +5834,15 @@
     "Chatham-Kent": "Chatham-Kent",
     "Fort Wayne (IN)": "Fort Wayne (IN)",
     "Okazaki": "Okazaki",
-    "Lutsk": "Lutsk"
+    "Lutsk": "Lutsk",
+    "imported_rate": "Импортированный курс",
+    "approved_rate": "Утверждённый курс",
+    "approve": "Утвердить",
+    "exchange_rate_confirmation": "Подтверждение курса обмена",
+    "equivalent": "Эквивалент",
+    "exchange_rate": "Курс обмена",
+    "foreign_cash_in_drawer": "Иностранная наличность в кассе",
+    "admin_signature": "Подпись администратора",
+    "payment_method": "Способ оплаты",
+    "currency": "Валюта"
 }

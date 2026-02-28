@@ -153,7 +153,10 @@ class PaymentController extends Controller
                 'store_id' => $storeId,
                 'contact_id' => $request->contact_id,
                 'method' => $request->method,
-                'amount' => $amount,
+                'amount' => $amount, // Always base currency amount for balance
+                'currency_id' => $request->currency_id,
+                'exchange_rate' => $request->exchange_rate ?? 1,
+                'amount_in_foreign_currency' => $request->amount_in_foreign_currency,
                 'payment_date' => $request->payment_date,
                 'notes' => $request->notes,
                 'attachment' => $request->hasFile('attachment') ? $request->file('attachment')->store('payments', 'public') : null,

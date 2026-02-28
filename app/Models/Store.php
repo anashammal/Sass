@@ -19,6 +19,7 @@ class Store extends Model
         'phone_number',
         'iban',
         'email',
+        'base_currency_id',
         // الحقول الجديدة
         'logo_path',
         'signature_path',
@@ -46,6 +47,18 @@ class Store extends Model
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function baseCurrency()
+    {
+        return $this->belongsTo(Currency::class, 'base_currency_id');
+    }
+
+    public function acceptedCurrencies()
+    {
+        return $this->belongsToMany(Currency::class, 'store_currencies')
+                    ->withPivot('custom_rate')
+                    ->withTimestamps();
     }
 
     // --- الدوال المساعدة (Accessors) ---

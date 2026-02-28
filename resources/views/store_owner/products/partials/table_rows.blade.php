@@ -24,7 +24,7 @@
     <td>{{ $product->baseUnit->unit_name ?? '---' }}</td>
     
     {{-- التكلفة للوحدة الأساسية --}}
-    <td class="text-danger fw-bold">{{ $product->baseUnit ? (float)$product->baseUnit->cost_price : '0' }}</td>
+    <td class="text-danger fw-bold">{{ $product->baseUnit ? (float)$product->baseUnit->cost_price : '0' }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
     
     <td>
         @php $price = $product->baseUnit->selling_price ?? 0; @endphp
@@ -34,7 +34,7 @@
                     $tax = $product->tax_percent ?? 0;
                     $priceWithTax = $price * (1 + $tax / 100);
                 @endphp
-                <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }}</span>
+                <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></span>
                 @if($tax > 0)
                     <small class="text-muted" style="font-size: 10px;">({{ __('شامل') }} {{ (float)$tax }}%)</small>
                 @endif
@@ -50,7 +50,7 @@
             $profit = $price - $cost;
             $profitPercent = $cost > 0 ? ($profit / $cost) * 100 : 0;
         @endphp
-        {{ (float)number_format($profit, 2) }}
+        {{ (float)number_format($profit, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
         <small class="text-muted">({{ (float)number_format($profitPercent, 1) }}%)</small>
     </td>
     
@@ -112,12 +112,12 @@
                             <td>{{ (float)$unit->conversion_factor }}</td>
                             <td class="font-monospace">{{ $unit->barcode ?? '---' }}</td>
                             
-                            <td class="text-danger fw-bold">{{ (float)$unit->cost_price }}</td>
+                            <td class="text-danger fw-bold">{{ (float)$unit->cost_price }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
                             
 <td class="text-success fw-bold">
     @if($unit->is_sale)
         @php $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); @endphp
-        {{ number_format($uPriceTax, 2) }}
+        {{ number_format($uPriceTax, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
     @else
         <span class="badge bg-danger">{{ __('غير قابل للبيع') }}</span>
     @endif
@@ -128,7 +128,7 @@
         $uProfit = $unit->selling_price - $unit->cost_price;
         $uProfitPercent = $unit->cost_price > 0 ? ($uProfit / $unit->cost_price) * 100 : 0;
     @endphp
-    {{ number_format($uProfit, 2) }}
+    {{ number_format($uProfit, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
     <small class="text-muted">({{ number_format($uProfitPercent, 1) }}%)</small>
 </td>
 

@@ -5838,5 +5838,15 @@
     "Chatham-Kent": "Chatham-Kent",
     "Fort Wayne (IN)": "Fort Wayne (IN)",
     "Okazaki": "Okazaki",
-    "Lutsk": "Lutsk"
+    "Lutsk": "Lutsk",
+    "imported_rate": "İçe Aktarılan Kur",
+    "approved_rate": "Onaylanan Kur",
+    "approve": "Onayla",
+    "exchange_rate_confirmation": "Döviz Kuru Onayı",
+    "equivalent": "Karşılığı",
+    "total_sale_lbl": "Toplam Satış",
+    "foreign_cash_in_drawer": "Çekmecedeki Yabancı Nakit",
+    "admin_signature": "Yönetici İmzası",
+    "payment_method": "Ödeme Yöntemi",
+    "currency": "Para Birimi"
 }

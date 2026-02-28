@@ -20,6 +20,11 @@ class Payment extends Model
         return $this->belongsTo(Store::class);
     }
 
+    public function currency()
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
     public function sale()
     {
         return $this->belongsTo(Sale::class);

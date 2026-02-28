@@ -5732,5 +5732,15 @@
     "Chatham-Kent": "Chatham-Kent",
     "Fort Wayne (IN)": "Fort Wayne (IN)",
     "Okazaki": "Okazaki",
-    "Lutsk": "Lutsk"
+    "Lutsk": "Lutsk",
+    "imported_rate": "Taxa importada",
+    "approved_rate": "Taxa aprovada",
+    "approve": "Aprovar",
+    "exchange_rate_confirmation": "Confirmação da taxa de câmbio",
+    "equivalent": "Equivalente",
+    "exchange_rate": "Taxa de câmbio",
+    "foreign_cash_in_drawer": "Dinheiro estrangeiro na gaveta",
+    "admin_signature": "Assinatura do administrador",
+    "payment_method": "Método de pagamento",
+    "currency": "Moeda"
 }

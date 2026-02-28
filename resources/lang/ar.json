@@ -5225,5 +5225,22 @@
     "Chatham-Kent": "Chatham-Kent",
     "Fort Wayne (IN)": "Fort Wayne (IN)",
     "Okazaki": "Okazaki",
-    "Lutsk": "Lutsk"
+    "Lutsk": "Lutsk",
+    "Currency Settings": "إعدادات العملات",
+    "Base Currency": "العملة الأساسية",
+    "Select Base Currency": "اختر العملة الأساسية",
+    "This is the main currency for products and reports.": "هذه هي العملة الرئيسية للمنتجات والتقارير.",
+    "Accepted Sub-Currencies": "العملات الفرعية المقبولة",
+    "Customers can pay using these currencies at the POS.": "يمكن للعملاء الدفع باستخدام هذه العملات في نقطة البيع.",
+    "Select accepted currencies": "اختر العملات المقبولة",
+    "imported_rate": "سعر الصرف المستورد",
+    "approved_rate": "سعر الصرف المعتمد",
+    "approve": "اعتماد",
+    "exchange_rate_confirmation": "تأكيد سعر الصرف",
+    "equivalent": "المعادل",
+    "exchange_rate": "سعر الصرف",
+    "foreign_cash_in_drawer": "العملات الأجنبية بالدرج",
+    "admin_signature": "توقيع المسؤول",
+    "payment_method": "طريقة الدفع",
+    "currency": "العملة"
 }

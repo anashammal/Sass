@@ -75,7 +75,34 @@ class PosController extends Controller
         $lastWithdrawal = Sale::where('store_id', Auth::user()->store->id)->where('is_withdrawal', true)->max('withdrawal_number');
         $nextWithdrawal = 'SOV-' . str_pad(($lastWithdrawal + 1), 4, '0', STR_PAD_LEFT);
 
-        return view('store_owner.pos.index', compact('nextInvoice', 'nextWithdrawal'));
+        // --- Currency Handling ---
+        $store = Auth::user()->store;
+        $baseCurrency = $store->baseCurrency ?? \App\Models\Currency::where('code', 'USD')->first(); // Fallback
+        $acceptedCurrencies = $store->acceptedCurrencies;
+        
+        // Fetch Live Rates
+        $exchangeRateService = new \App\Services\ExchangeRateService();
+        $liveRatesData = $baseCurrency ? $exchangeRateService->getRates($baseCurrency->code) : ['success' => false, 'rates' => []];
+        $liveRates = $liveRatesData['success'] ? $liveRatesData['rates'] : [];
+
+        // Prepare Sub Currencies List
+        $currenciesData = [];
+        foreach ($acceptedCurrencies as $cur) {
+            $pivot = $cur->pivot;
+            $rate = ($pivot && $pivot->custom_rate) ? $pivot->custom_rate : ($liveRates[$cur->code] ?? 1);
+            
+            $currenciesData[] = [
+                'id' => $cur->id,
+                'code' => $cur->code,
+                'name' => $cur->name_ar,
+                'symbol' => $cur->symbol,
+                'exchange_rate' => $rate,
+            ];
+        }
+
+        return view('store_owner.pos.index', compact(
+            'nextInvoice', 'nextWithdrawal', 'baseCurrency', 'currenciesData'
+        ));
     }
 
     // 1. بحث المنتجات
@@ -399,7 +426,10 @@ class PosController extends Controller
                     Payment::create([
                         'sale_id' => $sale->id, 
                         'method' => $pay['method'], 
-                        'amount' => $pay['amount'],
+                        'amount' => $pay['amount'], // This is ALWAYS in base currency for accounting
+                        'currency_id' => $pay['currency_id'] ?? null,
+                        'exchange_rate' => $pay['exchange_rate'] ?? 1,
+                        'amount_in_foreign_currency' => $pay['amount_in_foreign_currency'] ?? null,
                         'note' => $note
                     ]);
                 }
@@ -817,7 +847,7 @@ class PosController extends Controller
     {
         try {
             $storeId = Auth::user()->store->id;
-            $sale = Sale::where('store_id', $storeId)->where('id', $id)->with(['contact', 'items.product'])->first();
+            $sale = Sale::where('store_id', $storeId)->where('id', $id)->with(['contact', 'items.product', 'payments.currency'])->first();
             if (!$sale) return response()->json(['error' => 'غير موجودة'], 404);
 
             $store = Auth::user()->store;
@@ -871,6 +901,16 @@ class PosController extends Controller
                 'due'   => (float)$sale->due,
                 'created_at' => $sale->created_at->toDateTimeString(),
                 'contact' => $sale->contact ? [ 'contact_name' => $sale->contact->contact_name ] : null,
+                'payments' => $sale->payments->map(function($p) {
+                    return [
+                        'method' => $p->method,
+                        'amount' => (float)$p->amount,
+                        'currency_code' => $p->currency ? $p->currency->code : null,
+                        'currency_symbol' => $p->currency ? $p->currency->symbol : null,
+                        'exchange_rate' => (float)$p->exchange_rate,
+                        'amount_in_foreign_currency' => $p->amount_in_foreign_currency ? (float)$p->amount_in_foreign_currency : null
+                    ];
+                })
             ];
 
             return response()->json(['sale' => $saleData, 'items' => $items, 'store' => $storeData]);
