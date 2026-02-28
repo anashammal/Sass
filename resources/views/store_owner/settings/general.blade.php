@@ -239,10 +239,18 @@
             // تشغيل الفحص عند الخروج من الحقل أو الكتابة
             phoneInputField.addEventListener('blur', validatePhone);
             phoneInputField.addEventListener('keyup', validatePhone);
-            // فحص الرقم المبدئي
+            // فحص الرقم المبدئي - ننتظر تحميل utils.js أولاً لمنع الأحمر الخاطئ
             if(phoneInputField.value) {
                 phoneInput.setNumber(phoneInputField.value); // Set number properly
-                validatePhone();
+                // utils.js يحمّل بشكل async - ننتظر اكتماله قبل الـ validation
+                const waitForUtils = (attempts = 0) => {
+                    if (typeof intlTelInputUtils !== 'undefined') {
+                        validatePhone();
+                    } else if (attempts < 20) {
+                        setTimeout(() => waitForUtils(attempts + 1), 100);
+                    }
+                };
+                waitForUtils();
             }
 
             // منع إدخال الأحرف
