@@ -56,6 +56,32 @@
         </div>
     </div>
 
+    {{-- 💲 تفاصيل العملات --}}
+    @if(isset($currencyBreakdown) && $currencyBreakdown->count() > 0)
+    <div class="card border-0 shadow-sm mb-4 bg-light">
+        <div class="card-body">
+            <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-coins me-2"></i> {{ __('تفصيل المشتريات حسب العملة') }}</h6>
+            <div class="row g-2">
+                @foreach($currencyBreakdown as $breakdown)
+                <div class="col-md-3">
+                    <div class="p-3 bg-white rounded border border-secondary border-opacity-25 text-center">
+                        <span class="d-block mt-1 fw-bold fs-5 text-dark">
+                            {{ number_format($breakdown['total_amount'], 2) }} <small class="text-muted">{{ isset($breakdown['currency']) ? $breakdown['currency']->code : optional($baseCurrency)->code }}</small>
+                        </span>
+                        @if(isset($breakdown['currency']) && optional($baseCurrency)->id != $breakdown['currency']->id)
+                            <div class="mt-2 pt-2 border-top small text-muted">
+                                سعر الصرف المحتسب: {{ number_format($breakdown['exchange_rate'], 4) }} <br>
+                                ≈ {{ number_format($breakdown['in_base'], 2) }} {{ optional($baseCurrency)->code }}
+                            </div>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- قسم الفلاتر والبحث --}}
     <div class="card border-0 shadow-sm mb-4 no-print">
         <div class="card-body p-4">
@@ -93,6 +119,21 @@
                             <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>{{ __('unpaid_status') }}</option>
                         </select>
                     </div>
+
+                    {{-- فلتر العملة --}}
+                    @if(isset($currencies) && count($currencies) > 0)
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold text-muted">{{ __('العملة') }}</label>
+                        <select name="currency_id" class="form-select auto-filter">
+                            <option value="">{{ __('الكل') }}</option>
+                            @foreach($currencies as $cur)
+                                <option value="{{ $cur->id }}" {{ request('currency_id') == $cur->id ? 'selected' : '' }}>
+                                    {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
 
                     {{-- من تاريخ --}}
                     <div class="col-md-2">
@@ -155,6 +196,7 @@
                             <th>{{ __('invoice_number_label') }}</th>
                             <th>{{ __('supplier_label') }}</th>
                             <th>{{ __('date_label') }}</th>
+                            <th>{{ __('العملة') }}</th>
                             <th>{{ __('status_label') }}</th>
                             <th>{{ __('total_label') }}</th>
                             <th>{{ __('paid_label') }}</th>
@@ -190,6 +232,14 @@
     </div>
 </td>
                                 <td>
+                                    <span class="badge bg-secondary">{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}</span>
+                                    @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
+                                        <div class="small text-muted mt-1" style="font-size: 0.70rem;" title="سعر الصرف">
+                                            <i class="fas fa-exchange-alt"></i> {{ number_format($purchase->exchange_rate, 4) }}
+                                        </div>
+                                    @endif
+                                </td>
+                                <td>
                                     @if($purchase->payment_status == 'paid')
                                         <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">{{ __('paid_status') }}</span>
                                     @elseif($purchase->payment_status == 'partial')
@@ -198,10 +248,19 @@
                                         <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">{{ __('unpaid_status') }}</span>
                                     @endif
                                 </td>
-                                <td class="fw-bold">{{ number_format($purchase->grand_total, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
-                                <td class="text-success small">{{ number_format($purchase->paid_amount, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
-                                <td class="text-danger small fw-bold">
-                                    {{ number_format($purchase->grand_total - $purchase->paid_amount, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
+                                <td class="fw-bold">
+                                    {{ number_format($purchase->grand_total, 2) }} 
+                                    @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
+                                    <div class="text-muted small" style="font-size: 0.75rem;">
+                                        ≈ {{ number_format($purchase->grand_total_in_base_currency, 2) }} {{ optional($baseCurrency)->code }}
+                                    </div>
+                                    @endif
+                                </td>
+                                <td class="text-success">
+                                    {{ number_format($purchase->paid_amount, 2) }} 
+                                </td>
+                                <td class="text-danger fw-bold">
+                                    {{ number_format($purchase->grand_total - $purchase->paid_amount, 2) }} 
                                 </td>
                                 <td>
     <a href="javascript:void(0);" 
@@ -234,10 +293,10 @@
                     </tbody>
                     <tfoot class="bg-light fw-bold">
                         <tr class="table-active">
-                            <td colspan="5" class="text-end">{{ __('totals_current_page') }}</td>
-                            <td>{{ number_format($purchases->sum('grand_total'), 2) }} <small>{{ $globalCurrencySymbol }}</small></td>
-                            <td class="text-success">{{ number_format($purchases->sum('paid_amount'), 2) }} <small>{{ $globalCurrencySymbol }}</small></td>
-                            <td class="text-danger">{{ number_format($purchases->sum('grand_total') - $purchases->sum('paid_amount'), 2) }} <small>{{ $globalCurrencySymbol }}</small></td>
+                            <td colspan="6" class="text-end">{{ __('totals_current_page') }} ({{ optional($baseCurrency)->code }})</td>
+                            <td>{{ number_format($purchases->sum(function($p) { return $p->grand_total_in_base_currency; }), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
+                            <td class="text-success">{{ number_format($purchases->sum(function($p) { return $p->exchange_rate ? $p->paid_amount * $p->exchange_rate : $p->paid_amount; }), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
+                            <td class="text-danger">{{ number_format($purchases->sum(function($p) { return $p->remaining_amount_in_base_currency; }), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
                             <td class="no-print"></td>
                         </tr>
                     </tfoot>

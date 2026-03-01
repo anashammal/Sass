@@ -356,7 +356,9 @@
                         </div>
                         <div class="d-flex flex-column rate-input-wrapper d-none" style="flex:1; min-width:90px;">
                             <span style="font-size:0.65rem; color:#a8a8a8; margin-bottom: 2px;">{{ __('exchange_rate') }}</span>
-                            <input type="number" step="0.0000000001" class="form-control pay-input rate-input" placeholder="{{ __('exchange_rate') }}" value="1" oninput="calculateRemaining()" title="{{ __('exchange_rate') }}" style="width:100%;">
+                            <input type="text" inputmode="decimal" class="form-control pay-input rate-input" placeholder="{{ __('exchange_rate') }}" value="1" title="{{ __('exchange_rate') }}" style="width:100%;"
+                                oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1'); calculateRemaining();"
+                                onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault()">
                         </div>
                         <button class="btn-add-pay mb-1" onclick="addPaymentRow()" title="{{ __('add_payment') }}"><i class="fas fa-plus"></i></button>
                         

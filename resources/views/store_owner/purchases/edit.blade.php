@@ -38,12 +38,22 @@
                                     <div id="supplierResults" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1000; display: none;"></div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label fw-bold">{{ __('invoice_date_time') }}</label>
                                 <input type="text" name="invoice_date" class="form-control custom-date-input" 
                                        value="{{ \Carbon\Carbon::parse($purchase->invoice_date)->format('Y-m-d H:i') }}" required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">{{ __('العملة') }}</label>
+                                <select name="currency_id" id="currency_id" class="form-select">
+                                    @foreach($currencies as $cur)
+                                        <option value="{{ $cur->id }}" {{ $cur->id == $purchase->currency_id ? 'selected' : ($purchase->currency_id == null && $cur->id == optional($baseCurrency)->id ? 'selected' : '') }}>
+                                            {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label">{{ __('invoice_number_label') }}</label>
                                 <input type="text" name="invoice_number" class="form-control" value="{{ $purchase->invoice_number }}" placeholder="{{ __('invoice_number_placeholder') }}">
                             </div>
@@ -101,7 +111,8 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>{{ __('subtotal_label') }}:</span> <span id="subTotalDisplay" class="fw-bold">{{ $purchase->sub_total }}</span>
+                            <span>{{ __('subtotal_label') }}:</span> 
+                            <div><span id="subTotalDisplay" class="fw-bold">{{ $purchase->sub_total }}</span> <span class="currency-label text-muted small">{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}</span></div>
                         </div>
                         <div class="input-group input-group-sm mb-3">
                             <span class="input-group-text">{{ __('additional_discount') }}</span>
@@ -109,7 +120,7 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-top border-bottom py-2 mb-3">
                             <span class="fs-5 fw-bold">{{ __('final_net_label') }}:</span>
-                            <span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">{{ $purchase->grand_total }}</span>
+                            <div><span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">{{ $purchase->grand_total }}</span> <span class="currency-label fw-bold text-primary">{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}</span></div>
                         </div>
                         
                         <div class="mb-3">
@@ -160,6 +171,9 @@
     // التأكد من أن البيانات تأتي مصفوفة سليمة حتى لو كانت فارغة
     const oldItems = @json($itemsData ?? []); 
     window.productsData = {}; // 🟢 تهيئة مصفوفة المنتجات 
+
+    // Currency setup
+    const defaultCurrencyCode = "{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}";
 
     // Localization helper
     const LANG = {
@@ -648,6 +662,13 @@ function formatNum(num) {
         });
 
         // 1. تشغيل البحث عن الموردين والمنتجات
+        
+        // Currency change listener
+        document.getElementById('currency_id').addEventListener('change', function() {
+            let selectedCode = this.options[this.selectedIndex].text.split(' — ')[0];
+            document.querySelectorAll('.currency-label').forEach(el => el.innerText = selectedCode);
+        });
+
         setupSearch('supplierSearchInput', 'supplierResults', '/store-owner/contacts/search', function(s) {
             document.getElementById('supplierSearchInput').value = s.contact_name;
             document.getElementById('supplierId').value = s.id;

@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;  // لتسجيل الأخطاء
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\ArabicTextService;
+use App\Models\Currency;
+use App\Models\StoreCurrency;
+use App\Services\ExchangeRateService;
 
 
 
@@ -31,8 +34,20 @@ class PurchaseController extends Controller
     {
         $user = Auth::user();
         $storeId = $user->store->id;
+        $store = clone $user->store;
+        
+        $baseCurrency = $store->baseCurrency;
+        
+        $acceptedCurrencies = $store->acceptedCurrencies()->get();
+        if ($acceptedCurrencies->isEmpty()) {
+            $acceptedCurrencies = \App\Models\Currency::all();
+        }
+        if ($baseCurrency && !$acceptedCurrencies->contains('id', $baseCurrency->id)) {
+            $acceptedCurrencies->push($baseCurrency);
+        }
+        $currencies = $acceptedCurrencies->unique('id')->values();
 
-        $query = Purchase::where('store_id', $storeId)->with('supplier');
+        $query = Purchase::where('store_id', $storeId)->with(['supplier', 'currency']);
 
         if ($request->filled('search')) {
             $term = $request->search;
@@ -60,6 +75,10 @@ class PurchaseController extends Controller
         if ($request->filled('payment_status')) {
             $query->where('payment_status', $request->payment_status);
         }
+        
+        if ($request->filled('currency_id')) {
+            $query->where('currency_id', $request->currency_id);
+        }
 
         $sortField = $request->get('sort_by', 'invoice_date');
         $sortOrder = $request->get('order_by', 'desc');
@@ -72,15 +91,33 @@ class PurchaseController extends Controller
 
         $totals = [
             'count' => (clone $query)->count(),
-            'sum_total' => (clone $query)->sum('grand_total'),
-            'sum_paid' => (clone $query)->sum('paid_amount'),
-            'sum_due' => (clone $query)->sum(DB::raw('grand_total - paid_amount')),
+            'sum_total' => (clone $query)->get()->sum('amount_in_base_currency' /* virtual accessor logic */) ?? (clone $query)->get()->sum(function($p) { return $p->grand_total_in_base_currency; }),
+            'sum_paid' => (clone $query)->get()->sum(function($p) { return $p->exchange_rate ? $p->paid_amount * $p->exchange_rate : $p->paid_amount; }),
+            'sum_due' => (clone $query)->get()->sum(function($p) { return $p->remaining_amount_in_base_currency; }),
         ];
+
+        // تفصيل حسب العملة
+        $purchasesForBreakdown = (clone $query)->get();
+        $currencyBreakdown = $purchasesForBreakdown->groupBy(function($item) use ($baseCurrency) {
+            return $item->currency_id ?? optional($baseCurrency)->id;
+        })->map(function($group) use ($baseCurrency) {
+            $first = $group->first();
+            $currency = $first->currency ?? $baseCurrency;
+            $total = $group->sum('grand_total');
+            $rate = collect($group)->avg('exchange_rate') ?: 1; // Assuming 1 if not set 
+            
+            return [
+                'currency' => $currency,
+                'total_amount' => $total,
+                'exchange_rate' => $rate,
+                'in_base' => $total * $rate
+            ];
+        });
 
         $purchases = $query->paginate(10)->withQueryString();
         $suppliers = Contact::where('store_id', $storeId)->whereIn('type', ['supplier', 'both'])->get();
 
-        return view('store_owner.purchases.index', compact('purchases', 'suppliers', 'totals'));
+        return view('store_owner.purchases.index', compact('purchases', 'suppliers', 'totals', 'baseCurrency', 'currencies', 'currencyBreakdown'));
     }
 
     public function pdfReport(Request $request)
@@ -228,6 +265,17 @@ class PurchaseController extends Controller
         $suppliers = Contact::where('store_id', $store->id)->whereIn('type', ['supplier', 'both'])->get();
         $taxRates = explode(',', $store->tax_rates ?? '0,15');
 
+        $baseCurrency = $store->baseCurrency;
+        $acceptedCurrencies = $store->acceptedCurrencies()->get();
+        // إذا لم تكن هناك عملات مقبولة, نجلب كل العملات من الجدول
+        if ($acceptedCurrencies->isEmpty()) {
+            $acceptedCurrencies = \App\Models\Currency::all();
+        }
+        if ($baseCurrency && !$acceptedCurrencies->contains('id', $baseCurrency->id)) {
+            $acceptedCurrencies->push($baseCurrency);
+        }
+        $currencies = $acceptedCurrencies->unique('id')->values();
+
         $lastPurchase = Purchase::where('store_id', $store->id)->latest()->first();
         $nextId = $lastPurchase ? ($lastPurchase->id + 1) : 1;
         $nextInvoiceNumber = 'PUR-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
@@ -236,7 +284,28 @@ class PurchaseController extends Controller
         $timezone = $store->timezone ?? config('app.timezone');
         $currentDate = now()->setTimezone($timezone)->format('Y-m-d\TH:i'); 
 
-        return view('store_owner.purchases.create', compact('suppliers', 'taxRates', 'nextInvoiceNumber', 'currentDate')); 
+        // تحميل أسعار الصرف مسبقاً لكل العملات
+        $currenciesData = [];
+        if ($baseCurrency) {
+            $exchangeService = app(ExchangeRateService::class);
+            $ratesData = $exchangeService->getRates($baseCurrency->code);
+            foreach ($currencies as $cur) {
+                if ($cur->id === $baseCurrency->id) continue;
+                $rate = 1;
+                if ($ratesData['success'] && isset($ratesData['rates'][strtoupper($cur->code)])) {
+                    $rate = $ratesData['rates'][strtoupper($cur->code)];
+                }
+                $currenciesData[] = [
+                    'id'            => $cur->id,
+                    'code'          => $cur->code,
+                    'symbol'        => $cur->symbol ?? $cur->code,
+                    'exchange_rate' => $rate,
+                    'is_base'       => false,
+                ];
+            }
+        }
+
+        return view('store_owner.purchases.create', compact('suppliers', 'taxRates', 'nextInvoiceNumber', 'currentDate', 'baseCurrency', 'currencies', 'currenciesData')); 
     }
 
     public function store(Request $request)
@@ -260,6 +329,20 @@ class PurchaseController extends Controller
             $user = Auth::user();
             $store = $user->store;
             $storeId = $store->id;
+            
+            $baseCurrency = $store->baseCurrency;
+            $exchangeRate = 1;
+            $currencyId = $request->input('currency_id', optional($baseCurrency)->id);
+
+            // جلب سعر الصرف إذا كانت العملة مختلفة عن الأساسية
+            if ($baseCurrency && $currencyId && $currencyId != $baseCurrency->id) {
+                $targetCurrency = Currency::find($currencyId);
+                if ($targetCurrency) {
+                    $exchangeRateService = app(ExchangeRateService::class);
+                    $rate = $exchangeRateService->getExchangeRate($targetCurrency->code, $baseCurrency->code);
+                    $exchangeRate = $rate ?? 1;
+                }
+            }
 
             $purchase = null;
             // التحقق من وجود الفاتورة للتعديل
@@ -297,6 +380,8 @@ class PurchaseController extends Controller
                 'supplier_id' => $request->supplier_id,
                 'invoice_number' => $request->invoice_number,
                 'invoice_date' => $request->invoice_date,
+                'currency_id' => $currencyId,
+                'exchange_rate' => $exchangeRate,
                 'notes' => $request->notes,
                 'attachment' => $attachmentPath,
                 'payment_status' => 'unpaid', // سيتم تحديثها بالأسفل
@@ -402,25 +487,66 @@ class PurchaseController extends Controller
                 }
             }
 
-            $totalPaid = 0;
+            $totalPaid = 0; // المجموع بالعملة الأساسية للمتجر
             if ($request->has('payments')) {
                 foreach ($request->payments as $payment) {
-                    $totalPaid += (float) ($payment['amount'] ?? 0);
+                    $amt = (float) ($payment['amount'] ?? 0);
+                    $payRate = (float) ($payment['exchange_rate'] ?? 1);
+                    $isBaseCurr = empty($payment['currency_id']) 
+                        || $payment['currency_id'] == optional($baseCurrency)->id;
+                    if ($isBaseCurr || $payRate <= 0) {
+                        // عملة أساسية
+                        $totalPaid += $amt;
+                    } else {
+                        // عملة أجنبية: المبلغ ÷ سعر الصرف = مقابله بالعملة الأساسية
+                        // (سعر الصرف: 1 TRY = X SAR، أي rate = SAR/TRY)
+                        $totalPaid += $payRate > 0 ? ($amt / $payRate) : $amt;
+                    }
                 }
             }
 
             $discount = (float) ($request->discount ?? 0);
-            $grandTotal = $subTotal - $discount;
+            $grandTotal = $subTotal - $discount; // العملة الأصلية للفاتورة (مثلاً SAR)
             
+            // تحويل الإجمالي للعملة الأساسية (TRY) للمقارنة والحسابات المالية
+            $grandTotalInBase = ($exchangeRate > 0) ? ($grandTotal / $exchangeRate) : $grandTotal;
+
             $payStatus = 'unpaid';
             if (!$isDraft) {
-                $payStatus = ($totalPaid >= $grandTotal) ? 'paid' : (($totalPaid > 0) ? 'partial' : 'unpaid');
+                // المقارنة الآن صحيحة: TRY vs TRY
+                $payStatus = ($totalPaid >= $grandTotalInBase - 0.01) ? 'paid' : (($totalPaid > 0.01) ? 'partial' : 'unpaid');
                 
-                // تحديث رصيد المورد
+                // تحديث رصيد المورد (بالعملة الأساسية لتركيا)
                 $supplier = Contact::find($request->supplier_id);
                 if ($supplier) {
-                    $debtAmount = $grandTotal - $totalPaid;
-                    $supplier->increment('balance', $debtAmount);
+                    $debtAmount = $grandTotalInBase - $totalPaid; // كلاهما بالعملة الأساسية (TRY)
+                    if ($debtAmount > 0.001) {
+                        $supplier->increment('balance', $debtAmount);
+                    }
+                }
+                
+                // إضافة الدفعات (إن وجدت) — كل دفعة بعملتها الخاصة
+                if ($request->has('payments') && $totalPaid > 0) {
+                    foreach ($request->payments as $payment) {
+                        $amt = (float)($payment['amount'] ?? 0);
+                        if ($amt <= 0) continue;
+                        $paymentCurrencyId = $payment['currency_id'] ?? optional($baseCurrency)->id;
+                        $paymentRate = (float)($payment['exchange_rate'] ?? 1);
+                        $isBasePayment = empty($paymentCurrencyId) 
+                            || $paymentCurrencyId == optional($baseCurrency)->id;
+                        // المبلغ بالعملة الأساسية لهذه الدفعة
+                        $amtInBase = $isBasePayment ? $amt : ($paymentRate > 0 ? $amt / $paymentRate : $amt);
+                        \App\Models\Payment::create([
+                            'store_id'       => $store->id,
+                            'purchase_id'    => $purchase->id,
+                            'contact_id'     => $request->supplier_id,
+                            'amount'         => $amtInBase,
+                            'method'         => $payment['method'] ?? 'cash',
+                            'payment_date'   => $request->invoice_date,
+                            'currency_id'    => $paymentCurrencyId ?: optional($baseCurrency)->id,
+                            'exchange_rate'  => $paymentRate ?: 1,
+                        ]);
+                    }
                 }
             }
 
@@ -572,7 +698,18 @@ class PurchaseController extends Controller
         $suppliers = Contact::where('store_id', $store->id)->whereIn('type', ['supplier', 'both'])->get();
         $taxRates = explode(',', $store->tax_rates ?? '0,15');
 
-        return view('store_owner.purchases.edit', compact('purchase', 'suppliers', 'taxRates', 'itemsData'));
+        $baseCurrency = $store->baseCurrency;
+        $acceptedCurrencies = $store->acceptedCurrencies()->get();
+        // إذا لم تكن هناك عملات مقبولة, نجلب كل العملات من الجدول
+        if ($acceptedCurrencies->isEmpty()) {
+            $acceptedCurrencies = \App\Models\Currency::all();
+        }
+        if ($baseCurrency && !$acceptedCurrencies->contains('id', $baseCurrency->id)) {
+            $acceptedCurrencies->push($baseCurrency);
+        }
+        $currencies = $acceptedCurrencies->unique('id')->values();
+
+        return view('store_owner.purchases.edit', compact('purchase', 'suppliers', 'taxRates', 'itemsData', 'baseCurrency', 'currencies'));
     }
 
     public function update(Request $request, $id)
@@ -596,10 +733,10 @@ class PurchaseController extends Controller
                     }
                 }
                 
-                // 🟢🔴 عكس رصيد المورد عند الحذف
+                // 🟢🔴 عكس رصيد المورد عند الحذف (بالعملة الأساسية)
                 $supplier = Contact::find($purchase->supplier_id);
                 if ($supplier) {
-                    $debt = $purchase->grand_total - $purchase->paid_amount;
+                    $debt = $purchase->grand_total_in_base_currency - ($purchase->paid_amount * ($purchase->exchange_rate ?? 1));
                     $supplier->decrement('balance', $debt);
                 }
             }
@@ -662,7 +799,6 @@ class PurchaseController extends Controller
             $products = Product::where('store_id', $storeId)
                 ->where(function($q) use ($term) {
                     $q->where('name', 'like', "%$term%")
-                      ->orWhere('name_en', 'like', "%$term%")
                       ->orWhere('sku', 'like', "%$term%") 
                       ->orWhereHas('units', function($q2) use ($term) {
                           $q2->where('barcode', 'like', "%$term%");
@@ -685,9 +821,10 @@ class PurchaseController extends Controller
                 return [
                     'id' => $product->id,
                     'text' => $product->name . ' (' . $product->sku . ')',
+                    'name' => $product->name,
                     'name_ar' => $product->name,
                     'sku' => $product->sku,
-                    'main_image' => $product->image_url, // Assuming Accessor
+                    'main_image' => $product->image_url,
                     'scanned_unit_id' => $matchedUnit ? $matchedUnit->id : null,
                     'units' => $product->units->map(function($unit) {
                         return [
@@ -790,6 +927,32 @@ class PurchaseController extends Controller
         } catch (\Exception $e) {
             Log::error("Purchase PDF Error: " . $e->getMessage());
             return ['success' => false];
+        }
+    }
+
+    /**
+     * API: جلب سعر الصرف بين عملتين
+     */
+    public function getExchangeRateApi(Request $request)
+    {
+        try {
+            $from = strtoupper($request->get('from')); // العملة المصدر (الأساسية)
+            $to   = strtoupper($request->get('to'));   // العملة الهدف
+            
+            if (!$from || !$to || $from === $to) {
+                return response()->json(['rate' => 1]);
+            }
+            
+            $service = app(ExchangeRateService::class);
+            $ratesData = $service->getRates($from);
+            
+            if ($ratesData['success'] && isset($ratesData['rates'][$to])) {
+                return response()->json(['rate' => $ratesData['rates'][$to]]);
+            }
+            
+            return response()->json(['rate' => 1, 'message' => 'Rate not found']);
+        } catch (\Exception $e) {
+            return response()->json(['rate' => 1, 'error' => $e->getMessage()]);
         }
     }
 }

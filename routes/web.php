@@ -128,6 +128,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('products/quick-store', [PurchaseController::class, 'quickStoreProduct'])->name('products.quick_store');
         Route::post('contacts/quick-store', [PurchaseController::class, 'quickStoreSupplier'])->name('contacts.quick_store');
         Route::post('products/check-barcode', [ProductController::class, 'checkBarcode'])->name('products.check_barcode');
+        Route::get('api/exchange-rate', [PurchaseController::class, 'getExchangeRateApi'])->name('api.exchange_rate');
 
         // الموارد الأساسية
         Route::get('/dashboard', [StoreOwnerDashboardController::class, 'index'])->name('dashboard');

@@ -20,13 +20,13 @@
     </div>
 
     <!-- KPI Cards -->
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-3">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm p-3 h-100 border-start border-4 border-danger">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-bold">{{ __('مصاريف اليوم') }}</small>
-                        <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['today'] == (int)$totals['today'] ? number_format($totals['today'], 0) : number_format($totals['today'], 2) }}</h4>
+                        <h4 class="fw-bold mb-0 mt-1">{{ number_format($totals['today'], 2) }} <small class="fs-6 text-muted">{{ optional($baseCurrency)->code }}</small></h4>
                     </div>
                     <div class="bg-danger bg-opacity-10 p-3 rounded-circle text-danger">
                         <i class="fas fa-calendar-day fa-lg"></i>
@@ -39,7 +39,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-bold">{{ __('مصاريف الشهر') }}</small>
-                        <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['month'] == (int)$totals['month'] ? number_format($totals['month'], 0) : number_format($totals['month'], 2) }}</h4>
+                        <h4 class="fw-bold mb-0 mt-1">{{ number_format($totals['month'], 2) }} <small class="fs-6 text-muted">{{ optional($baseCurrency)->code }}</small></h4>
                     </div>
                     <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
                         <i class="fas fa-calendar-alt fa-lg"></i>
@@ -52,7 +52,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-bold">{{ __('إجمالي المصاريف (المفلترة)') }}</small>
-                        <h4 class="fw-bold mb-0 mt-1">{{ (float)$totals['total'] == (int)$totals['total'] ? number_format($totals['total'], 0) : number_format($totals['total'], 2) }}</h4>
+                        <h4 class="fw-bold mb-0 mt-1">{{ number_format($totals['total'], 2) }} <small class="fs-6 text-muted">{{ optional($baseCurrency)->code }}</small></h4>
                     </div>
                     <div class="bg-secondary bg-opacity-10 p-3 rounded-circle text-secondary">
                         <i class="fas fa-filter fa-lg"></i>
@@ -61,6 +61,56 @@
             </div>
         </div>
     </div>
+
+    {{-- تفصيل العملات --}}
+    @php
+        $firstRow = $currencyBreakdown->first();
+        $firstCurrencyCode = $firstRow ? optional($firstRow['currency'])->code : null;
+        $baseCode = optional($baseCurrency)->code;
+        $showBreakdown = $currencyBreakdown->count() > 1 || ($currencyBreakdown->count() == 1 && $firstCurrencyCode !== $baseCode);
+    @endphp
+    @if($showBreakdown)
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light border-0 py-2">
+            <small class="fw-bold text-muted"><i class="fas fa-exchange-alt me-1"></i>{{ __('تفصيل المصاريف حسب العملة') }}</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="bg-light">
+                        <tr class="text-muted small">
+                            <th class="px-3">{{ __('العملة') }}</th>
+                            <th>{{ __('الإجمالي') }}</th>
+                            <th>{{ __('سعر الصرف') }}</th>
+                            <th>{{ __('يعادل (:base)', ['base' => optional($baseCurrency)->code]) }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($currencyBreakdown as $row)
+                        <tr class="small">
+                            <td class="px-3 fw-bold">
+                                {{ optional($row['currency'])->code ?? optional($baseCurrency)->code }}
+                                <span class="text-muted">{{ optional($row['currency'])->symbol }}</span>
+                            </td>
+                            <td>{{ number_format($row['total_amount'], 2) }}</td>
+                            <td>
+                                @if(optional($row['currency'])->code !== optional($baseCurrency)->code)
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info">
+                                        1 {{ optional($row['currency'])->code }} = {{ number_format($row['exchange_rate'], 4) }} {{ optional($baseCurrency)->code }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td class="fw-bold text-success">{{ number_format($row['in_base'], 2) }} {{ optional($baseCurrency)->code }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -87,7 +137,7 @@
                         <input type="date" id="filterDateTo" name="date_to" value="{{ request('date_to') }}" class="form-control enhanced-date-input auto-filter border-start-0 ps-0">
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="small text-muted fw-bold mb-1">{{ __('التصنيف') }}</label>
                     <select name="category_id" class="form-select form-select-sm auto-filter">
                         <option value="">{{ __('(الكل)') }}</option>
@@ -96,7 +146,18 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3 d-flex align-items-end">
+                <div class="col-md-2">
+                    <label class="small text-muted fw-bold mb-1">{{ __('العملة') }}</label>
+                    <select name="currency_id" class="form-select form-select-sm auto-filter">
+                        <option value="">{{ __('(الكل)') }}</option>
+                        @foreach($currencies as $cur)
+                            <option value="{{ $cur->id }}" {{ request('currency_id') == $cur->id ? 'selected' : '' }}>
+                                {{ $cur->code }} {{ $cur->symbol }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
                     <a href="{{ route('store.expenses.index') }}" class="btn btn-outline-secondary btn-sm w-100">
                         <i class="fas fa-undo me-1"></i> {{ __('إعادة تعيين') }}
                     </a>
@@ -112,6 +173,7 @@
                             <th class="py-3 px-4">{{ __('التاريخ') }}</th>
                             <th class="py-3">{{ __('التصنيف') }}</th>
                             <th class="py-3">{{ __('المبلغ') }}</th>
+                            <th class="py-3">{{ __('العملة') }}</th>
                             <th class="py-3">{{ __('ملاحظات') }}</th>
                             <th class="py-3">{{ __('بواسطة') }}</th>
                             <th class="py-3 text-end px-4">{{ __('إجراءات') }}</th>
@@ -127,9 +189,21 @@
                                     </span>
                                 </td>
                                 <td class="fw-bold">
-                                    {{ (float)$expense->amount == (int)$expense->amount ? number_format($expense->amount, 0) : number_format($expense->amount, 2) }}
+                                    {{ number_format($expense->amount, 2) }}
+                                    @if($expense->currency && $expense->currency->code !== optional($baseCurrency)->code)
+                                        <br><small class="text-success fw-normal">≈ {{ number_format($expense->amount_in_base_currency, 2) }} {{ optional($baseCurrency)->code }}</small>
+                                    @endif
                                 </td>
-                                <td class="text-muted small text-truncate" style="max-width: 200px;" title="{{ $expense->notes }}">{{ $expense->notes ?? '-' }}</td>
+                                <td>
+                                    <span class="badge bg-light border text-dark">
+                                        {{ optional($expense->currency)->code ?? optional($baseCurrency)->code }}
+                                        {{ optional($expense->currency)->symbol ?? optional($baseCurrency)->symbol }}
+                                    </span>
+                                    @if($expense->currency && $expense->currency->code !== optional($baseCurrency)->code && $expense->exchange_rate)
+                                        <br><small class="text-muted" style="font-size:10px">1 {{ $expense->currency->code }} = {{ number_format($expense->exchange_rate, 4) }} {{ optional($baseCurrency)->code }}</small>
+                                    @endif
+                                </td>
+                                <td class="text-muted small text-truncate" style="max-width: 160px;" title="{{ $expense->notes }}">{{ $expense->notes ?? '-' }}</td>
                                 <td class="small text-muted">{{ $expense->user->name }}</td>
                                 <td class="text-end px-4">
                                     @if($expense->attachment)
@@ -144,6 +218,7 @@
                                             'id' => $expense->id,
                                             'category_id' => $expense->category_id,
                                             'amount' => $expense->amount,
+                                            'currency_id' => $expense->currency_id,
                                             'expense_date' => $expense->expense_date->format('Y-m-d'),
                                             'notes' => $expense->notes
                                         ]) }})">
@@ -196,14 +271,21 @@
                     </select>
                 </div>
                 <div class="row g-2 mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">{{ __('المبلغ') }}</label>
-                        <div class="input-group">
-                            <input type="number" step="0.01" name="amount" class="form-control" required>
-                            <span class="input-group-text bg-white">{{ __('د.أ') }}</span>
-                        </div>
+                        <input type="number" step="0.01" name="amount" class="form-control" required>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">{{ __('العملة') }}</label>
+                        <select name="currency_id" class="form-select" id="add_currency_id">
+                            @foreach($currencies as $cur)
+                                <option value="{{ $cur->id }}" {{ $cur->id == optional($baseCurrency)->id ? 'selected' : '' }}>
+                                    {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">{{ __('التاريخ') }}</label>
                         <input type="date" name="expense_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                     </div>
@@ -251,14 +333,21 @@
                     </select>
                 </div>
                 <div class="row g-2 mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">{{ __('المبلغ') }}</label>
-                        <div class="input-group">
-                            <input type="number" step="0.01" name="amount" id="edit_amount" class="form-control" required>
-                            <span class="input-group-text bg-white">{{ __('د.أ') }}</span>
-                        </div>
+                        <input type="number" step="0.01" name="amount" id="edit_amount" class="form-control" required>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">{{ __('العملة') }}</label>
+                        <select name="currency_id" id="edit_currency_id" class="form-select">
+                            @foreach($currencies as $cur)
+                                <option value="{{ $cur->id }}" {{ $cur->id == optional($baseCurrency)->id ? 'selected' : '' }}>
+                                    {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">{{ __('التاريخ') }}</label>
                         <input type="date" name="expense_date" id="edit_expense_date" class="form-control" required>
                     </div>
@@ -327,11 +416,13 @@
     function editExpense(data) {
         document.getElementById('editExpenseForm').action = `{{ url('store-owner/expenses') }}/${data.id}`;
         document.getElementById('edit_category_id').value = data.category_id;
-        // تقريب الرقم ليظهر بدون أصفار زائدة إذا كان صحيحاً
-        document.getElementById('edit_amount').value = parseFloat(data.amount); 
+        document.getElementById('edit_amount').value = parseFloat(data.amount);
         document.getElementById('edit_expense_date').value = data.expense_date;
         document.getElementById('edit_notes').value = data.notes ?? '';
-        
+        // تعيين العملة المحفوظة
+        if (data.currency_id) {
+            document.getElementById('edit_currency_id').value = data.currency_id;
+        }
         new bootstrap.Modal(document.getElementById('editExpenseModal')).show();
     }
 

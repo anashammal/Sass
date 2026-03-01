@@ -33,6 +33,34 @@ class Purchase extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function currency()
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
+    /**
+     * الإجمالي محوّل للعملة الأساسية باستخدام سعر الصرف المسجّل
+     */
+    public function getGrandTotalInBaseCurrencyAttribute()
+    {
+        if ($this->exchange_rate && $this->exchange_rate > 0) {
+            return $this->grand_total * $this->exchange_rate;
+        }
+        return $this->grand_total;
+    }
+
+    /**
+     * المتبقي (غير المدفوع) محوّل للعملة الأساسية
+     */
+    public function getRemainingAmountInBaseCurrencyAttribute()
+    {
+        $remaining = $this->grand_total - $this->paid_amount;
+        if ($this->exchange_rate && $this->exchange_rate > 0) {
+            return $remaining * $this->exchange_rate;
+        }
+        return $remaining;
+    }
+
     // =========================================================
     // 🔥 دوال تحويل التوقيت (Accessors) - النسخة المصححة 🔥
     // =========================================================

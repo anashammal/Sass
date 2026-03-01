@@ -129,10 +129,20 @@
                                 <input type="datetime-local" name="invoice_date" class="form-control custom-date-input" 
                                        value="{{ old('invoice_date', $currentDate) }}" required>
                             </div>
-<div class="form-group">
-    <label>رقم الفاتورة</label>
-    <input type="text" name="invoice_number" class="form-control" value="{{ $nextInvoiceNumber }}" readonly>
-</div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold"> {{ __('العملة') }} </label>
+                                <select name="currency_id" id="currency_id" class="form-select">
+                                    @foreach($currencies as $cur)
+                                        <option value="{{ $cur->id }}" {{ $cur->id == optional($baseCurrency)->id ? 'selected' : '' }}>
+                                            {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold"> {{ __('رقم الفاتورة') }} </label>
+                                <input type="text" name="invoice_number" class="form-control" value="{{ $nextInvoiceNumber }}" readonly>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -196,7 +206,8 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
-                            <span> {{ __('المجموع الفرعي:') }} </span> <span id="subTotalDisplay" class="fw-bold">0.00</span>
+                            <span> {{ __('المجموع الفرعي:') }} </span> 
+                            <div><span id="subTotalDisplay" class="fw-bold">0.00</span> <span class="currency-label text-muted small">{{ optional($baseCurrency)->code }}</span></div>
                         </div>
                         <div class="input-group input-group-sm mb-3">
                             <span class="input-group-text"> {{ __('خصم إضافي') }} </span>
@@ -204,20 +215,41 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-top border-bottom py-2 mb-3">
                             <span class="fs-5 fw-bold"> {{ __('الصافي النهائي:') }} </span>
-                            <span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">0.00</span>
+                            <div><span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">0.00</span> <span class="currency-label fw-bold text-primary">{{ optional($baseCurrency)->code }}</span></div>
                         </div>
                         
                         <div class="mb-3">
                             <label class="small text-muted mb-1"> {{ __('المدفوعات') }} </label>
                             <div id="paymentsContainer">
-                                <div class="input-group mb-2 payment-row">
-                                    <select name="payments[0][method]" class="form-select" style="max-width: 120px;">
-                                        <option value="cash"> {{ __('💰 نقدي') }} </option>
-                                        <option value="card"> {{ __('💳 بطاقة') }} </option>
-                                        <option value="bank"> {{ __('🏦 تحويل') }} </option>
-                                    </select>
-                                    <input type="text" inputmode="decimal" name="payments[0][amount]" class="form-control text-center payment-input" value="0" oninput="calculateGrandTotal()">
-                                    <button type="button" class="btn btn-outline-success" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
+                                <div class="payment-row mb-2">
+                                    <div class="input-group mb-1">
+                                        <select name="payments[0][method]" class="form-select method-select" style="max-width: 120px;">
+                                            <option value="cash"> {{ __('💰 نقدي') }} </option>
+                                            <option value="card"> {{ __('💳 بطاقة') }} </option>
+                                            <option value="bank"> {{ __('🏦 تحويل') }} </option>
+                                        </select>
+                                        <input type="text" inputmode="decimal" name="payments[0][amount]" class="form-control text-center payment-input" value="0" oninput="calculateGrandTotal()">
+                                        <select class="form-select currency-select pay-currency" style="max-width:110px;" onchange="onPayCurrencyChange(this, 0)">
+                                            <option value="{{ optional($baseCurrency)->id }}" data-rate="1" data-is-base="1" selected>{{ optional($baseCurrency)->code }}</option>
+                                            @foreach($currencies as $cur)
+                                                @if(!$baseCurrency || $cur->id != $baseCurrency->id)
+                                                <option value="{{ $cur->id }}" data-rate="1" data-is-base="0">{{ $cur->code }}</option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                        <button type="button" class="btn btn-outline-success" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                    {{-- حقول مخفية لإرسال العملة وسعر الصرف --}}
+                                    <input type="hidden" name="payments[0][currency_id]" class="pay-currency-id" value="{{ optional($baseCurrency)->id }}">
+                                    <input type="hidden" name="payments[0][exchange_rate]" class="pay-rate-hidden" value="1">
+                                    {{-- حقل المعادل بالعملة الأساسية (يظهر عند اختيار عملة أخرى) --}}
+                                    <div class="rate-row d-none">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text text-muted small">يعادل ({{ optional($baseCurrency)->code }})</span>
+                                            <input type="text" readonly class="form-control bg-light text-center fw-bold rate-input" value="0.00" placeholder="المعادل">
+                                            <span class="input-group-text rate-note small text-info"></span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -333,12 +365,24 @@
     const storeTaxRates = @json($taxRates); 
     window.productsData = {}; 
 
+    // Currency setup
+    const defaultCurrencyCode = "{{ optional($baseCurrency)->code }}";
+    const baseCurrencyId = "{{ optional($baseCurrency)->id }}";
+
     // --- عند تحميل الصفحة ---
     document.addEventListener("DOMContentLoaded", function() {
         console.log("✅ Main Script Loaded");
 
         // إعداد بحث الموردين (مع الاختيار التلقائي)
         console.log("Initializing Supplier Search...");
+        
+        // Currency change listener
+        document.getElementById('currency_id').addEventListener('change', function() {
+            let selectedCode = this.options[this.selectedIndex].text.split(' — ')[0];
+            document.querySelectorAll('.currency-label').forEach(el => el.innerText = selectedCode);
+            // Optionally, we could show an exchange rate warning here if it's different from base currency
+        });
+
         setupSearch('supplierSearchInput', 'supplierResults', "{{ route('store.contacts.search') }}", function(s) {
             console.log("Supplier Selected:", s);
             document.getElementById('supplierSearchInput').value = s.contact_name || s.company_name;
@@ -553,7 +597,8 @@
 
     function formatNum(num) { 
         if (num === null || num === undefined || num === '') return 0;
-        return parseFloat(num); 
+        let val = parseFloat(num) || 0;
+        return parseFloat(val.toFixed(4)); 
     }
 
     // --- دالة إضافة صف المنتج المصححة ---
@@ -1023,8 +1068,28 @@
         let discount = parseMoney(document.getElementById('discountInput').value);
         let grandTotal = subTotal - discount;
         document.getElementById('grandTotalDisplay').innerText = formatNum(grandTotal);
+        
+        // حساب مجموع المدفوعات بالعملة الأساسية
         let totalPaid = 0;
-        document.querySelectorAll('.payment-input').forEach(inp => totalPaid += parseMoney(inp.value));
+        document.querySelectorAll('.payment-row').forEach(row => {
+            let amountInput = row.querySelector('.payment-input');
+            let rateInp = row.querySelector('.rate-input'); // هذا للعرض فقط (المعادل)
+            let hiddenRate = row.querySelector('.pay-rate-hidden'); // هذا سعر الصرف الحقيقي
+            let currSel = row.querySelector('.currency-select');
+            if (!amountInput) return;
+            let amount = parseMoney(amountInput.value);
+            let isBase = currSel ? (currSel.options[currSel.selectedIndex]?.dataset?.isBase === '1') : true;
+            let rate = hiddenRate ? (parseMoney(hiddenRate.value) || 1) : 1;
+            
+            let amtInBase = isBase ? amount : (rate > 0 ? amount / rate : 0);
+            totalPaid += amtInBase;
+
+            // تحديث حقل "المعادل" في الواجهة
+            if (rateInp && !isBase) {
+                rateInp.value = formatNum(amtInBase);
+            }
+        });
+        
         const diff = parseFloat((totalPaid - grandTotal).toFixed(2));
         const balDiv = document.getElementById('balanceAlert');
         const balLbl = document.getElementById('balanceLabel');
@@ -1045,22 +1110,203 @@
         }
     }
 
+    // عند تغيير العملة في صف الدفع
+    // مزامنة سعر الصرف مع الحقل المخفي للـ form
+    function syncRateHidden(rateInp) {
+        let row = rateInp.closest('.payment-row');
+        let hidden = row ? row.querySelector('.pay-rate-hidden') : null;
+        if (hidden) hidden.value = parseFloat(rateInp.value) || 1;
+    }
+
+    // أسعار الصرف المحملة مسبقاً من الخادم
+    const preloadedRates = @json($currenciesData ?? []);
+    const ratesMap = {};
+    preloadedRates.forEach(c => { ratesMap[c.id] = c; });
+
+
+    function onPayCurrencyChange(select, idx) {
+        let row = select.closest('.payment-row');
+        let rateInput = row.querySelector('.rate-input');
+        let selectedOpt = select.options[select.selectedIndex];
+        let isBase = selectedOpt.dataset.isBase === '1';
+        let currCode = selectedOpt.text.trim();
+        let currId   = select.value;
+        let baseCurrCode = '{{ optional($baseCurrency)->code }}';
+
+        if (isBase) {
+            if (rateInput) rateInput.value = 1;
+            let rateRow = row.querySelector('.rate-row');
+            if (rateRow) rateRow.classList.add('d-none');
+            calculateGrandTotal();
+            return;
+        }
+
+        // قراءة السعر من البيانات المحملة مسبقاً
+        let currData = ratesMap[currId];
+        let suggestedRate = currData ? parseFloat(currData.exchange_rate).toFixed(6) : '1.000000';
+
+        // حساب المتبقي بالعملة الأساسية
+        let remaining = parseFloat(document.getElementById('grandTotalDisplay').innerText) || 0;
+        document.querySelectorAll('.payment-row').forEach(r2 => {
+            let ai = r2.querySelector('.payment-input');
+            let hiddenRate = r2.querySelector('.pay-rate-hidden'); // استخدام سعر الصرف الحقيقي
+            let cs = r2.querySelector('.currency-select');
+            if (!ai || r2 === row) return;
+            let isB = cs ? (cs.options[cs.selectedIndex]?.dataset?.isBase === '1') : true;
+            let rt = hiddenRate ? (parseMoney(hiddenRate.value) || 1) : 1;
+            remaining -= isB ? parseMoney(ai.value) : (rt > 0 ? parseMoney(ai.value) / rt : 0);
+        });
+
+        Swal.fire({
+            title: `💱 سعر الصرف: ${baseCurrCode} ↔ ${currCode}`,
+            icon: 'info',
+            width: '36rem',
+            html: `
+                <div class="text-start mb-3">
+                    <label class="form-label text-muted small">📡 السعر المستورد (المقترح):</label>
+                    <div class="input-group mb-1">
+                        <span class="input-group-text bg-light fw-bold">1 ${baseCurrCode}</span>
+                        <input type="number" id="swalSuggestedRate" class="form-control text-center text-info fw-bold" value="${suggestedRate}" readonly>
+                        <span class="input-group-text">${currCode}</span>
+                    </div>
+                    <small class="text-muted">المصدر: open.er-api.com</small>
+                </div>
+                <hr>
+                <div class="text-start mb-3">
+                    <label class="form-label fw-bold">✏️ سعر الصرف المعتمد للفاتورة:</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white fw-bold">1 ${baseCurrCode}</span>
+                        <input type="text" inputmode="decimal" id="swalConfirmedRate" class="form-control text-center fw-bold fs-5" value="${suggestedRate}">
+                        <span class="input-group-text fw-bold">${currCode}</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="document.getElementById('swalConfirmedRate').value=document.getElementById('swalSuggestedRate').value; updateCalcPreview(${remaining})">
+                        ↩️ استخدم المقترح
+                    </button>
+                </div>
+                <hr>
+                <div class="alert alert-success p-2 text-center" id="calcPreview">
+                    <div class="small text-muted mb-1">💡 لتسديد المتبقي:</div>
+                    <div class="fw-bold fs-5">
+                        <span class="text-danger">${remaining.toFixed(2)} ${baseCurrCode}</span>
+                        <span class="mx-2">←</span>
+                        <span class="text-success" id="calcResult">${(remaining * parseFloat(suggestedRate)).toFixed(4)}</span>
+                        <span class="text-success"> ${currCode}</span>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: '✅ تأكيد واملأ المبلغ',
+            cancelButtonText: '❌ إلغاء',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#d33',
+            focusConfirm: false,
+            didOpen: () => {
+                let inp = document.getElementById('swalConfirmedRate');
+                window.updateCalcPreview = function(rem) {
+                    let r = parseFloat(inp.value) || 0;
+                    let res = document.getElementById('calcResult');
+                    if (res && r > 0) res.innerText = (rem * r).toFixed(4);
+                };
+                // منع إدخال أي شيء غير أرقام ونقطة
+                inp.addEventListener('input', function() {
+                    let pos = this.selectionStart;
+                    let old = this.value;
+                    this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\./g, '$1');
+                    if (this.value !== old) this.setSelectionRange(pos - 1, pos - 1);
+                    updateCalcPreview(remaining);
+                });
+                inp.addEventListener('keydown', function(e) {
+                    if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                });
+            },
+            preConfirm: () => {
+                let val = parseFloat(document.getElementById('swalConfirmedRate').value);
+                if (!val || val <= 0) {
+                    Swal.showValidationMessage('⚠️ يرجى إدخال سعر صرف صحيح أكبر من صفر');
+                    return false;
+                }
+                return val;
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                let rate = result.value;
+                if (rateInput) rateInput.value = rate;
+                // مزامنة الحقول المخفية للـ form
+                let hiddenCurr = row.querySelector('.pay-currency-id');
+                let hiddenRate = row.querySelector('.pay-rate-hidden');
+                if (hiddenCurr) hiddenCurr.value = currId;
+                if (hiddenRate) hiddenRate.value = rate;
+                let amountInput = row.querySelector('.payment-input');
+                if (amountInput && remaining > 0) {
+                    amountInput.value = formatNum(remaining * rate);
+                }
+                calculateGrandTotal();
+                let rateNote = row.querySelector('.rate-note');
+                if (rateNote) rateNote.innerText = `1 ${baseCurrCode} = ${rate} ${currCode}`;
+                let rateRow = row.querySelector('.rate-row');
+                if (rateRow) rateRow.classList.remove('d-none');
+            } else {
+                select.value = '{{ optional($baseCurrency)->id }}';
+                if (rateInput) rateInput.value = 1;
+                // إعادة ضبط الحقول المخفية
+                let hiddenCurr = row.querySelector('.pay-currency-id');
+                let hiddenRate = row.querySelector('.pay-rate-hidden');
+                if (hiddenCurr) hiddenCurr.value = '{{ optional($baseCurrency)->id }}';
+                if (hiddenRate) hiddenRate.value = 1;
+                let rateRow = row.querySelector('.rate-row');
+                if (rateRow) rateRow.classList.add('d-none');
+                calculateGrandTotal();
+            }
+        });
+    }
+
     function addPaymentRow() {
         let grandTotal = parseFloat(document.getElementById('grandTotalDisplay').innerText) || 0;
         let currentPaid = 0;
-        document.querySelectorAll('.payment-input').forEach(inp => currentPaid += parseMoney(inp.value));
+        document.querySelectorAll('.payment-row').forEach(row => {
+            let amountInput = row.querySelector('.payment-input');
+            let hiddenRate = row.querySelector('.pay-rate-hidden'); // السعر الحقيقي
+            let currSel = row.querySelector('.currency-select');
+            if (!amountInput) return;
+            let amount = parseMoney(amountInput.value);
+            let isBase = currSel ? (currSel.options[currSel.selectedIndex]?.dataset?.isBase === '1') : true;
+            let rate = hiddenRate ? (parseMoney(hiddenRate.value) || 1) : 1;
+            // التحويل للعملة الأساسية
+            currentPaid += isBase ? amount : (rate > 0 ? amount / rate : 0);
+        });
         let remaining = grandTotal - currentPaid;
         let defaultVal = remaining > 0 ? formatNum(remaining) : 0;
+        
+        // خيارات العملات
+        let currencyOptions = `<option value="{{ optional($baseCurrency)->id }}" data-rate="1" data-is-base="1" selected>{{ optional($baseCurrency)->code }}</option>`;
+        @foreach($currencies as $cur)
+            @if(!$baseCurrency || $cur->id != $baseCurrency->id)
+            currencyOptions += `<option value="{{ $cur->id }}" data-rate="1" data-is-base="0">{{ $cur->code }}</option>`;
+            @endif
+        @endforeach
+        
         const div = document.createElement('div');
-        div.className = 'input-group mb-2 payment-row';
+        div.className = 'payment-row mb-2';
         div.innerHTML = `
-            <select name="payments[${paymentIdx}][method]" class="form-select" style="max-width: 120px;">
-                <option value="cash"> {{ __('💰 نقدي') }} </option>
-                <option value="card"> {{ __('💳 بطاقة') }} </option>
-                <option value="bank"> {{ __('🏦 تحويل') }} </option>
-            </select>
-            <input type="text" inputmode="decimal" name="payments[${paymentIdx}][amount]" class="form-control text-center payment-input" value="${defaultVal}" oninput="calculateGrandTotal()" onfocus="this.select()">
-            <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove(); calculateGrandTotal();"><i class="fas fa-trash"></i></button>
+            <div class="input-group mb-1">
+                <select name="payments[${paymentIdx}][method]" class="form-select method-select" style="max-width: 120px;">
+                    <option value="cash"> {{ __('💰 نقدي') }} </option>
+                    <option value="card"> {{ __('💳 بطاقة') }} </option>
+                    <option value="bank"> {{ __('🏦 تحويل') }} </option>
+                </select>
+                <input type="text" inputmode="decimal" name="payments[${paymentIdx}][amount]" class="form-control text-center payment-input" value="${defaultVal}" oninput="calculateGrandTotal()" onfocus="this.select()">
+                <select class="form-select currency-select pay-currency" style="max-width:110px;" onchange="onPayCurrencyChange(this, ${paymentIdx})">${currencyOptions}</select>
+                <button type="button" class="btn btn-outline-danger" onclick="this.closest('.payment-row').remove(); calculateGrandTotal();"><i class="fas fa-trash"></i></button>
+            </div>
+            <input type="hidden" name="payments[${paymentIdx}][currency_id]" class="pay-currency-id" value="{{ optional($baseCurrency)->id }}">
+            <input type="hidden" name="payments[${paymentIdx}][exchange_rate]" class="pay-rate-hidden" value="1">
+            <div class="rate-row d-none">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text text-muted small">يعادل ({{ optional($baseCurrency)->code }})</span>
+                    <input type="text" readonly class="form-control bg-light text-center fw-bold rate-input" value="0.00" placeholder="المعادل">
+                    <span class="input-group-text rate-note small text-info"></span>
+                </div>
+            </div>
         `;
         document.getElementById('paymentsContainer').appendChild(div);
         paymentIdx++;
@@ -1173,7 +1419,14 @@
         // ✅ إذا تجاوزنا الفحوصات أعلاه، نكمل الكود الطبيعي للحسابات والمودال
         let grandTotal = parseFloat(document.getElementById('grandTotalDisplay').innerText) || 0;
         let totalPaid = 0;
-        document.querySelectorAll('.payment-input').forEach(inp => totalPaid += parseMoney(inp.value));
+        document.querySelectorAll('.payment-row').forEach(row => {
+            let amount = parseMoney(row.querySelector('.payment-input')?.value || 0);
+            let hiddenRate = row.querySelector('.pay-rate-hidden');
+            let currSel = row.querySelector('.currency-select');
+            let isBase = currSel ? (currSel.options[currSel.selectedIndex]?.dataset?.isBase === '1') : true;
+            let rate = hiddenRate ? (parseMoney(hiddenRate.value) || 1) : 1;
+            totalPaid += isBase ? amount : (rate > 0 ? amount / rate : 0);
+        });
         
         let diff = grandTotal - totalPaid;
         
