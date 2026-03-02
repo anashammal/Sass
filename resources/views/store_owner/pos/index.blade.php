@@ -983,14 +983,15 @@
     const APP_URL = getBaseUrl();
     console.log('🔗 POS JS System URL:', APP_URL);
 
-    const fixUrl = (urlStr) => {
-        if (!urlStr) return urlStr;
-        let finalUrl = urlStr;
+    const fixUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http') || url.startsWith('//')) return url;
+        let finalUrl = url;
         
         // Remove absolute domain/protocol to make it relative
-        if (urlStr.includes('://')) {
+        if (url.includes('://')) {
             try {
-                const u = new URL(urlStr);
+                const u = new URL(url);
                 finalUrl = u.pathname + u.search;
             } catch(e) {}
         }
@@ -1105,7 +1106,7 @@
                         <small class="${p.quantity > 10 ? 'text-muted' : 'text-danger fw-bold'}">{{ __('stock_label') }} ${parseFloat(p.quantity).toFixed(2)}</small>
                     </div>
                 </div>
-                <span class="badge bg-primary rounded-pill ms-2">${parseFloat(p.default_price).toFixed(2)}</span>
+                <span class="badge bg-primary rounded-pill ms-2">${parseFloat(p.default_price).toFixed(2)} {{ $globalCurrencySymbol }}</span>
             </a>`);
             item.on('click', function(e) { 
                 e.preventDefault(); 
@@ -1271,7 +1272,12 @@
         // NEW: Convert to base price for internal calculation
         let rawPrice = parseFloat(unit.price || 0);
         let currId = unit.currency_id || baseCurrency.id;
-        let rate = (currId == baseCurrency.id) ? 1 : (allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+        let rate = 1;
+        if (currId != baseCurrency.id) {
+            rate = (unit.sell_exchange_rate && unit.sell_exchange_rate > 0) 
+                ? unit.sell_exchange_rate 
+                : (allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+        }
         let basePrice = rawPrice * parseFloat(rate);
 
         let existing = cart.find(item => item.id === product.id && item.selected_unit_id == unitId);
@@ -1408,7 +1414,12 @@
             item.selected_unit_id = newUnitId;
             // NEW: Convert to base price
             let currId = newUnit.currency_id || baseCurrency.id;
-            let rate = (currId == baseCurrency.id) ? 1 : (allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+            let rate = 1;
+            if (currId != baseCurrency.id) {
+                rate = (newUnit.sell_exchange_rate && newUnit.sell_exchange_rate > 0)
+                    ? newUnit.sell_exchange_rate
+                    : (allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+            }
             item.price = parseFloat(newUnit.price) * parseFloat(rate);
             
             item.sku = newUnit.barcode;

@@ -89,7 +89,7 @@ class PosController extends Controller
         $currenciesData = [];
         foreach ($acceptedCurrencies as $cur) {
             $pivot = $cur->pivot;
-            $rate = ($pivot && $pivot->custom_rate) ? $pivot->custom_rate : ($liveRates[$cur->code] ?? 1);
+            $rate = ($pivot && $pivot->custom_rate) ? $pivot->custom_rate : (isset($liveRates[$cur->code]) && $liveRates[$cur->code] > 0 ? (1 / $liveRates[$cur->code]) : 1);
             
             $currenciesData[] = [
                 'id' => $cur->id,
@@ -109,12 +109,19 @@ class PosController extends Controller
     public function searchProducts(Request $request)
     {
         try {
-            $term = $request->term;
             $user = Auth::user();
             if (!$user || !$user->store) {
                 return response()->json(['results' => [], 'error' => 'Store context missing']);
             }
-            $storeId = $user->store->id;
+            $store = $user->store;
+            $storeId = $store->id;
+            $term = $request->term;
+
+            // --- Currency Handling for Conversion ---
+            $baseCurrency = $store->baseCurrency ?? \App\Models\Currency::where('code', 'USD')->first();
+            $exchangeRateService = new \App\Services\ExchangeRateService();
+            $liveRatesData = $baseCurrency ? $exchangeRateService->getRates($baseCurrency->code) : ['success' => false, 'rates' => []];
+            $liveRates = $liveRatesData['success'] ? $liveRatesData['rates'] : [];
 
             $query = Product::where('store_id', $storeId)
             ->where('is_active', true)
@@ -146,7 +153,7 @@ class PosController extends Controller
                 }
             }
 
-            $results = $products->map(function($p) use ($term) {
+            $results = $products->map(function($p) use ($term, $baseCurrency, $liveRates) {
                 $productImg = $p->image_url; 
                 
                 $hasExpired = \App\Models\ProductBatch::where('product_id', $p->id)
@@ -171,7 +178,8 @@ class PosController extends Controller
                         'currency_symbol' => optional($p->baseUnit->sellCurrency)->symbol,
                         'barcode' => $p->baseUnit->barcode ?? $p->sku, 
                         'image' => $productImg,
-                        'factor' => 1
+                        'factor' => 1,
+                        'sell_exchange_rate' => (float)($p->baseUnit->sell_exchange_rate ?? 0)
                     ]);
                 }
                 
@@ -189,7 +197,8 @@ class PosController extends Controller
                         'currency_symbol' => optional($u->sellCurrency)->symbol,
                         'barcode' => $u->barcode, 
                         'image' => $unitImg,
-                        'factor' => $u->conversion_factor ?? 1 
+                        'factor' => $u->conversion_factor ?? 1,
+                        'sell_exchange_rate' => (float)($u->sell_exchange_rate ?? 0)
                     ]);
                 }
 
@@ -197,17 +206,27 @@ class PosController extends Controller
                 $defaultUnit = $matchedUnit ?? $units->first();
                 $displayQty = (float)($p->current_stock ?? 0);
 
+                $rawPrice = (float)($defaultUnit['price'] ?? 0);
+                $currId = $defaultUnit['currency_id'] ?? null;
+                $sellRate = (float)($defaultUnit['sell_exchange_rate'] ?? 0);
+                
+                $finalBasePrice = $rawPrice;
+                if ($currId && $baseCurrency && $currId != $baseCurrency->id) {
+                    $rate = ($sellRate > 0) ? $sellRate : (isset($liveRates[$defaultUnit['currency_code']]) && $liveRates[$defaultUnit['currency_code']] > 0 ? (1 / $liveRates[$defaultUnit['currency_code']]) : 1);
+                    $finalBasePrice = $rawPrice * $rate;
+                }
+
                 return [
                     'id' => $p->id,
                     'name' => $p->name,
                     'image' => $productImg,
                     'base_image' => $productImg, 
                     'quantity' => max(0, $displayQty), 
-                    'base_quantity' => $displayQty, // سيظهر الآن بدون أصفار زائدة
+                    'base_quantity' => $displayQty, 
                     'alert_status' => $hasExpired ? 'expired' : ($isNearExpiry ? 'near' : 'ok'),
                     'alert_msg' => $hasExpired ? '⚠️ يوجد كميات منتهية!' : ($isNearExpiry ? '⚠️ قارب على الانتهاء' : ''),
                     'default_unit_id' => $defaultUnit['unit_id'] ?? null,
-                    'default_price' => (float)($defaultUnit['price'] ?? 0),
+                    'default_price' => $finalBasePrice,
                     'default_currency_id' => $defaultUnit['currency_id'] ?? null,
                     'default_barcode' => $defaultUnit['barcode'] ?? $p->sku,
                     'available_units' => $units->values()
