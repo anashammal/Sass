@@ -138,10 +138,10 @@ class PosController extends Controller
             // Removed hardcoded removal of ingredients for restaurants
             // if ($store->type == 'restaurant') { ... }
 
-            $products = $query->with(['baseUnit', 'units']) 
+            $products = $query->with(['baseUnit.sellCurrency', 'units.sellCurrency']) 
                 ->take(20)
                 ->get();
-
+            
             // DEBUG LOGGING
             if (strpos($term, 'حليب') !== false || strpos($term, 'Milk') !== false) {
                 Log::info("POS Search for '$term'");
@@ -173,6 +173,9 @@ class PosController extends Controller
                         'unit_id' => $p->baseUnit->id, 
                         'unit_name' => $p->baseUnit->unit_name ?? 'قطعة', 
                         'price' => $p->baseUnit->selling_price, 
+                        'currency_id' => $p->baseUnit->sell_price_currency_id,
+                        'currency_code' => optional($p->baseUnit->sellCurrency)->code,
+                        'currency_symbol' => optional($p->baseUnit->sellCurrency)->symbol,
                         'barcode' => $p->baseUnit->barcode ?? $p->sku, 
                         'image' => $productImg,
                         'factor' => 1
@@ -188,6 +191,9 @@ class PosController extends Controller
                         'unit_id' => $u->id, 
                         'unit_name' => $u->unit_name, 
                         'price' => $u->selling_price, 
+                        'currency_id' => $u->sell_price_currency_id,
+                        'currency_code' => optional($u->sellCurrency)->code,
+                        'currency_symbol' => optional($u->sellCurrency)->symbol,
                         'barcode' => $u->barcode, 
                         'image' => $unitImg,
                         'factor' => $u->conversion_factor ?? 1 
@@ -209,6 +215,7 @@ class PosController extends Controller
                     'alert_msg' => $hasExpired ? '⚠️ يوجد كميات منتهية!' : ($isNearExpiry ? '⚠️ قارب على الانتهاء' : ''),
                     'default_unit_id' => $defaultUnit['unit_id'] ?? null,
                     'default_price' => (float)($defaultUnit['price'] ?? 0),
+                    'default_currency_id' => $defaultUnit['currency_id'] ?? null,
                     'default_barcode' => $defaultUnit['barcode'] ?? $p->sku,
                     'available_units' => $units->values()
                 ];

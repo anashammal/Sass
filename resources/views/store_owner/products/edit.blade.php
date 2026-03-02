@@ -124,9 +124,19 @@
                                         <input type="number" step="any" name="pieces_per_unit" id="pieces_per_unit" class="form-control text-center" value="{{ old('pieces_per_unit', (float)$base->conversion_factor) }}" oninput="calculateBaseCost()">
                                     </div>
 
-                                    <div class="col-md-2">
+                                    <div class="col-md-3">
                                         <label class="form-label small text-danger fw-bold">{{ __('سعر الشراء') }}</label>
-                                        <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', (float)$base->purchase_price) }}" required oninput="calculateBaseCost()">
+                                        <div class="input-group">
+                                            <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', (float)$base->purchase_price) }}" required oninput="calculateBaseCost()">
+                                            <select name="purchase_price_currency_id" class="form-select form-select-sm" style="max-width: 90px;">
+                                                <option value="{{ $store->base_currency_id }}">{{ $store->baseCurrency->code }}</option>
+                                                @foreach($acceptedCurrencies as $cur)
+                                                    @if($cur->id != $store->base_currency_id)
+                                                        <option value="{{ $cur->id }}" {{ (old('purchase_price_currency_id', $base->purchase_price_currency_id) == $cur->id) ? 'selected' : '' }}>{{ $cur->code }}</option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <div class="col-md-2">
@@ -142,7 +152,17 @@
 
                                     <div class="col-md-3" id="base_selling_price_div">
                                         <label class="form-label small text-success fw-bold"> {{ __('سعر البيع') }} </label>
-                                        <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', (float)$base->selling_price) }}" required oninput="calculateMargin('base')">
+                                        <div class="input-group">
+                                            <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', (float)$base->selling_price) }}" required oninput="calculateMargin('base')">
+                                            <select name="base_selling_price_currency_id" class="form-select form-select-sm" style="max-width: 90px;">
+                                                <option value="{{ $store->base_currency_id }}">{{ $store->baseCurrency->code }}</option>
+                                                @foreach($acceptedCurrencies as $cur)
+                                                    @if($cur->id != $store->base_currency_id)
+                                                        <option value="{{ $cur->id }}" {{ (old('base_selling_price_currency_id', $base->sell_price_currency_id) == $cur->id) ? 'selected' : '' }}>{{ $cur->code }}</option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </div>
                                     
                                     <div class="col-md-3">
@@ -265,7 +285,17 @@
                         </div>
                         <div class="col-md-4 unit-sell-div">
                             <label class="small text-success fw-bold"> {{ __('سعر البيع') }} </label>
-                            <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success" oninput="calcExtraUnitProfit(this)">
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success" oninput="calcExtraUnitProfit(this)">
+                                <select name="units[INDEX][sell_price_currency_id]" class="form-select currency-select" style="max-width: 80px;">
+                                    <option value="{{ $store->base_currency_id }}">{{ $store->baseCurrency->code }}</option>
+                                    @foreach($acceptedCurrencies as $cur)
+                                        @if($cur->id != $store->base_currency_id)
+                                            <option value="{{ $cur->id }}">{{ $cur->code }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -294,7 +324,8 @@
                 is_purchase: {{ $unit->is_purchase ? 'true' : 'false' }},
                 is_sale: {{ $unit->is_sale ? 'true' : 'false' }},
                 // ضمان وجود رابط صورة صالح
-                image: '{{ $unit->image }}'
+                image: '{{ $unit->image }}',
+                sell_currency_id: '{{ $unit->sell_price_currency_id }}'
             });
         @endforeach
     });
@@ -368,9 +399,12 @@
             row.querySelector('.unit-profit').value = data.profit;
             row.querySelector('.unit-sell').value = data.selling;
             
-            // 🔥 إصلاح الـ Checkboxes للبيانات القديمة 🔥
             row.querySelector('.unit-buy').checked = data.is_purchase;
             row.querySelector('.unit-sell-check').checked = data.is_sale;
+            
+            if(data.sell_currency_id) {
+                row.querySelector('.currency-select').value = data.sell_currency_id;
+            }
             
             // 🔥 إصلاح عرض الصورة 🔥
             // إذا كان هناك رابط صورة، ضعه في الـ src، وإلا اترك الصورة الافتراضية

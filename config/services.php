@@ -50,4 +50,8 @@ return [
         'env' => env('KUVEYT_TURK_ENV', 'production'),
     ],
 
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+    ],
+
 ];

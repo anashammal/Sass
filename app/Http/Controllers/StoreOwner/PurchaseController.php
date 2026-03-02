@@ -91,28 +91,66 @@ class PurchaseController extends Controller
 
         $totals = [
             'count' => (clone $query)->count(),
-            'sum_total' => (clone $query)->get()->sum('amount_in_base_currency' /* virtual accessor logic */) ?? (clone $query)->get()->sum(function($p) { return $p->grand_total_in_base_currency; }),
-            'sum_paid' => (clone $query)->get()->sum(function($p) { return $p->exchange_rate ? $p->paid_amount * $p->exchange_rate : $p->paid_amount; }),
+            'sum_total' => (clone $query)->get()->sum(function($p) { return $p->grand_total_in_base_currency; }),
+            'sum_paid' => (clone $query)->get()->sum('paid_amount'),
             'sum_due' => (clone $query)->get()->sum(function($p) { return $p->remaining_amount_in_base_currency; }),
         ];
 
         // تفصيل حسب العملة
         $purchasesForBreakdown = (clone $query)->get();
-        $currencyBreakdown = $purchasesForBreakdown->groupBy(function($item) use ($baseCurrency) {
-            return $item->currency_id ?? optional($baseCurrency)->id;
-        })->map(function($group) use ($baseCurrency) {
-            $first = $group->first();
-            $currency = $first->currency ?? $baseCurrency;
-            $total = $group->sum('grand_total');
-            $rate = collect($group)->avg('exchange_rate') ?: 1; // Assuming 1 if not set 
-            
-            return [
-                'currency' => $currency,
-                'total_amount' => $total,
-                'exchange_rate' => $rate,
-                'in_base' => $total * $rate
-            ];
-        });
+        // تفصيل حسب العملة (يجمع المدفوعات بكل عملة + المتبقيات بعملة الفاتورة)
+        $purchaseIds = $purchasesForBreakdown->pluck('id');
+        $paymentGroups = \App\Models\Payment::whereIn('purchase_id', $purchaseIds)
+            ->select('currency_id', 
+                DB::raw('SUM(IFNULL(amount_in_foreign_currency, amount / IF(exchange_rate > 0, exchange_rate, 1))) as total_amt'), 
+                DB::raw('AVG(exchange_rate) as avg_rate')
+            )
+            ->groupBy('currency_id')
+            ->get();
+
+        $dueGroups = $purchasesForBreakdown->where('payment_status', '!=', 'paid')
+            ->groupBy('currency_id')
+            ->map(function($group) {
+                return $group->sum(function($p) {
+                    $paidInForeign = $p->exchange_rate > 0 ? ($p->paid_amount / $p->exchange_rate) : $p->paid_amount;
+                    return max(0, $p->grand_total - $paidInForeign);
+                });
+            });
+
+        $breakdownByCurrency = [];
+        foreach($paymentGroups as $pg) {
+            $cid = $pg->currency_id ?? optional($baseCurrency)->id;
+            if(!$cid) continue;
+            if(!isset($breakdownByCurrency[$cid])) {
+                $breakdownByCurrency[$cid] = [
+                    'currency' => \App\Models\Currency::find($cid) ?? $baseCurrency,
+                    'total_amount' => 0,
+                    'exchange_rate' => (float)$pg->avg_rate ?: 1,
+                    'in_base' => 0
+                ];
+            }
+            $breakdownByCurrency[$cid]['total_amount'] += (float)$pg->total_amt;
+            $breakdownByCurrency[$cid]['in_base'] += ((float)$pg->total_amt * ((float)$pg->avg_rate ?: 1));
+        }
+
+        foreach($dueGroups as $cid => $dueAmt) {
+            if($dueAmt <= 0.001) continue;
+            $cid = $cid ?? optional($baseCurrency)->id;
+            if(!$cid) continue;
+            if(!isset($breakdownByCurrency[$cid])) {
+                $lastP = $purchasesForBreakdown->where('currency_id', $cid)->first();
+                $rate = $lastP->exchange_rate ?? 1;
+                $breakdownByCurrency[$cid] = [
+                    'currency' => \App\Models\Currency::find($cid) ?? $baseCurrency,
+                    'total_amount' => 0,
+                    'exchange_rate' => (float)$rate ?: 1,
+                    'in_base' => 0
+                ];
+            }
+            $breakdownByCurrency[$cid]['total_amount'] += (float)$dueAmt;
+            $breakdownByCurrency[$cid]['in_base'] += ((float)$dueAmt * (float)$breakdownByCurrency[$cid]['exchange_rate']);
+        }
+        $currencyBreakdown = collect($breakdownByCurrency)->values();
 
         $purchases = $query->paginate(10)->withQueryString();
         $suppliers = Contact::where('store_id', $storeId)->whereIn('type', ['supplier', 'both'])->get();
@@ -284,17 +322,13 @@ class PurchaseController extends Controller
         $timezone = $store->timezone ?? config('app.timezone');
         $currentDate = now()->setTimezone($timezone)->format('Y-m-d\TH:i'); 
 
-        // تحميل أسعار الصرف مسبقاً لكل العملات
+        // تحميل أسعار الصرف مسبقاً (كمعامل ضرب: كم ليرة مقابل 1 من العملة الأجنبية)
         $currenciesData = [];
         if ($baseCurrency) {
             $exchangeService = app(ExchangeRateService::class);
-            $ratesData = $exchangeService->getRates($baseCurrency->code);
             foreach ($currencies as $cur) {
                 if ($cur->id === $baseCurrency->id) continue;
-                $rate = 1;
-                if ($ratesData['success'] && isset($ratesData['rates'][strtoupper($cur->code)])) {
-                    $rate = $ratesData['rates'][strtoupper($cur->code)];
-                }
+                $rate = $exchangeService->getExchangeRate($cur->code, $baseCurrency->code) ?? 1;
                 $currenciesData[] = [
                     'id'            => $cur->id,
                     'code'          => $cur->code,
@@ -331,16 +365,21 @@ class PurchaseController extends Controller
             $storeId = $store->id;
             
             $baseCurrency = $store->baseCurrency;
-            $exchangeRate = 1;
             $currencyId = $request->input('currency_id', optional($baseCurrency)->id);
-
-            // جلب سعر الصرف إذا كانت العملة مختلفة عن الأساسية
-            if ($baseCurrency && $currencyId && $currencyId != $baseCurrency->id) {
-                $targetCurrency = Currency::find($currencyId);
-                if ($targetCurrency) {
-                    $exchangeRateService = app(ExchangeRateService::class);
-                    $rate = $exchangeRateService->getExchangeRate($targetCurrency->code, $baseCurrency->code);
-                    $exchangeRate = $rate ?? 1;
+            
+            // 💱 استخدام سعر الصرف المرسل من الواجهة إذا وجد (المؤكد من المستخدم)
+            if ($request->has('exchange_rate') && (float)$request->exchange_rate > 0) {
+                $exchangeRate = (float)$request->exchange_rate;
+            } else {
+                $exchangeRate = 1;
+                // Fallback: جلب سعر الصرف إذا كانت العملة مختلفة عن الأساسية
+                if ($baseCurrency && $currencyId && $currencyId != $baseCurrency->id) {
+                    $targetCurrency = Currency::find($currencyId);
+                    if ($targetCurrency) {
+                        $exchangeRateService = app(ExchangeRateService::class);
+                        $rate = $exchangeRateService->getExchangeRate($targetCurrency->code, $baseCurrency->code);
+                        $exchangeRate = $rate ?? 1;
+                    }
                 }
             }
 
@@ -358,10 +397,10 @@ class PurchaseController extends Controller
                         $prod = Product::find($oldItem->product_id);
                         if($prod) $prod->decrement('current_stock', $oldItem->quantity_in_base_unit);
                     }
-                    // عكس رصيد المورد (نطرح الدين القديم)
+                    // عكس رصيد المورد (نطرح الدين القديم بالعملة الأساسية)
                     $oldSupplier = Contact::find($purchase->supplier_id);
                     if ($oldSupplier) {
-                        $oldDebt = $purchase->grand_total - $purchase->paid_amount;
+                        $oldDebt = $purchase->remaining_amount_in_base_currency;
                         $oldSupplier->decrement('balance', $oldDebt);
                     }
                 }
@@ -492,35 +531,34 @@ class PurchaseController extends Controller
                 foreach ($request->payments as $payment) {
                     $amt = (float) ($payment['amount'] ?? 0);
                     $payRate = (float) ($payment['exchange_rate'] ?? 1);
-                    $isBaseCurr = empty($payment['currency_id']) 
-                        || $payment['currency_id'] == optional($baseCurrency)->id;
-                    if ($isBaseCurr || $payRate <= 0) {
-                        // عملة أساسية
+                    $payCurrencyId = $payment['currency_id'] ?? null; // Define payCurrencyId
+                    $isBaseCurr = empty($payCurrencyId) 
+                        || $payCurrencyId == optional($baseCurrency)->id;
+                    if ($isBaseCurr) {
                         $totalPaid += $amt;
                     } else {
-                        // عملة أجنبية: المبلغ ÷ سعر الصرف = مقابله بالعملة الأساسية
-                        // (سعر الصرف: 1 TRY = X SAR، أي rate = SAR/TRY)
-                        $totalPaid += $payRate > 0 ? ($amt / $payRate) : $amt;
+                        // Foreign: Base = Foreign * Rate (e.g. 10 USD * 33 = 330 TRY)
+                        $totalPaid += $amt * $payRate;
                     }
                 }
             }
-
             $discount = (float) ($request->discount ?? 0);
             $grandTotal = $subTotal - $discount; // العملة الأصلية للفاتورة (مثلاً SAR)
             
             // تحويل الإجمالي للعملة الأساسية (TRY) للمقارنة والحسابات المالية
-            $grandTotalInBase = ($exchangeRate > 0) ? ($grandTotal / $exchangeRate) : $grandTotal;
+            $grandTotalInBase = $grandTotal * $exchangeRate;
 
             $payStatus = 'unpaid';
             if (!$isDraft) {
                 // المقارنة الآن صحيحة: TRY vs TRY
                 $payStatus = ($totalPaid >= $grandTotalInBase - 0.01) ? 'paid' : (($totalPaid > 0.01) ? 'partial' : 'unpaid');
                 
-                // تحديث رصيد المورد (بالعملة الأساسية لتركيا)
+                // تحديث رصيد المورد (بالعملة الأساسية للمتجر)
                 $supplier = Contact::find($request->supplier_id);
                 if ($supplier) {
                     $debtAmount = $grandTotalInBase - $totalPaid; // كلاهما بالعملة الأساسية (TRY)
-                    if ($debtAmount > 0.001) {
+                    if (abs($debtAmount) > 0.001) {
+                        // استخدام increment مع القيمة (قد تكون سالبة في حال دفع زيادة)
                         $supplier->increment('balance', $debtAmount);
                     }
                 }
@@ -535,7 +573,7 @@ class PurchaseController extends Controller
                         $isBasePayment = empty($paymentCurrencyId) 
                             || $paymentCurrencyId == optional($baseCurrency)->id;
                         // المبلغ بالعملة الأساسية لهذه الدفعة
-                        $amtInBase = $isBasePayment ? $amt : ($paymentRate > 0 ? $amt / $paymentRate : $amt);
+                        $amtInBase = $isBasePayment ? $amt : ($amt * $paymentRate);
                         \App\Models\Payment::create([
                             'store_id'       => $store->id,
                             'purchase_id'    => $purchase->id,
@@ -545,6 +583,7 @@ class PurchaseController extends Controller
                             'payment_date'   => $request->invoice_date,
                             'currency_id'    => $paymentCurrencyId ?: optional($baseCurrency)->id,
                             'exchange_rate'  => $paymentRate ?: 1,
+                            'amount_in_foreign_currency' => $amt,
                         ]);
                     }
                 }
@@ -708,8 +747,11 @@ class PurchaseController extends Controller
             $acceptedCurrencies->push($baseCurrency);
         }
         $currencies = $acceptedCurrencies->unique('id')->values();
+        
+        // جلب بيانات العملات وسعر الصرف الحالي
+        $currenciesData = \App\Models\Currency::whereIn('id', $currencies->pluck('id'))->get();
 
-        return view('store_owner.purchases.edit', compact('purchase', 'suppliers', 'taxRates', 'itemsData', 'baseCurrency', 'currencies'));
+        return view('store_owner.purchases.edit', compact('purchase', 'suppliers', 'taxRates', 'itemsData', 'baseCurrency', 'currencies', 'currenciesData'));
     }
 
     public function update(Request $request, $id)
@@ -736,7 +778,7 @@ class PurchaseController extends Controller
                 // 🟢🔴 عكس رصيد المورد عند الحذف (بالعملة الأساسية)
                 $supplier = Contact::find($purchase->supplier_id);
                 if ($supplier) {
-                    $debt = $purchase->grand_total_in_base_currency - ($purchase->paid_amount * ($purchase->exchange_rate ?? 1));
+                    $debt = $purchase->remaining_amount_in_base_currency;
                     $supplier->decrement('balance', $debt);
                 }
             }
@@ -808,7 +850,10 @@ class PurchaseController extends Controller
                 ->whereHas('units', function($q) {
                     $q->where('is_purchase', true);
                 })
-                ->with(['units:id,product_id,unit_name,barcode,cost_price,selling_price,conversion_factor,is_base_unit,is_purchase,profit_percent']) 
+                ->with(['units' => function($q) {
+                    $q->select('id','product_id','unit_name','barcode','cost_price','selling_price','conversion_factor','is_base_unit','is_purchase','profit_percent','purchase_price_currency_id','sell_price_currency_id')
+                      ->with(['purchaseCurrency', 'sellCurrency']);
+                }]) 
                 ->take(20)
                 ->get();
             
@@ -838,6 +883,12 @@ class PurchaseController extends Controller
                             'is_purchase' => $unit->is_purchase,
                             'profit_percent' => $unit->profit_percent,
                             'image_url' => (strpos($unit->image, 'default-product.png') !== false) ? null : $unit->image,
+                            'purchase_currency_id' => $unit->purchase_price_currency_id,
+                            'purchase_currency_code' => optional($unit->purchaseCurrency)->code,
+                            'purchase_currency_symbol' => optional($unit->purchaseCurrency)->symbol,
+                            'sell_currency_id' => $unit->sell_price_currency_id,
+                            'sell_currency_code' => optional($unit->sellCurrency)->code,
+                            'sell_currency_symbol' => optional($unit->sellCurrency)->symbol,
                         ];
                     })
                 ];

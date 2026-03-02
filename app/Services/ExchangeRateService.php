@@ -56,14 +56,31 @@ class ExchangeRateService
             return $amount;
         }
 
-        $ratesData = $this->getRates($fromCurrencyCode);
+        $rate = $this->getExchangeRate($fromCurrencyCode, $toCurrencyCode);
         
-        if ($ratesData['success'] && isset($ratesData['rates'][strtoupper($toCurrencyCode)])) {
-            $rate = $ratesData['rates'][strtoupper($toCurrencyCode)];
+        if ($rate !== null) {
             return $amount * $rate;
         }
 
         return null; // Conversion failed
+    }
+
+    /**
+     * Get the exchange rate (multiplier) from one currency to another.
+     */
+    public function getExchangeRate($fromCurrencyCode, $toCurrencyCode)
+    {
+        if ($fromCurrencyCode === $toCurrencyCode) {
+            return 1.0;
+        }
+
+        $ratesData = $this->getRates($fromCurrencyCode);
+        
+        if ($ratesData['success'] && isset($ratesData['rates'][strtoupper($toCurrencyCode)])) {
+            return (float) $ratesData['rates'][strtoupper($toCurrencyCode)];
+        }
+
+        return null;
     }
 
     /**

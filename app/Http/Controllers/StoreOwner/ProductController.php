@@ -166,7 +166,10 @@ class ProductController extends Controller
                 ->get();
         }
 
-        return view('store_owner.products.create', compact('categories', 'store', 'taxRates', 'ingredients')); 
+        $acceptedCurrencies = $store->acceptedCurrencies;
+
+
+        return view('store_owner.products.create', compact('categories', 'store', 'taxRates', 'ingredients', 'acceptedCurrencies')); 
     }
 
     public function store(Request $request) 
@@ -217,8 +220,10 @@ class ProductController extends Controller
                 'unit_name' => $request->base_unit_name, 
                 'conversion_factor' => $factor,
                 'purchase_price' => $purchasePrice,
+                'purchase_price_currency_id' => $request->purchase_price_currency_id,
                 'cost_price' => $baseCost,
                 'selling_price' => (float)$request->base_selling_price,
+                'sell_price_currency_id' => $request->base_selling_price_currency_id,
                 'profit_percent' => (float)$request->base_profit_percent,
                 'barcode' => $barcode,
                 'is_base_unit' => true,
@@ -246,6 +251,7 @@ class ProductController extends Controller
                         'barcode' => $uBarcode,
                         'cost_price' => $uCost,
                         'selling_price' => (float)($unitData['selling_price'] ?? 0),
+                        'sell_price_currency_id' => $unitData['sell_price_currency_id'] ?? null,
                         'profit_percent' => (float)($unitData['profit_percent'] ?? 0),
                         'is_base_unit' => false,
                         'is_purchase' => isset($unitData['is_purchase']),
@@ -297,7 +303,9 @@ class ProductController extends Controller
             $product->load('recipes.ingredient');
         }
 
-        return view('store_owner.products.edit', compact('product', 'categories', 'store', 'taxRates', 'ingredients'));
+        $acceptedCurrencies = $store->acceptedCurrencies;
+
+        return view('store_owner.products.edit', compact('product', 'categories', 'store', 'taxRates', 'ingredients', 'acceptedCurrencies'));
     }
 
     public function update(Request $request, Product $product)
@@ -353,8 +361,10 @@ class ProductController extends Controller
                 'unit_name' => $request->base_unit_name,
                 'conversion_factor' => $factor,
                 'purchase_price' => $purchasePrice,
+                'purchase_price_currency_id' => $request->purchase_price_currency_id,
                 'cost_price' => $baseCost,
                 'selling_price' => (float)$request->base_selling_price,
+                'sell_price_currency_id' => $request->base_selling_price_currency_id,
                 'profit_percent' => (float)$request->base_profit_percent,
                 'barcode' => $request->base_barcode,
                 'is_purchase' => $request->has('base_is_purchase'),
@@ -384,6 +394,7 @@ class ProductController extends Controller
                         'barcode' => $unitData['barcode'] ?? null,
                         'cost_price' => $uCost,
                         'selling_price' => (float)($unitData['selling_price'] ?? 0),
+                        'sell_price_currency_id' => $unitData['sell_price_currency_id'] ?? null,
                         'profit_percent' => (float)($unitData['profit_percent'] ?? 0),
                         'is_base_unit' => false,
                         'is_purchase' => isset($unitData['is_purchase']),

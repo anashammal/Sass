@@ -28,6 +28,21 @@ class ProductUnit extends Model implements HasMedia
               ->sharpen(10);
     }
 
+    public function purchaseCurrency()
+    {
+        return $this->belongsTo(Currency::class, 'purchase_price_currency_id');
+    }
+
+    public function sellCurrency()
+    {
+        return $this->belongsTo(Currency::class, 'sell_price_currency_id');
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
     public function getImageAttribute()
     {
         $url = $this->getFirstMediaUrl('unit_images', 'thumb');

@@ -295,7 +295,7 @@
                         <tr class="table-active">
                             <td colspan="6" class="text-end">{{ __('totals_current_page') }} ({{ optional($baseCurrency)->code }})</td>
                             <td>{{ number_format($purchases->sum(function($p) { return $p->grand_total_in_base_currency; }), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
-                            <td class="text-success">{{ number_format($purchases->sum(function($p) { return $p->exchange_rate ? $p->paid_amount * $p->exchange_rate : $p->paid_amount; }), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
+                            <td class="text-success">{{ number_format($purchases->sum('paid_amount'), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
                             <td class="text-danger">{{ number_format($purchases->sum(function($p) { return $p->remaining_amount_in_base_currency; }), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
                             <td class="no-print"></td>
                         </tr>

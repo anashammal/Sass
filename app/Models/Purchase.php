@@ -54,11 +54,7 @@ class Purchase extends Model
      */
     public function getRemainingAmountInBaseCurrencyAttribute()
     {
-        $remaining = $this->grand_total - $this->paid_amount;
-        if ($this->exchange_rate && $this->exchange_rate > 0) {
-            return $remaining * $this->exchange_rate;
-        }
-        return $remaining;
+        return $this->grand_total_in_base_currency - $this->paid_amount;
     }
 
     // =========================================================

@@ -45,13 +45,17 @@
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label fw-bold">{{ __('العملة') }}</label>
-                                <select name="currency_id" id="currency_id" class="form-select">
+                                <select name="currency_id" id="currency_id" class="form-select" onchange="onInvoiceCurrencyChange(this)">
                                     @foreach($currencies as $cur)
-                                        <option value="{{ $cur->id }}" {{ $cur->id == $purchase->currency_id ? 'selected' : ($purchase->currency_id == null && $cur->id == optional($baseCurrency)->id ? 'selected' : '') }}>
+                                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" {{ $cur->id == $purchase->currency_id ? 'selected' : ($purchase->currency_id == null && $cur->id == optional($baseCurrency)->id ? 'selected' : '') }}>
                                             {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
                                         </option>
                                     @endforeach
                                 </select>
+                                <input type="hidden" name="exchange_rate" id="invoice_exchange_rate" value="{{ $purchase->exchange_rate ?? 1 }}">
+                                <div id="invoice_rate_info" class="small text-info mt-1 {{ ($purchase->exchange_rate && $purchase->exchange_rate != 1) ? '' : 'd-none' }}" style="font-size: 0.7rem;">
+                                    {{ __('سعر الصرف:') }} 1 <span id="selected_curr_code">{{ $purchase->currency ? $purchase->currency->code : '' }}</span> = <span id="selected_curr_rate">{{ $purchase->exchange_rate ?? 1 }}</span> {{ optional($baseCurrency)->code }}
+                                </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">{{ __('invoice_number_label') }}</label>
@@ -126,14 +130,20 @@
                         <div class="mb-3">
                             <label class="small text-muted mb-1">{{ __('payments_label') }}</label>
                             <div id="paymentsContainer">
+                                @php
+                                    $invoiceRate = $purchase->exchange_rate ?? 1;
+                                    $displayAmount = ($invoiceRate > 0) ? ($purchase->paid_amount / $invoiceRate) : $purchase->paid_amount;
+                                @endphp
                                 <div class="input-group mb-2 payment-row">
                                     <select name="payments[0][method]" class="form-select" style="max-width: 120px;">
                                         <option value="cash" {{ $purchase->payment_method == 'cash' ? 'selected' : '' }}>{{ __('cash_method') }}</option>
                                         <option value="card" {{ $purchase->payment_method == 'card' ? 'selected' : '' }}>{{ __('card_method') }}</option>
                                         <option value="bank" {{ $purchase->payment_method == 'bank' ? 'selected' : '' }}>{{ __('bank_method') }}</option>
                                     </select>
-                                    <input type="number" name="payments[0][amount]" class="form-control text-center payment-input" value="{{ $purchase->paid_amount }}" step="any" oninput="calculateGrandTotal()">
+                                    <input type="number" name="payments[0][amount]" class="form-control text-center payment-input" value="{{ number_format($displayAmount, 2, '.', '') }}" step="any" oninput="calculateGrandTotal()">
                                 </div>
+                                <input type="hidden" name="payments[0][currency_id]" id="pay_curr_id_0" value="{{ $purchase->currency_id ?? optional($baseCurrency)->id }}">
+                                <input type="hidden" name="payments[0][exchange_rate]" id="pay_rate_0" value="{{ $purchase->exchange_rate ?? 1 }}">
                             </div>
                         </div>
 
@@ -420,19 +430,42 @@ function formatNum(num) {
         let grandTotal = subTotal - discount;
         document.getElementById('grandTotalDisplay').innerText = formatNum(grandTotal);
 
-        let totalPaid = 0;
-        document.querySelectorAll('.payment-input').forEach(inp => totalPaid += parseFloat(inp.value) || 0);
+        let invoiceRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+        let grandTotalInBase = grandTotal * invoiceRate;
 
-        const diff = parseFloat((totalPaid - grandTotal).toFixed(2));
+        // حساب مجموع المدفوعات بالعملة الأساسية
+        // في صفحة التعديل حالياً يوجد حقل واحد للدفع
+        let totalPaid = 0;
+        document.querySelectorAll('.payment-row').forEach(row => {
+            let inp = row.closest('div').parentElement.querySelector('.payment-input');
+            if (!inp) return;
+            
+            let hiddenRate = document.getElementById('pay_rate_0'); // استخدام المعرف الفريد للصف الأول حالياً
+            let rate = hiddenRate ? (parseFloat(hiddenRate.value) || 1) : 1;
+            
+            let amt = parseFloat(inp.value) || 0;
+            totalPaid += amt * rate; 
+        });
+
+        const diff = parseFloat((totalPaid - grandTotalInBase).toFixed(2));
         const balDiv = document.getElementById('balanceAlert');
+        const baseCurrCode = "{{ optional($baseCurrency)->code }}";
         
         if(balDiv) {
             balDiv.style.display = 'block';
-            let msg = diff >= 0 ? (diff > 0 ? `${LANG.credit_for_you}: ${diff}` : LANG.paid_settled) : `${LANG.remaining_due}: ${Math.abs(diff)}`;
-            let cls = diff >= 0 ? 'alert-success' : 'alert-danger';
-            balDiv.className = `alert p-2 text-center fw-bold ${cls}`;
-            document.getElementById('balanceLabel').innerText = msg;
-            document.getElementById('balanceAmount').innerText = '';
+            if (Math.abs(diff) < 0.01) {
+                balDiv.className = 'alert p-2 text-center fw-bold alert-success';
+                document.getElementById('balanceLabel').innerText = LANG.paid_settled || 'خالص';
+                document.getElementById('balanceAmount').innerText = '';
+            } else if (diff < 0) {
+                balDiv.className = 'alert p-2 text-center fw-bold alert-danger';
+                document.getElementById('balanceLabel').innerText = (LANG.remaining_due || 'متبقي') + ":";
+                document.getElementById('balanceAmount').innerText = formatNum(Math.abs(diff)) + " " + baseCurrCode;
+            } else {
+                balDiv.className = 'alert p-2 text-center fw-bold alert-info';
+                document.getElementById('balanceLabel').innerText = (LANG.credit_for_you || 'رصيد لك') + ":";
+                document.getElementById('balanceAmount').innerText = formatNum(diff) + " " + baseCurrCode;
+            }
         }
     }
 
@@ -664,10 +697,10 @@ function formatNum(num) {
         // 1. تشغيل البحث عن الموردين والمنتجات
         
         // Currency change listener
-        document.getElementById('currency_id').addEventListener('change', function() {
-            let selectedCode = this.options[this.selectedIndex].text.split(' — ')[0];
-            document.querySelectorAll('.currency-label').forEach(el => el.innerText = selectedCode);
-        });
+        // document.getElementById('currency_id').addEventListener('change', function() {
+        //     let selectedCode = this.options[this.selectedIndex].text.split(' — ')[0];
+        //     document.querySelectorAll('.currency-label').forEach(el => el.innerText = selectedCode);
+        // });
 
         setupSearch('supplierSearchInput', 'supplierResults', '/store-owner/contacts/search', function(s) {
             document.getElementById('supplierSearchInput').value = s.contact_name;
@@ -697,6 +730,84 @@ function formatNum(num) {
         }
     });
 
+    const preloadedRates = @json($currenciesData ?? []);
+    const ratesMap = {};
+    preloadedRates.forEach(c => { ratesMap[c.id] = c; });
+
+    function onInvoiceCurrencyChange(select) {
+        let opt = select.options[select.selectedIndex];
+        let currId = select.value;
+        let currCode = opt.dataset.code;
+        let baseCurrId = "{{ optional($baseCurrency)->id }}";
+        let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+
+        // Update labels in UI
+        document.querySelectorAll('.currency-label').forEach(el => el.innerText = currCode);
+
+        if (currId == baseCurrId) {
+            document.getElementById('invoice_exchange_rate').value = 1;
+            document.getElementById('invoice_rate_info').classList.add('d-none');
+            calculateGrandTotal();
+            return;
+        }
+
+        let currData = ratesMap[currId];
+        let suggestedRate = currData ? parseFloat(currData.exchange_rate).toFixed(6) : '1.000000';
+
+        Swal.fire({
+            title: `💱 سعر صرف الفاتورة: ${currCode} ↔ ${baseCurrCode}`,
+            icon: 'info',
+            html: `
+                <div class="text-start mb-3">
+                    <label class="form-label fw-bold">✏️ سعر صرف (1 ${currCode} = ؟ ${baseCurrCode}):</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white fw-bold">1 ${currCode}</span>
+                        <input type="text" inputmode="decimal" id="swalInvoiceRate" class="form-control text-center fw-bold fs-5" value="${suggestedRate}">
+                        <span class="input-group-text fw-bold">${baseCurrCode}</span>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: '✅ تأكيد',
+            showCancelButton: true,
+            cancelButtonText: '❌ إلغاء',
+            preConfirm: () => {
+                let val = parseFloat(document.getElementById('swalInvoiceRate').value);
+                if (!val || val <= 0) {
+                    Swal.showValidationMessage('⚠️ يرجى إدخال سعر صرف صحيح');
+                    return false;
+                }
+                return val;
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                let rate = result.value;
+                document.getElementById('invoice_exchange_rate').value = rate;
+                document.getElementById('selected_curr_code').innerText = currCode;
+                document.getElementById('selected_curr_rate').innerText = rate;
+                document.getElementById('invoice_rate_info').classList.remove('d-none');
+                
+                calculateGrandTotal();
+
+                // مزامنة الدفعة الأولى مع عملة الفاتورة
+                let payCurr = document.getElementById('pay_curr_id_0');
+                let payRate = document.getElementById('pay_rate_0');
+                if (payCurr) payCurr.value = currId;
+                if (payRate) payRate.value = rate;
+            } else {
+                select.value = baseCurrId;
+                document.getElementById('invoice_exchange_rate').value = 1;
+                document.getElementById('invoice_rate_info').classList.add('d-none');
+                document.querySelectorAll('.currency-label').forEach(el => el.innerText = baseCurrCode);
+                calculateGrandTotal();
+
+                // إعادة مزامنة الدفعة للعملة الأساسية
+                let payCurr = document.getElementById('pay_curr_id_0');
+                let payRate = document.getElementById('pay_rate_0');
+                if (payCurr) payCurr.value = baseCurrId;
+                if (payRate) payRate.value = 1;
+            }
+        });
+    }
 </script>
 @endsection
 @endsection
