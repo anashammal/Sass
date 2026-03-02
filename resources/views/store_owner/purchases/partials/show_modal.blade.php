@@ -24,7 +24,7 @@
                 <th class="text-center">{{ __('table_unit') }}</th>
                 <th class="text-center">{{ __('table_quantity') }}</th>
                 <th class="text-center">{{ __('table_price') }}</th>
-                <th class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}">{{ __('table_total') }}</th>
+                <th class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}">{{ __('table_total') }} ({{ $purchase->currency ? $purchase->currency->code : $globalCurrencySymbol }})</th>
             </tr>
         </thead>
         <tbody>
@@ -33,15 +33,24 @@
                 <td class="{{ app()->getLocale() == 'ar' ? 'text-end' : 'text-start' }}">{{ $item->product->name ?? __('deleted_product') }}</td>
                 <td class="text-center">{{ $item->unit->unit_name ?? '-' }}</td>
                 <td class="text-center">{{ $item->quantity }}</td>
-                <td class="text-center">{{ number_format($item->unit_price, 2) }}</td>
-                <td class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}">{{ number_format($item->total_cost, 2) }}</td>
+                <td class="text-center">{{ number_format($item->unit_price, 2) }} <small class="text-muted">{{ $purchase->currency ? $purchase->currency->symbol : $globalCurrencySymbol }}</small></td>
+                <td class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}">{{ number_format($item->total_cost, 2) }} <small class="text-muted">{{ $purchase->currency ? $purchase->currency->symbol : $globalCurrencySymbol }}</small></td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr>
                 <td colspan="4" class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}"><strong>{{ __('grand_total_label') }}</strong></td>
-                <td class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}"><strong>{{ number_format($purchase->grand_total, 2) }}</strong></td>
+                <td class="{{ app()->getLocale() == 'ar' ? 'text-start' : 'text-end' }}">
+                    <div class="d-flex flex-column">
+                        <strong class="text-primary">{{ number_format($purchase->grand_total, 2) }} {{ $purchase->currency ? $purchase->currency->symbol : $globalCurrencySymbol }}</strong>
+                        @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
+                            <small class="text-muted" style="font-size: 0.8rem;">
+                                ≈ {{ number_format($purchase->grand_total_in_base_currency, 2) }} {{ $globalCurrencySymbol }}
+                            </small>
+                        @endif
+                    </div>
+                </td>
             </tr>
         </tfoot>
     </table>

@@ -1286,6 +1286,12 @@
             return;
         }
 
+        // NEW: Convert to base price for internal calculation
+        let rawPrice = parseFloat(unit.price || 0);
+        let currId = unit.currency_id || baseCurrency.id;
+        let rate = (currId == baseCurrency.id) ? 1 : (allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+        let basePrice = rawPrice * parseFloat(rate);
+
         let existing = cart.find(item => item.id === product.id && item.selected_unit_id == unitId);
         if (existing) { 
             existing.qty++; 
@@ -1295,7 +1301,7 @@
                 name: product.name,
                 sku: product.default_barcode,
                 image: product.image,
-                price: parseFloat(product.default_price),
+                price: basePrice, // Store in base currency
                 qty: 1,
                 units: product.available_units,
                 selected_unit_id: unitId,
@@ -1340,7 +1346,12 @@
                     <td class="small text-muted font-monospace align-middle">${item.sku}</td>
                     <td class="fw-bold align-middle">${item.name}</td>
                     <td class="align-middle">${unitHtml}</td>
-                    <td class="text-center align-middle">${item.price.toFixed(2)} <span class="text-muted small">{{ $globalCurrencySymbol }}</span></td>
+                    <td class="text-center align-middle">
+                        <div class="fw-bold">${item.price.toFixed(2)} <span class="text-muted small">{{ $globalCurrencySymbol }}</span></div>
+                        <div class="dual-price-info mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1;">
+                            ${renderDualPrice(item)}
+                        </div>
+                    </td>
                     <td class="text-center align-middle">
                         <div class="input-group input-group-sm justify-content-center" style="width: 100px;">
                             <button class="btn btn-outline-secondary" onclick="updateQty(${index}, 1)">+</button>
@@ -1413,12 +1424,38 @@
 
             // في حال كان المخزون كافياً من البداية، يتم التغيير فوراً
             item.selected_unit_id = newUnitId;
-            item.price = parseFloat(newUnit.price);
+            // NEW: Convert to base price
+            let currId = newUnit.currency_id || baseCurrency.id;
+            let rate = (currId == baseCurrency.id) ? 1 : (allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+            item.price = parseFloat(newUnit.price) * parseFloat(rate);
+            
             item.sku = newUnit.barcode;
             if (newUnit.image) item.image = newUnit.image;
             renderCart();
         }
     };
+
+    };
+
+    // 🟢 عرض السعر بالعملة الأصلية وما يعادلها بالعملة الأساسية (للمبيعات)
+    function renderDualPrice(item) {
+        let currentUnit = item.units.find(u => u.unit_id == item.selected_unit_id);
+        if(!currentUnit || !currentUnit.currency_id) return '';
+        
+        let rawPrice = parseFloat(currentUnit.price || 0);
+        let currId = currentUnit.currency_id;
+        let symbol = currentUnit.currency_symbol || (allCurrencies.find(c => c.id == currId)?.symbol || '');
+        
+        // إذا كان المبيع بالعملة الأساسية، لا يظهر معادل (أو يظهر بشكل مختلف)
+        if(currId == baseCurrency.id) return '';
+        
+        // السعر المعروض هو item.price (المحول للأساسية بالفعل)
+        // نريد فقط إظهار "أصله"
+        return `
+            <span class="text-muted fw-bold d-block">${rawPrice.toFixed(2)} ${symbol}</span>
+            <span class="text-secondary small d-block">(${baseCurrency.code} ${item.price.toFixed(2)})</span>
+        `;
+    }
 
     window.updateQty = (index, change) => {
         let item = cart[index];

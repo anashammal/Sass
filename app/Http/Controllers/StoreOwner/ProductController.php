@@ -108,7 +108,13 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $storeId = Auth::user()->store->id;
-        $query = Product::where('store_id', $storeId)->with(['baseUnit', 'category']);
+        $query = Product::where('store_id', $storeId)->with([
+            'baseUnit.purchaseCurrency', 
+            'baseUnit.sellCurrency', 
+            'units.purchaseCurrency', 
+            'units.sellCurrency',
+            'category'
+        ]);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -167,9 +173,20 @@ class ProductController extends Controller
         }
 
         $acceptedCurrencies = $store->acceptedCurrencies;
+        $baseCurrency = $store->baseCurrency;
+        
+        $currenciesData = [];
+        if ($baseCurrency) {
+            $exchangeService = app(\App\Services\ExchangeRateService::class);
+            foreach ($acceptedCurrencies as $cur) {
+                if ($cur->id === $baseCurrency->id) continue;
+                // إعطاء الأولوية للسعر المخصص في المتجر، وإلا الجلب من الخدمة
+                $rate = $cur->pivot->custom_rate ?? ($exchangeService->getExchangeRate($cur->code, $baseCurrency->code) ?? 1);
+                $currenciesData[$cur->id] = (float)$rate;
+            }
+        }
 
-
-        return view('store_owner.products.create', compact('categories', 'store', 'taxRates', 'ingredients', 'acceptedCurrencies')); 
+        return view('store_owner.products.create', compact('categories', 'store', 'taxRates', 'ingredients', 'acceptedCurrencies', 'currenciesData')); 
     }
 
     public function store(Request $request) 
@@ -221,9 +238,11 @@ class ProductController extends Controller
                 'conversion_factor' => $factor,
                 'purchase_price' => $purchasePrice,
                 'purchase_price_currency_id' => $request->purchase_price_currency_id,
+                'purchase_exchange_rate' => $request->purchase_exchange_rate,
                 'cost_price' => $baseCost,
                 'selling_price' => (float)$request->base_selling_price,
                 'sell_price_currency_id' => $request->base_selling_price_currency_id,
+                'sell_exchange_rate' => $request->base_sell_exchange_rate,
                 'profit_percent' => (float)$request->base_profit_percent,
                 'barcode' => $barcode,
                 'is_base_unit' => true,
@@ -249,9 +268,13 @@ class ProductController extends Controller
                         'unit_name' => $uName,
                         'conversion_factor' => $uFactor,
                         'barcode' => $uBarcode,
+                        'purchase_price' => (float)($unitData['purchase_price'] ?? 0),
+                        'purchase_price_currency_id' => $unitData['purchase_price_currency_id'] ?? null,
+                        'purchase_exchange_rate' => $unitData['purchase_exchange_rate'] ?? null,
                         'cost_price' => $uCost,
                         'selling_price' => (float)($unitData['selling_price'] ?? 0),
                         'sell_price_currency_id' => $unitData['sell_price_currency_id'] ?? null,
+                        'sell_exchange_rate' => $unitData['sell_exchange_rate'] ?? null,
                         'profit_percent' => (float)($unitData['profit_percent'] ?? 0),
                         'is_base_unit' => false,
                         'is_purchase' => isset($unitData['is_purchase']),
@@ -304,8 +327,19 @@ class ProductController extends Controller
         }
 
         $acceptedCurrencies = $store->acceptedCurrencies;
+        $baseCurrency = $store->baseCurrency;
 
-        return view('store_owner.products.edit', compact('product', 'categories', 'store', 'taxRates', 'ingredients', 'acceptedCurrencies'));
+        $currenciesData = [];
+        if ($baseCurrency) {
+            $exchangeService = app(\App\Services\ExchangeRateService::class);
+            foreach ($acceptedCurrencies as $cur) {
+                if ($cur->id === $baseCurrency->id) continue;
+                $rate = $cur->pivot->custom_rate ?? ($exchangeService->getExchangeRate($cur->code, $baseCurrency->code) ?? 1);
+                $currenciesData[$cur->id] = (float)$rate;
+            }
+        }
+
+        return view('store_owner.products.edit', compact('product', 'categories', 'store', 'taxRates', 'ingredients', 'acceptedCurrencies', 'currenciesData'));
     }
 
     public function update(Request $request, Product $product)
@@ -362,9 +396,11 @@ class ProductController extends Controller
                 'conversion_factor' => $factor,
                 'purchase_price' => $purchasePrice,
                 'purchase_price_currency_id' => $request->purchase_price_currency_id,
+                'purchase_exchange_rate' => $request->purchase_exchange_rate,
                 'cost_price' => $baseCost,
                 'selling_price' => (float)$request->base_selling_price,
                 'sell_price_currency_id' => $request->base_selling_price_currency_id,
+                'sell_exchange_rate' => $request->base_sell_exchange_rate,
                 'profit_percent' => (float)$request->base_profit_percent,
                 'barcode' => $request->base_barcode,
                 'is_purchase' => $request->has('base_is_purchase'),
@@ -392,9 +428,13 @@ class ProductController extends Controller
                         'unit_name' => $uName,
                         'conversion_factor' => $uFactor,
                         'barcode' => $unitData['barcode'] ?? null,
+                        'purchase_price' => (float)($unitData['purchase_price'] ?? 0),
+                        'purchase_price_currency_id' => $unitData['purchase_price_currency_id'] ?? null,
+                        'purchase_exchange_rate' => $unitData['purchase_exchange_rate'] ?? null,
                         'cost_price' => $uCost,
                         'selling_price' => (float)($unitData['selling_price'] ?? 0),
                         'sell_price_currency_id' => $unitData['sell_price_currency_id'] ?? null,
+                        'sell_exchange_rate' => $unitData['sell_exchange_rate'] ?? null,
                         'profit_percent' => (float)($unitData['profit_percent'] ?? 0),
                         'is_base_unit' => false,
                         'is_purchase' => isset($unitData['is_purchase']),

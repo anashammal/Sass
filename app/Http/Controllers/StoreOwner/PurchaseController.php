@@ -797,7 +797,7 @@ class PurchaseController extends Controller
 
     public function show(Request $request, $id)
     {
-        $purchase = Purchase::with(['items.product', 'items.unit', 'supplier'])->findOrFail($id);
+        $purchase = Purchase::with(['items.product', 'items.unit', 'supplier', 'currency'])->findOrFail($id);
 
         // هذا هو السطر السحري: إذا كان الطلب AJAX (من النافذة)
         if ($request->ajax()) {

@@ -24,17 +24,60 @@
     <td>{{ $product->baseUnit->unit_name ?? '---' }}</td>
     
     {{-- التكلفة للوحدة الأساسية --}}
-    <td class="text-danger fw-bold">{{ $product->baseUnit ? (float)$product->baseUnit->cost_price : '0' }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
+    <td class="text-danger fw-bold">
+        @if($product->baseUnit)
+            @php 
+                $u = $product->baseUnit;
+                $cost = (float)$u->cost_price;
+                $pCurrency = $u->purchaseCurrency;
+                $pSymbol = $pCurrency ? $pCurrency->symbol : $globalCurrencySymbol;
+                
+                // حساب المعادل للعملة الأساسية إذا كانت مختلفة
+                $baseCost = $cost;
+                $pRate = 1;
+                if($pCurrency && $pCurrency->id != $store->base_currency_id) {
+                    $pRate = $u->purchase_exchange_rate ?? ($store->acceptedCurrencies->find($pCurrency->id)->pivot->custom_rate ?? 1);
+                    $baseCost = $cost * $pRate;
+                }
+@endphp
+            <div class="d-flex flex-column">
+                <span>{{ $cost }} <small class="text-muted">{{ $pSymbol }}</small></span>
+                @if($baseCost != $cost)
+                    <small class="text-muted" style="font-size: 0.7rem;">(≈ {{ number_format($baseCost, 2) }} {{ $globalCurrencySymbol }})</small>
+                    <small class="text-muted" style="font-size: 0.65rem;">@ 1 {{ $pCurrency->code }} = {{ (float)$pRate }} {{ $globalCurrencySymbol }}</small>
+                @endif
+            </div>
+        @else
+            0 <small class="text-muted">{{ $globalCurrencySymbol }}</small>
+        @endif
+    </td>
     
     <td>
         @php $price = $product->baseUnit->selling_price ?? 0; @endphp
         @if($product->baseUnit && $product->baseUnit->is_sale)
+            @php 
+                $u = $product->baseUnit;
+                $sPrice = (float)$u->selling_price;
+                $sCurrency = $u->sellCurrency;
+                $sSymbol = $sCurrency ? $sCurrency->symbol : $globalCurrencySymbol;
+                
+                $tax = $product->tax_percent ?? 0;
+                $priceWithTax = $sPrice * (1 + $tax / 100);
+
+                // حساب المعادل للعملة الأساسية
+                $basePriceTax = $priceWithTax;
+                $sRate = 1;
+                if($sCurrency && $sCurrency->id != $store->base_currency_id) {
+                    $sRate = $u->sell_exchange_rate ?? ($store->acceptedCurrencies->find($sCurrency->id)->pivot->custom_rate ?? 1);
+                    $basePriceTax = $priceWithTax * $sRate;
+                }
+@endphp
             <div class="d-flex flex-column">
-                @php 
-                    $tax = $product->tax_percent ?? 0;
-                    $priceWithTax = $price * (1 + $tax / 100);
-                @endphp
-                <span class="fw-bold text-success">{{ (float)number_format($priceWithTax, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></span>
+                <span class="fw-bold text-success">{{ number_format($priceWithTax, 2) }} <small class="text-muted">{{ $sSymbol }}</small></span>
+                @if($basePriceTax != $priceWithTax)
+                    <small class="text-muted" style="font-size: 0.7rem;">(≈ {{ number_format($basePriceTax, 2) }} {{ $globalCurrencySymbol }})</small>
+                    <small class="text-muted" style="font-size: 0.65rem;">@ 1 {{ $sCurrency->code }} = {{ (float)$sRate }} {{ $globalCurrencySymbol }}</small>
+                @endif
                 @if($tax > 0)
                     <small class="text-muted" style="font-size: 10px;">({{ __('شامل') }} {{ (float)$tax }}%)</small>
                 @endif
@@ -46,12 +89,29 @@
 
     <td class="text-primary fw-bold">
         @php 
-            $cost = $product->baseUnit ? (float)$product->baseUnit->cost_price : 0;
-            $profit = $price - $cost;
-            $profitPercent = $cost > 0 ? ($profit / $cost) * 100 : 0;
+            // الربح بالعملة الأساسية لتوحيد المقارنة
+            $u = $product->baseUnit;
+            $cost = (float)($u->cost_price ?? 0);
+            $sell = (float)($u->selling_price ?? 0);
+            
+            // تحويل للعملة الأساسية
+            $baseCost = $cost;
+            if($u->purchaseCurrency && $u->purchaseCurrency->id != $store->base_currency_id) {
+                $pRate = $u->purchase_exchange_rate ?? ($store->acceptedCurrencies->find($u->purchase_price_currency_id)->pivot->custom_rate ?? 1);
+                $baseCost = $cost * $pRate;
+            }
+            
+            $baseSell = $sell;
+            if($u->sellCurrency && $u->sellCurrency->id != $store->base_currency_id) {
+                $sRate = $u->sell_exchange_rate ?? ($store->acceptedCurrencies->find($u->sell_price_currency_id)->pivot->custom_rate ?? 1);
+                $baseSell = $sell * $sRate;
+            }
+
+            $profit = $baseSell - $baseCost;
+            $profitPercent = $baseCost > 0 ? ($profit / $baseCost) * 100 : 0;
         @endphp
-        {{ (float)number_format($profit, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
-        <small class="text-muted">({{ (float)number_format($profitPercent, 1) }}%)</small>
+        {{ number_format($profit, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
+        <small class="text-muted">({{ number_format($profitPercent, 1) }}%)</small>
     </td>
     
     {{-- المخزون الكلي (للوحدة الأساسية) --}}
@@ -112,12 +172,51 @@
                             <td>{{ (float)$unit->conversion_factor }}</td>
                             <td class="font-monospace">{{ $unit->barcode ?? '---' }}</td>
                             
-                            <td class="text-danger fw-bold">{{ (float)$unit->cost_price }} <small class="text-muted">{{ $globalCurrencySymbol }}</small></td>
+                            <td class="text-danger fw-bold">
+                                @php 
+                                    $uCost = (float)$unit->cost_price;
+                                    $uPCurrency = $unit->purchaseCurrency;
+                                    $uPSymbol = $uPCurrency ? $uPCurrency->symbol : $globalCurrencySymbol;
+                                    
+                                    $uBaseCost = $uCost;
+                                    $uPRate = 1;
+                                    if($uPCurrency && $uPCurrency->id != $store->base_currency_id) {
+                                        $uPRate = $unit->purchase_exchange_rate ?? ($store->acceptedCurrencies->find($uPCurrency->id)->pivot->custom_rate ?? 1);
+                                        $uBaseCost = $uCost * $uPRate;
+                                    }
+@endphp
+                                <div class="d-flex flex-column">
+                                    <span>{{ $uCost }} <small class="text-muted">{{ $uPSymbol }}</small></span>
+                                    @if($uBaseCost != $uCost)
+                                        <small class="text-muted" style="font-size: 0.7rem;">(≈ {{ number_format($uBaseCost, 2) }} {{ $globalCurrencySymbol }})</small>
+                                        <small class="text-muted" style="font-size: 0.65rem;">@ 1 {{ $uPCurrency->code }} = {{ (float)$uPRate }} {{ $globalCurrencySymbol }}</small>
+                                    @endif
+                                </div>
+                            </td>
                             
 <td class="text-success fw-bold">
     @if($unit->is_sale)
-        @php $uPriceTax = $unit->selling_price * (1 + $product->tax_percent / 100); @endphp
-        {{ number_format($uPriceTax, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
+        @php 
+            $uSPrice = (float)$unit->selling_price;
+            $uSCurrency = $unit->sellCurrency;
+            $uSSymbol = $uSCurrency ? $uSCurrency->symbol : $globalCurrencySymbol;
+            
+            $uPriceTax = $uSPrice * (1 + $product->tax_percent / 100);
+            
+            $uBasePriceTax = $uPriceTax;
+            $uSRate = 1;
+            if($uSCurrency && $uSCurrency->id != $store->base_currency_id) {
+                $uSRate = $unit->sell_exchange_rate ?? ($store->acceptedCurrencies->find($uSCurrency->id)->pivot->custom_rate ?? 1);
+                $uBasePriceTax = $uPriceTax * $uSRate;
+            }
+@endphp
+        <div class="d-flex flex-column">
+            <span>{{ number_format($uPriceTax, 2) }} <small class="text-muted">{{ $uSSymbol }}</small></span>
+            @if($uBasePriceTax != $uPriceTax)
+                <small class="text-muted" style="font-size: 0.7rem;">(≈ {{ number_format($uBasePriceTax, 2) }} {{ $globalCurrencySymbol }})</small>
+                <small class="text-muted" style="font-size: 0.65rem;">@ 1 {{ $uSCurrency->code }} = {{ (float)$uSRate }} {{ $globalCurrencySymbol }}</small>
+            @endif
+        </div>
     @else
         <span class="badge bg-danger">{{ __('غير قابل للبيع') }}</span>
     @endif
@@ -125,8 +224,24 @@
 
 <td class="text-info fw-bold">
     @php 
-        $uProfit = $unit->selling_price - $unit->cost_price;
-        $uProfitPercent = $unit->cost_price > 0 ? ($uProfit / $unit->cost_price) * 100 : 0;
+        $uSell = (float)$unit->selling_price;
+        $uCost = (float)$unit->cost_price;
+
+        // تحويل للعملة الأساسية لحساب الربح
+        $uBaseSell = $uSell;
+        if($unit->sellCurrency && $unit->sellCurrency->id != $store->base_currency_id) {
+            $uSRate = $unit->sell_exchange_rate ?? ($store->acceptedCurrencies->find($unit->sell_price_currency_id)->pivot->custom_rate ?? 1);
+            $uBaseSell = $uSell * $uSRate;
+        }
+
+        $uBaseCost = $uCost;
+        if($unit->purchaseCurrency && $unit->purchaseCurrency->id != $store->base_currency_id) {
+            $uPRate = $unit->purchase_exchange_rate ?? ($store->acceptedCurrencies->find($unit->purchase_price_currency_id)->pivot->custom_rate ?? 1);
+            $uBaseCost = $uCost * $uPRate;
+        }
+
+        $uProfit = $uBaseSell - $uBaseCost;
+        $uProfitPercent = $uBaseCost > 0 ? ($uProfit / $uBaseCost) * 100 : 0;
     @endphp
     {{ number_format($uProfit, 2) }} <small class="text-muted">{{ $globalCurrencySymbol }}</small>
     <small class="text-muted">({{ number_format($uProfitPercent, 1) }}%)</small>

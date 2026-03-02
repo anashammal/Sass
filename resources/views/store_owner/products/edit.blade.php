@@ -128,7 +128,7 @@
                                         <label class="form-label small text-danger fw-bold">{{ __('سعر الشراء') }}</label>
                                         <div class="input-group">
                                             <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', (float)$base->purchase_price) }}" required oninput="calculateBaseCost()">
-                                            <select name="purchase_price_currency_id" class="form-select form-select-sm" style="max-width: 90px;">
+                                            <select name="purchase_price_currency_id" id="purchase_price_currency_id" class="form-select form-select-sm currency-select-trigger" style="max-width: 90px;" data-target="purchase_exchange_rate">
                                                 <option value="{{ $store->base_currency_id }}">{{ $store->baseCurrency->code }}</option>
                                                 @foreach($acceptedCurrencies as $cur)
                                                     @if($cur->id != $store->base_currency_id)
@@ -136,12 +136,19 @@
                                                     @endif
                                                 @endforeach
                                             </select>
+                                            <input type="hidden" name="purchase_exchange_rate" id="purchase_exchange_rate" value="{{ old('purchase_exchange_rate', $base->purchase_exchange_rate ?? 1) }}">
+                                        </div>
+                                        <div id="purchase_price_base_hint" class="small text-muted mt-1 d-none" style="font-size: 0.75rem;">
+                                            <i class="fas fa-info-circle me-1"></i> {{ __('ما يعادله بالعملة الافتراضية:') }} <span class="fw-bold text-dark base-val">0</span> {{ $store->baseCurrency->code }}
                                         </div>
                                     </div>
 
                                     <div class="col-md-2">
                                         <label class="form-label small text-muted"> {{ __('التكلفة (للقطعة)') }} </label>
-                                        <input type="text" id="calculated_base_cost" class="form-control bg-light text-center fw-bold" readonly>
+                                        <div class="input-group">
+                                            <input type="text" id="calculated_base_cost" class="form-control bg-light text-center fw-bold" readonly>
+                                            <span class="input-group-text bg-light fw-bold text-muted base-currency-label">{{ $store->baseCurrency->code }}</span>
+                                        </div>
                                         <input type="hidden" name="base_cost_price" id="base_cost">
                                     </div>
 
@@ -154,7 +161,7 @@
                                         <label class="form-label small text-success fw-bold"> {{ __('سعر البيع') }} </label>
                                         <div class="input-group">
                                             <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', (float)$base->selling_price) }}" required oninput="calculateMargin('base')">
-                                            <select name="base_selling_price_currency_id" class="form-select form-select-sm" style="max-width: 90px;">
+                                            <select name="base_selling_price_currency_id" id="base_selling_price_currency_id" class="form-select form-select-sm currency-select-trigger" style="max-width: 90px;" data-target="base_sell_exchange_rate">
                                                 <option value="{{ $store->base_currency_id }}">{{ $store->baseCurrency->code }}</option>
                                                 @foreach($acceptedCurrencies as $cur)
                                                     @if($cur->id != $store->base_currency_id)
@@ -162,6 +169,7 @@
                                                     @endif
                                                 @endforeach
                                             </select>
+                                            <input type="hidden" name="base_sell_exchange_rate" id="base_sell_exchange_rate" value="{{ old('base_sell_exchange_rate', $base->sell_exchange_rate ?? 1) }}">
                                         </div>
                                     </div>
                                     
@@ -177,7 +185,13 @@
                                     
                                     <div class="col-md-3">
                                         <label class="form-label small text-muted"> {{ __('السعر مع الضريبة') }} </label>
-                                        <input type="text" id="price_with_tax" class="form-control bg-light fw-bold text-success" readonly>
+                                        <div class="input-group">
+                                            <input type="text" id="price_with_tax" class="form-control bg-light fw-bold text-success text-center" readonly>
+                                            <span class="input-group-text bg-light fw-bold text-success sell-currency-label">{{ $store->baseCurrency->code }}</span>
+                                        </div>
+                                        <div id="price_with_tax_base_hint" class="small text-muted mt-1 d-none" style="font-size: 0.75rem;">
+                                            <i class="fas fa-info-circle me-1"></i> {{ __('ما يعادله بالعملة الافتراضية:') }} <span class="fw-bold text-dark base-val">0</span> <span class="base-curr">{{ $store->baseCurrency->code }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -276,8 +290,23 @@
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <label class="small text-muted fw-bold"> {{ __('التكلفة (آلي)') }} </label>
-                            <input type="number" name="units[INDEX][cost_price]" class="form-control form-control-sm bg-light unit-cost fw-bold text-danger" readonly>
+                            <label class="small text-danger fw-bold"> {{ __('سعر الشراء') }} </label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="any" name="units[INDEX][purchase_price]" class="form-control form-control-sm unit-purchase fw-bold text-danger" oninput="calculateUnitCost(this)">
+                                <select name="units[INDEX][purchase_price_currency_id]" class="form-select currency-select-purchase currency-select-trigger" style="max-width: 80px;" data-target="units[INDEX][purchase_exchange_rate]">
+                                    <option value="{{ $store->base_currency_id }}">{{ $store->baseCurrency->code }}</option>
+                                    @foreach($acceptedCurrencies as $cur)
+                                        @if($cur->id != $store->base_currency_id)
+                                            <option value="{{ $cur->id }}">{{ $cur->code }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                <input type="hidden" name="units[INDEX][purchase_exchange_rate]" class="unit-purchase-rate" value="1">
+                            </div>
+                            <div class="unit-purchase-base-hint small text-muted mt-1 d-none" style="font-size: 0.7rem;">
+                                {{ __('ما يعادله:') }} <span class="fw-bold text-dark base-val">0</span> {{ $store->baseCurrency->code }}
+                            </div>
+                            <input type="hidden" name="units[INDEX][cost_price]" class="unit-cost">
                         </div>
                         <div class="col-md-4 unit-profit-div">
                             <label class="small fw-bold text-primary"> {{ __('الربح %') }} </label>
@@ -286,8 +315,8 @@
                         <div class="col-md-4 unit-sell-div">
                             <label class="small text-success fw-bold"> {{ __('سعر البيع') }} </label>
                             <div class="input-group input-group-sm">
-                                <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success" oninput="calcExtraUnitProfit(this)">
-                                <select name="units[INDEX][sell_price_currency_id]" class="form-select currency-select" style="max-width: 80px;">
+                                <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success text-center" oninput="calcExtraUnitProfit(this)">
+                                <select name="units[INDEX][sell_price_currency_id]" class="form-select currency-select-trigger" style="max-width: 80px;" data-target="units[INDEX][sell_exchange_rate]">
                                     <option value="{{ $store->base_currency_id }}">{{ $store->baseCurrency->code }}</option>
                                     @foreach($acceptedCurrencies as $cur)
                                         @if($cur->id != $store->base_currency_id)
@@ -295,6 +324,10 @@
                                         @endif
                                     @endforeach
                                 </select>
+                                <input type="hidden" name="units[INDEX][sell_exchange_rate]" class="unit-sell-rate" value="1">
+                            </div>
+                            <div class="unit-sell-base-hint small text-muted mt-1 d-none" style="font-size: 0.7rem;">
+                                {{ __('ما يعادله:') }} <span class="fw-bold text-dark base-val">0</span> {{ $store->baseCurrency->code }}
                             </div>
                         </div>
                     </div>
@@ -311,6 +344,9 @@
         calculatePriceWithTax();
         toggleSellingFields();
 
+        // تفعيل مستمعات العملات للوحدة الأساسية والوحدات الموجودة
+        initCurrencyTriggers(document);
+
         @foreach($product->units->where('is_base_unit', false) as $unit)
             addExtraUnit({
                 id: '{{ $unit->id }}',
@@ -325,9 +361,13 @@
                 is_sale: {{ $unit->is_sale ? 'true' : 'false' }},
                 // ضمان وجود رابط صورة صالح
                 image: '{{ $unit->image }}',
-                sell_currency_id: '{{ $unit->sell_price_currency_id }}'
+                sell_currency_id: '{{ $unit->sell_price_currency_id }}',
+                purchase_currency_id: '{{ $unit->purchase_price_currency_id }}',
+                purchase_price: {{ (float)$unit->purchase_price }},
+                purchase_rate: {{ $unit->purchase_exchange_rate ?? 1 }},
+                sell_rate: {{ $unit->sell_exchange_rate ?? 1 }}
             });
-        @endforeach
+@endforeach
     });
 
     // ... (نفس الدوال المساعدة السابقة: formatNum, previewImage, الخ) ...
@@ -369,14 +409,263 @@
     }
 
     function handleUnitChange(s) { let i=s.nextElementSibling; if(s.value=='custom'){i.classList.remove('d-none');i.value='';i.focus();}else{i.classList.add('d-none');i.value=s.value;} }
-    function calculateBaseCost() { let p=parseFloat(document.getElementById('purchase_price').value)||0; let f=parseFloat(document.getElementById('pieces_per_unit').value)||1; let c=(f>0)?(p/f):0; document.getElementById('base_cost').value=c; document.getElementById('calculated_base_cost').value=formatNum(c); updateAllUnitsCosts(); calculateMargin('base'); }
-    function calculateUnitCost(i) { let r=i.closest('.unit-row'); let b=parseFloat(document.getElementById('base_cost').value)||0; let f=parseFloat(r.querySelector('.unit-factor').value)||0; r.querySelector('.unit-cost').value=formatNum(b*f); let p=r.querySelector('.unit-profit'); calcExtraUnitSell(p); }
-    function updateAllUnitsCosts() { document.querySelectorAll('.unit-factor').forEach(i=>calculateUnitCost(i)); }
-    function calculatePriceWithTax() { let p=parseFloat(document.getElementById('base_sell').value)||0; let t=parseFloat(document.getElementById('tax_percent').value)||0; document.getElementById('price_with_tax').value=formatNum(p*(1+(t/100))); }
-    function calculateMargin(t) { if(t==='base'){ let c=parseFloat(document.getElementById('base_cost').value)||0; let s=parseFloat(document.getElementById('base_sell').value)||0; if(c>0) document.getElementById('base_margin').value=formatNum(((s-c)/c)*100); calculatePriceWithTax(); } }
-    function calculatePriceFromMargin(t) { if(t==='base'){ let c=parseFloat(document.getElementById('base_cost').value)||0; let m=parseFloat(document.getElementById('base_margin').value)||0; document.getElementById('base_sell').value=formatNum(c*(1+(m/100))); calculatePriceWithTax(); } }
-    function calcExtraUnitSell(i) { let r=i.closest('.unit-row'); let c=parseFloat(r.querySelector('.unit-cost').value)||0; let m=parseFloat(i.value)||0; if(c>0) r.querySelector('.unit-sell').value=formatNum(c*(1+(m/100))); }
-    function calcExtraUnitProfit(i) { let r=i.closest('.unit-row'); let c=parseFloat(r.querySelector('.unit-cost').value)||0; let s=parseFloat(i.value)||0; if(c>0) r.querySelector('.unit-profit').value=formatNum(((s-c)/c)*100); }
+
+    const baseCurrencyId = '{{ $store->base_currency_id }}';
+    const storeCurrencies = @json($acceptedCurrencies->keyBy('id'));
+    let confirmedRates = {};
+    let isCalculating = false;
+    const currenciesData = @json($currenciesData);
+    const baseCurrencyCode = "{{ optional($store->baseCurrency)->code ?? 'TRY' }}";
+
+    function initCurrencyTriggers(container) {
+        container.querySelectorAll('.currency-select-trigger').forEach(select => {
+            select.addEventListener('change', function() {
+                handleCurrencyChange(this);
+            });
+        });
+    }
+
+    function handleCurrencyChange(select) {
+        const currencyId = select.value;
+        const targetInputName = select.getAttribute('data-target');
+        
+        if (currencyId == baseCurrencyId) {
+            updateGlobalCurrencyRate(currencyId, 1);
+            return;
+        }
+
+        if (confirmedRates[currencyId]) {
+            updateGlobalCurrencyRate(currencyId, confirmedRates[currencyId]);
+            return;
+        }
+
+        const currency = storeCurrencies[currencyId];
+        const defaultRate = currenciesData[currencyId] || (currency ? (parseFloat(currency.pivot.custom_rate) || 1) : 1);
+        const currencyCode = currency ? currency.code : '';
+        const baseCurrCode = '{{ $store->baseCurrency->code }}';
+
+        Swal.fire({
+            title: `💱 {{ __('سعر الصرف') }}: ${currencyCode} ↔ ${baseCurrCode}`,
+            icon: 'info',
+            html: `
+                <div class="text-start mb-3" dir="rtl">
+                    <label class="form-label text-muted small">📡 {{ __('السعر المقترح (من الإعدادات):') }}</label>
+                    <div class="input-group mb-1">
+                        <span class="input-group-text bg-light fw-bold">1 ${currencyCode}</span>
+                        <input type="number" id="swalSuggestedRate" class="form-control text-center text-info fw-bold" value="${defaultRate}" readonly>
+                        <span class="input-group-text">${baseCurrCode}</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-start mb-3" dir="rtl">
+                    <label class="form-label fw-bold">✏️ {{ __('سعر الصرف المعتمد لهذا المنتج:') }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white fw-bold">1 ${currencyCode}</span>
+                        <input type="text" inputmode="decimal" id="swalConfirmedRate" class="form-control text-center fw-bold fs-5" value="${defaultRate}">
+                        <span class="input-group-text fw-bold">${baseCurrCode}</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="document.getElementById('swalConfirmedRate').value=document.getElementById('swalSuggestedRate').value">
+                        ↩️ {{ __('استخدم المقترح') }}
+                    </button>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '✅ {{ __('تأكيد') }}',
+            cancelButtonText: '❌ {{ __('إلغاء') }}',
+            confirmButtonColor: '#198754',
+            preConfirm: () => {
+                let val = parseFloat(document.getElementById('swalConfirmedRate').value);
+                if (!val || val <= 0) {
+                    Swal.showValidationMessage('{{ __('يرجى إدخال سعر صرف صحيح أكبر من صفر') }}');
+                    return false;
+                }
+                return val;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                confirmedRates[currencyId] = result.value;
+                updateGlobalCurrencyRate(currencyId, result.value);
+            } else {
+                select.value = baseCurrencyId;
+                updateGlobalCurrencyRate(baseCurrencyId, 1);
+            }
+        });
+    }
+
+    function updateGlobalCurrencyRate(currencyId, rate) {
+        document.querySelectorAll('.currency-select-trigger').forEach(sel => {
+            if (sel.value == currencyId) {
+                const targetName = sel.getAttribute('data-target');
+                let input;
+                if (targetName.includes('INDEX') || targetName.includes('units')) {
+                    const row = sel.closest('.unit-row');
+                    input = targetName.includes('purchase') ? row.querySelector('.unit-purchase-rate') : row.querySelector('.unit-sell-rate');
+                } else {
+                    input = document.getElementById(targetName);
+                }
+                if (input) input.value = rate;
+            }
+        });
+
+        calculateBaseCost();
+        calculatePriceWithTax();
+        updateAllUnitsCosts();
+    }
+
+    function calculateBaseCost() { 
+        if (isCalculating) return;
+        isCalculating = true;
+
+        let p=parseFloat(document.getElementById('purchase_price').value)||0; 
+        let f=parseFloat(document.getElementById('pieces_per_unit').value)||1; 
+        let r=parseFloat(document.getElementById('purchase_exchange_rate').value)||1;
+        let c=(f>0)?((p*r)/f):0; 
+        document.getElementById('base_cost').value=c; 
+        document.getElementById('calculated_base_cost').value=formatNum(c); 
+
+        // تحديث تلميح سعر الشراء بالعملة الأساسية
+        const hintDiv = document.getElementById('purchase_price_base_hint');
+        const curId = document.getElementById('purchase_price_currency_id').value;
+        if (curId != baseCurrencyId) {
+            hintDiv.classList.remove('d-none');
+            hintDiv.querySelector('.base-val').innerText = formatNum(p * r);
+        } else {
+            hintDiv.classList.add('d-none');
+        }
+
+        isCalculating = false;
+        updateAllUnitsCosts(); 
+        calculateMargin('base'); 
+    }
+    function calculateUnitCost(i) { 
+        let r=i.closest('.unit-row'); 
+        let factor=parseFloat(r.querySelector('.unit-factor').value)||1; 
+        let purchaseRate=parseFloat(r.querySelector('.unit-purchase-rate').value)||1;
+        let purchaseCurId = r.querySelector('.currency-select-purchase').value;
+        const purchaseHint = r.querySelector('.unit-purchase-base-hint');
+        const purchasePriceInput = r.querySelector('.unit-purchase');
+
+        if (i.classList.contains('unit-purchase')) {
+            if (isCalculating) return;
+            isCalculating = true;
+
+            let manualPurchasePrice = parseFloat(i.value) || 0;
+            let costInBase = (manualPurchasePrice * purchaseRate) / factor;
+            
+            document.getElementById('base_cost').value=costInBase; 
+            document.getElementById('calculated_base_cost').value=formatNum(costInBase); 
+            
+            let basePurchaseRate = parseFloat(document.getElementById('purchase_exchange_rate').value) || 1;
+            let piecesPerUnit = parseFloat(document.getElementById('pieces_per_unit').value) || 1;
+            document.getElementById('purchase_price').value = formatNum((costInBase * piecesPerUnit) / basePurchaseRate);
+
+            const baseHintDiv = document.getElementById('purchase_price_base_hint');
+            if (document.getElementById('purchase_price_currency_id').value != baseCurrencyId) {
+                baseHintDiv.classList.remove('d-none');
+                baseHintDiv.querySelector('.base-val').innerText = formatNum(costInBase * piecesPerUnit);
+            }
+
+            isCalculating = false;
+            updateAllUnitsCosts(r);
+        } else {
+            let baseCost = parseFloat(document.getElementById('base_cost').value) || 0; 
+            let unitCostInBase = baseCost * factor;
+            r.querySelector('.unit-cost').value = formatNum(unitCostInBase);
+            
+            if (!isCalculating) {
+                purchasePriceInput.value = formatNum(unitCostInBase / purchaseRate);
+            }
+        }
+
+        if (purchaseCurId != baseCurrencyId) {
+            purchaseHint.classList.remove('d-none');
+            purchaseHint.querySelector('.base-val').innerText = formatNum(parseFloat(purchasePriceInput.value) * purchaseRate);
+        } else {
+            purchaseHint.classList.add('d-none');
+        }
+
+        let p=r.querySelector('.unit-profit'); 
+        calcExtraUnitSell(p); 
+    }
+
+    function updateAllUnitsCosts(excludeRow = null) {
+        document.querySelectorAll('.unit-row').forEach(row => {
+            if (row === excludeRow) return;
+            calculateUnitCost(row.querySelector('.unit-factor'));
+        });
+    }
+    function calculatePriceWithTax() {
+        let p=parseFloat(document.getElementById('base_sell').value)||0;
+        let t=parseFloat(document.getElementById('tax_percent').value)||0;
+        let rate = parseFloat(document.getElementById('base_sell_exchange_rate').value) || 1;
+        
+        let final = p*(1+(t/100));
+        document.getElementById('price_with_tax').value=formatNum(final);
+
+        // تحديث رمز العملة
+        const sellCurrencyId = document.getElementById('base_selling_price_currency_id').value;
+        const sellCurrency = storeCurrencies[sellCurrencyId];
+        const sellCurrencyCode = sellCurrency ? sellCurrency.code : baseCurrencyCode;
+        document.querySelector('.sell-currency-label').innerText = sellCurrencyCode;
+
+        // تحديث التلميح إذا كانت العملة أجنبية
+        const hintDiv = document.getElementById('price_with_tax_base_hint');
+        if (sellCurrencyId != baseCurrencyId) {
+            hintDiv.classList.remove('d-none');
+            hintDiv.querySelector('.base-val').innerText = formatNum(final * rate);
+        } else {
+            hintDiv.classList.add('d-none');
+        }
+    }
+    function calculateMargin(t) { 
+        if(t==='base'){ 
+            let c=parseFloat(document.getElementById('base_cost').value)||0; 
+            let s=parseFloat(document.getElementById('base_sell').value)||0; 
+            let r=parseFloat(document.getElementById('base_sell_exchange_rate').value)||1;
+            let sInBase = s * r;
+            if(c>0) document.getElementById('base_margin').value=formatNum(((sInBase-c)/c)*100); 
+            calculatePriceWithTax(); 
+        } 
+    }
+    function calculatePriceFromMargin(t) { 
+        if(t==='base'){ 
+            let c=parseFloat(document.getElementById('base_cost').value)||0; 
+            let m=parseFloat(document.getElementById('base_margin').value)||0; 
+            let r=parseFloat(document.getElementById('base_sell_exchange_rate').value)||1;
+            let sInBase = c*(1+(m/100));
+            document.getElementById('base_sell').value=formatNum(sInBase/r); 
+            calculatePriceWithTax(); 
+        } 
+    }
+    function calcExtraUnitSell(i) { 
+        let r=i.closest('.unit-row'); 
+        let c=parseFloat(r.querySelector('.unit-cost').value)||0; 
+        let m=parseFloat(i.value)||0; 
+        let rate=parseFloat(r.querySelector('.unit-sell-rate').value)||1;
+        
+        if(c>0) {
+            let sellingPriceInBase = c*(1+(m/100));
+            let sellingPriceInCurrency = sellingPriceInBase/rate;
+            r.querySelector('.unit-sell').value=formatNum(sellingPriceInCurrency);
+
+            // تحديث التلميح
+            const curSelector = r.querySelector('[name*="[sell_price_currency_id]"]');
+            const hint = r.querySelector('.unit-sell-base-hint');
+            if (curSelector.value != baseCurrencyId) {
+                hint.classList.remove('d-none');
+                hint.querySelector('.base-val').innerText = formatNum(sellingPriceInBase);
+            } else {
+                hint.classList.add('d-none');
+            }
+        }
+    }
+    function calcExtraUnitProfit(i) { 
+        let r=i.closest('.unit-row'); 
+        let c=parseFloat(r.querySelector('.unit-cost').value)||0; 
+        let s=parseFloat(i.value)||0; 
+        let rate=parseFloat(r.querySelector('.unit-sell-rate').value)||1;
+        if(c>0) r.querySelector('.unit-profit').value=formatNum(((s*rate-c)/c)*100); 
+    }
 
     let unitIndex = 0;
     function addExtraUnit(data = null) {
@@ -396,15 +685,18 @@
             row.querySelector('.unit-factor').value = data.factor;
             row.querySelector('[name*="[barcode]"]').value = data.barcode;
             row.querySelector('.unit-cost').value = data.cost;
+            if(data.purchase_price) row.querySelector('.unit-purchase').value = data.purchase_price;
+            if(data.purchase_currency_id) row.querySelector('.currency-select-purchase').value = data.purchase_currency_id;
+            if(data.purchase_rate) row.querySelector('.unit-purchase-rate').value = data.purchase_rate;
+            
+            if(data.sell_currency_id) row.querySelector('.currency-select').value = data.sell_currency_id;
+            if(data.sell_rate) row.querySelector('.unit-sell-rate').value = data.sell_rate;
+
             row.querySelector('.unit-profit').value = data.profit;
             row.querySelector('.unit-sell').value = data.selling;
             
             row.querySelector('.unit-buy').checked = data.is_purchase;
             row.querySelector('.unit-sell-check').checked = data.is_sale;
-            
-            if(data.sell_currency_id) {
-                row.querySelector('.currency-select').value = data.sell_currency_id;
-            }
             
             // 🔥 إصلاح عرض الصورة 🔥
             // إذا كان هناك رابط صورة، ضعه في الـ src، وإلا اترك الصورة الافتراضية
@@ -417,9 +709,25 @@
             row.querySelector('.unit-buy').checked = true;
             row.querySelector('.unit-sell-check').checked = true;
         }
+
+        // تهيئة مستمعات العملات للوحدة الجديدة
+        initCurrencyTriggers(row);
         
+        // المزامنة العالمية للوحدة الجديدة
+        const pCur = row.querySelector('.currency-select-purchase').value;
+        if (confirmedRates[pCur]) {
+            row.querySelector('.unit-purchase-rate').value = confirmedRates[pCur];
+        }
+        const sCur = row.querySelector('.currency-select-trigger:not(.currency-select-purchase)').value;
+        if (confirmedRates[sCur]) {
+            row.querySelector('.unit-sell-rate').value = confirmedRates[sCur];
+        }
+
         // Trigger initial visibility
         toggleExtraUnitSale(row.querySelector('.unit-sell-check'));
+
+        // تحديث الحسابات للوحدة الجديدة لإظهار تلميحات العملة
+        calculateUnitCost(row.querySelector('.unit-factor'));
 
         unitIndex++;
     }
