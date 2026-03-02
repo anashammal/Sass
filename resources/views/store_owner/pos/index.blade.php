@@ -30,7 +30,7 @@
     }
 
     .pos-layout { height: 88vh; display: flex; gap: 15px; font-family: 'Cairo', sans-serif; }
-    .pos-left { flex: 1; display: flex; flex-direction: column; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
+    .pos-left { flex: 1; display: flex; flex-direction: column; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     
     /* === تصميم عصري للوحة الدفع === */
     .pos-right { 
@@ -211,6 +211,10 @@
                     </div>
                     <div id="searchResults" class="list-group position-absolute w-100 shadow-lg" style="top: 100%; z-index: 9999; display: none;"></div>
                 </div>
+            </div>
+            <div id="connectionDiagnostic" class="p-2 bg-warning-subtle border-bottom d-none text-center">
+                <small class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i> تنبيه: مشكلة في الاتصال بالسيرفر (Connection Issue)</small>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" onclick="runConnectionTest()">إعادة المحاولة (Retry)</button>
             </div>
 
             <div class="table-responsive flex-grow-1">
@@ -956,15 +960,17 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+{{-- Select2 and Toastr are loaded here as they are not in the layout --}}
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/{{ app()->getLocale() }}.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-{{-- Bootstrap Bundle already loaded in layout --}}
 <script src="https://www.paypal.com/sdk/js?client-id={{ env('PAYPAL_CLIENT_ID') }}&currency=USD"></script>
 
 <script>
-    // ✅ الحل الجذري والنهائي: اكتشاف الرابط تلقائياً من المتصفح (Auto-Detect)
-    // هذا يلغي الحاجة لضبط .env بشكل دقيق، ويعمل فوراً على أي سيرفر أو بروتوكول
+    console.log('💎 POS Section Scripts Loading...');
+    // alert('POS Scripts Loaded'); // Temporarily commented out but kept for manual check if needed
+
+    // ✅ Global variables and utility functions (Hoisted to top)
     const getBaseUrl = () => {
         const path = window.location.pathname;
         const marker = '/store-owner';
@@ -975,110 +981,180 @@
         return window.location.origin;
     };
     const APP_URL = getBaseUrl();
-    console.log('🔗 Auto-Detected System URL:', APP_URL);
+    console.log('🔗 POS JS System URL:', APP_URL);
 
-    // ✅ دالة تصحيح الروابط للعمل في المجلدات الفرعية
-    const fixUrl = (url) => {
-        if (!url) return url;
-        let finalUrl = url;
-        // إذا كان الرابط يبدأ بـ http، نجعل المسار فقط
-        if (url.startsWith('http')) {
+    const fixUrl = (urlStr) => {
+        if (!urlStr) return urlStr;
+        let finalUrl = urlStr;
+        
+        // Remove absolute domain/protocol to make it relative
+        if (urlStr.includes('://')) {
             try {
-                const u = new URL(url);
+                const u = new URL(urlStr);
                 finalUrl = u.pathname + u.search;
-            } catch(e) { return url; }
+            } catch(e) {}
         }
+
+        // Detect correct subdirectory prefix
+        const currentPath = window.location.pathname; // e.g. /system/store-owner/pos
+        const baseDir = currentPath.split('/store-owner')[0]; // e.g. /system
         
-        // جرد المجلد الفرعي من مسار الصفحة الحالي
-        // مثال: /system/store-owner/pos -> /system
-        const currentPath = window.location.pathname;
-        const subDir = currentPath.split('/store-owner')[0];
-        
-        if (subDir && subDir !== '/' && !finalUrl.startsWith(subDir)) {
-            finalUrl = subDir + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
+        if (baseDir && baseDir !== '/' && !finalUrl.startsWith(baseDir)) {
+             finalUrl = baseDir + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
         }
+
         return finalUrl;
     };
 
+    // Shared state
     let cart = [];
     let currentFocus = -1;
     let debounceTimer;
     let selectedCustomer = null;
     let isShiftOpen = false;
     let roundingDifference = 0; 
+    let historyModal, invoiceModal;
 
-    // متغيرات أرقام الفواتير القادمة
-    const nextInvoiceNumber = "#{{ $nextInvoice }}";
-    const nextWithdrawalNumber = "#{{ $nextWithdrawal ?? 'SOV-Unknown' }}"; 
-
-    // === Multi-Currency Data Injected from Controller ===
     const baseCurrency = @json($baseCurrency ?? ['id' => 1, 'code' => 'USD', 'symbol' => '$']);
     const currenciesData = @json($currenciesData ?? []);
-    // Combine base and accepted currencies for the dropdown
     const allCurrencies = [{...baseCurrency, exchange_rate: 1, is_base: true}, ...currenciesData];
 
-    // ✅ دالة تنسيق الأرقام (إزالة الأصفار العشرية إذا كان رقماً صحيحاً)
     function formatMoney(amount) {
         let val = parseFloat(amount) || 0;
         let formatted = Number.isInteger(val) ? val : val.toFixed(2);
         return formatted + ' <small class="text-muted">{{ $globalCurrencySymbol }}</small>';
-    } 
+    }
 
-    // تعريف النوافذ
-    let historyModal;
-    let invoiceModal;
+    // Hoisted Core Functions
+    function toggleWithdrawalMode(enable) {
+        if(enable) {
+            $('.pos-right').css('background', 'linear-gradient(145deg, #7f8c8d, #2c3e50)');
+            $('#paymentRowsContainer').parent().addClass('d-none'); 
+            $('#discountType').parent().parent().addClass('d-none');
+            $('#diffLabel').parent().parent().addClass('d-none');
+            $('.btn-save-invoice').removeClass('btn-save-invoice').addClass('btn-withdrawal-save')
+                .html('<i class="fas fa-file-export me-2"></i> {{ __("record_withdrawal") }}')
+                .css('background', '#e67e22');
+            $('#invoiceNumberDisplay').text("#{{ $nextWithdrawal ?? 'SOV-Unknown' }}");
+        } else {
+            $('.pos-right').css('background', 'linear-gradient(145deg, #2c3e50, #34495e)');
+            $('#paymentRowsContainer').parent().removeClass('d-none');
+            $('#discountType').parent().parent().removeClass('d-none');
+            $('#diffLabel').parent().parent().removeClass('d-none');
+            $('.btn-withdrawal-save').removeClass('btn-withdrawal-save').addClass('btn-save-invoice')
+                .html('<i class="fas fa-save me-2"></i> {{ __("save_and_print_f9") }}')
+                .css('background', '');
+            $('#invoiceNumberDisplay').text("#{{ $nextInvoice }}");
+        }
+    }
 
-    $(document).ready(function() {
-        // تهيئة يدوية لقوائم Bootstrap
-        var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
-        var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
-            return new bootstrap.Dropdown(dropdownToggleEl)
-        });
-        
-        // تهيئة النوافذ
-        historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
-        invoiceModal = new bootstrap.Modal(document.getElementById('invoiceModal'));
-
-        toastr.options = { "positionClass": "toast-top-left", "timeOut": "2000" };
-
-        let $customerSelect = $('#customerSelect');
-        
-        // تهيئة Select2 للبحث عن العملاء
-        $customerSelect.select2({
-            theme: 'bootstrap-5',
-            dir: "rtl",
-            placeholder: "{{ __('search_customer') }}",
-            allowClear: true,
-            minimumInputLength: 1,
-            ajax: {
-                url: fixUrl("{{ route('store.pos.search-customers') }}"),
-                dataType: 'json',
-                delay: 250,
-                data: function (params) { return { term: params.term }; },
-                processResults: function (data) {
-                    if (data.results.length === 1) {
-                        let c = data.results[0];
-                        // ✅ تحسين: التأكد من تمرير كل الخصائص بما فيها is_store_owner
-                        let isStoreOwner = c.is_store_owner || (c.text && c.text.includes('صاحب المتجر')) || false;
-                        
-                        selectedCustomer = { 
-                            id: c.id, 
-                            name: c.text, 
-                            balance: parseFloat(c.balance || 0),
-                            is_store_owner: isStoreOwner 
-                        };
-                        
-                        updateCustomerBalanceDisplay();
-                        toggleWithdrawalMode(isStoreOwner); // ✅ تفعيل وضع المسحوبات فوراً
-
-                        let option = new Option(c.text, c.id, true, true);
-                        $customerSelect.append(option).trigger('change');
-                        $customerSelect.select2('close');
-                    }
-                    return { results: data.results }; 
-                }
+    function checkShiftStatus() {
+        $.get(fixUrl("{{ route('store.pos.shift.status') }}"), function(res) {
+            isShiftOpen = !!res.has_open_shift;
+            if (isShiftOpen) {
+                $('#btnCloseShift').removeClass('d-none');
+                $('#btnOpenShift').addClass('d-none');
+            } else {
+                $('#btnOpenShift').removeClass('d-none');
+                $('#btnCloseShift').addClass('d-none');
             }
         });
+    }
+
+    window.checkShiftStatus = checkShiftStatus;
+
+    function performSearch(term, isEnterKey) {
+        if(!term) return;
+        const url = fixUrl("{{ route('store.pos.search-products') }}") + "?term=" + term;
+        console.log('🔍 Fetching search:', url);
+        fetch(url)
+            .then(res => {
+                console.log('📡 Response status:', res.status);
+                if(!res.ok) throw new Error("Server error: " + res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('📦 Search Data Received:', data);
+                let products = data.results || data || [];
+                if (products.length === 1) {
+                    checkExpiryAndAdd(products[0]);
+                    closeSearch();
+                } else if (products.length > 1) {
+                    showSuggestions(products);
+                } else {
+                    if(isEnterKey) { toastr.error("{{ __('product_not_found') }}"); closeSearch(); }
+                    else $('#searchResults').hide();
+                }
+            })
+            .catch(err => {
+                console.error('Search error:', err);
+                toastr.error("Search failed: " + err.message);
+            });
+    }
+
+    function showSuggestions(products) {
+        const $results = $('#searchResults');
+        $results.empty();
+        products.forEach((p) => {
+            let item = $(`<a href="#" class="list-group-item list-group-item-action d-flex align-items-center">
+                <img src="${p.image}" class="product-thumb me-2">
+                <div class="flex-grow-1">
+                    <div class="fw-bold">${p.name}</div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted font-monospace">${p.default_barcode}</small>
+                        <small class="${p.quantity > 10 ? 'text-muted' : 'text-danger fw-bold'}">{{ __('stock_label') }} ${parseFloat(p.quantity).toFixed(2)}</small>
+                    </div>
+                </div>
+                <span class="badge bg-primary rounded-pill ms-2">${parseFloat(p.default_price).toFixed(2)}</span>
+            </a>`);
+            item.on('click', function(e) { 
+                e.preventDefault(); 
+                checkExpiryAndAdd(p); 
+                closeSearch(); 
+                $('#barcodeInput').focus(); 
+            });
+            $results.append(item);
+        });
+        $results.show();
+    }
+
+    function closeSearch() {
+        $('#barcodeInput').val('');
+        $('#searchResults').hide();
+        currentFocus = -1;
+    }
+
+
+
+    // Initialization block
+    $(document).ready(function() {
+        console.log('🚀 POS Application Initializing...');
+        if (typeof toastr !== 'undefined') {
+            toastr.options = { "positionClass": "toast-top-left", "timeOut": "2000" };
+        }
+        const $customerSelect = $('#customerSelect');
+
+        
+        if ($.fn.select2) {
+            $customerSelect.select2({
+                theme: 'bootstrap-5',
+                dir: "rtl",
+                language: "{{ app()->getLocale() }}",
+                placeholder: "{{ __('search_customer') }}",
+                allowClear: true,
+                ajax: {
+                    url: fixUrl("{{ route('store.pos.search-customers') }}"),
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) { return { term: params.term }; },
+                    processResults: function (data) {
+                        let results = data.results || data || [];
+                        return { results: results };
+                    }
+                }
+            });
+        }
+
 
         $customerSelect.on('select2:open', function (e) {
             setTimeout(() => { document.querySelector('.select2-search__field').focus(); }, 50);
@@ -1086,66 +1162,62 @@
 
         $customerSelect.on('select2:select', function (e) {
             let data = e.params.data;
-            if (!data.balance && $(this).find(':selected').data('data')) { data = $(this).find(':selected').data('data'); }
-            
-            // ✅ فحص هل هو صاحب المتجر (تحسين الفحص ليشمل الاسم أيضاً)
-            let isStoreOwner = data.is_store_owner || (data.text && data.text.includes('صاحب المتجر')) || false;
-            if (isStoreOwner) isStoreOwner = true; // ضمان التحويل لبوليان
-
+            const isOwner = !!(data.is_store_owner || (data.text && data.text.includes('صاحب المتجر')));
             selectedCustomer = { 
                 id: data.id, 
                 name: data.text || data.contact_name, 
                 balance: parseFloat(data.balance || 0),
-                is_store_owner: isStoreOwner // تخزين الحالة
+                is_store_owner: isOwner
             };
-            
             updateCustomerBalanceDisplay();
-            toggleWithdrawalMode(isStoreOwner);
+            toggleWithdrawalMode(isOwner);
         });
 
-        $customerSelect.on('select2:clear', function (e) {
+        $customerSelect.on('select2:clear', function () {
             selectedCustomer = null;
             $('#customerBalanceBox').fadeOut(200);
             toggleWithdrawalMode(false);
         });
 
-        $('#barcodeInput').focus();
-        checkShiftStatus(); // فحص الصندوق عند التحميل
+        // Event: Barcode Input
+        const $barcodeInput = $('#barcodeInput');
+        $barcodeInput.on('input', function() {
+            let term = $(this).val();
+            if(term.length < 2) { $('#searchResults').hide(); return; }
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => performSearch(term, false), 300);
+        });
+
+        $barcodeInput.on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                let term = $(this).val();
+                if(term) performSearch(term, true);
+            }
+        });
+
+        $barcodeInput.focus();
+        checkShiftStatus();
+
+        // Connection Diagnostic Test
+        window.runConnectionTest = function() {
+            const testUrl = fixUrl("{{ route('store.pos.shift.status') }}");
+            console.log('🧪 Testing connection to:', testUrl);
+            fetch(testUrl)
+                .then(r => {
+                    if(!r.ok) throw new Error(r.status);
+                    $('#connectionDiagnostic').addClass('d-none');
+                    console.log('✅ Connection OK');
+                })
+                .catch(err => {
+                    $('#connectionDiagnostic').removeClass('d-none');
+                    console.error('❌ Connection Failed:', err);
+                });
+        };
+        runConnectionTest();
     });
+
     
-    // ✅ وظيفة تبديل وضع المسحوبات
-    function toggleWithdrawalMode(enable) {
-        if(enable) {
-            $('.pos-right').css('background', 'linear-gradient(145deg, #7f8c8d, #2c3e50)'); // لون رمادي مميز
-            
-            // ✅ إخفاء تام لقسم الدفع
-            $('#paymentRowsContainer').parent().addClass('d-none'); 
-            $('#discountType').parent().parent().addClass('d-none');
-            $('#diffLabel').parent().parent().addClass('d-none');
-            
-            $('.btn-save-invoice').removeClass('btn-save-invoice').addClass('btn-withdrawal-save')
-                .html('<i class="fas fa-file-export me-2"></i> {{ __("record_withdrawal") }}')
-                .css('background', '#e67e22');
-                
-            // تغيير رقم الفاتورة
-            $('#invoiceNumberDisplay').text(nextWithdrawalNumber);
-
-        } else {
-            $('.pos-right').css('background', 'linear-gradient(145deg, #2c3e50, #34495e)');
-            
-            // ✅ إظهار قسم الدفع
-            $('#paymentRowsContainer').parent().removeClass('d-none');
-            $('#discountType').parent().parent().removeClass('d-none');
-            $('#diffLabel').parent().parent().removeClass('d-none');
-
-            $('.btn-withdrawal-save').removeClass('btn-withdrawal-save').addClass('btn-save-invoice')
-                .html('<i class="fas fa-save me-2"></i> {{ __("save_and_print_f9") }}')
-                .css('background', '');
-
-            // استعادة رقم الفاتورة الطبيعي
-            $('#invoiceNumberDisplay').text(nextInvoiceNumber);
-        }
-    }
 
     function updateCustomerBalanceDisplay() {
         let box = $('#customerBalanceBox');
@@ -1171,97 +1243,7 @@
         display.html(htmlContent);
     }
 
-    // --- منطق البحث ---
-    const barcodeInput = document.getElementById('barcodeInput');
-    const searchResults = document.getElementById('searchResults');
-    
-    function getProductTotalInCart(productId) {
-        return cart.reduce((total, item) => {
-            if (item.id === productId) {
-                let unit = item.units.find(u => u.unit_id == item.selected_unit_id);
-                let factor = unit ? parseFloat(unit.factor) : 1;
-                return total + (item.qty * factor);
-            }
-            return total;
-        }, 0);
-    }
 
-    document.addEventListener('click', function(event) {
-        if (event.target !== barcodeInput && !searchResults.contains(event.target)) {
-            searchResults.style.display = 'none';
-        }
-    });
-
-    barcodeInput.addEventListener('keydown', function(e) {
-        let items = searchResults.getElementsByTagName('a');
-        if (e.key === 'ArrowDown') { currentFocus++; addActive(items); e.preventDefault(); }
-        else if (e.key === 'ArrowUp') { currentFocus--; addActive(items); e.preventDefault(); }
-        else if (e.key === 'Enter') {
-            e.preventDefault();
-            clearTimeout(debounceTimer); 
-            if (currentFocus > -1 && items && items[currentFocus]) {
-                items[currentFocus].click();
-            } else {
-                performSearch(this.value.trim(), true);
-            }
-        }
-    });
-
-    barcodeInput.addEventListener('input', function(e) {
-        let term = this.value.trim();
-        currentFocus = -1;
-        if (term.length === 0) { searchResults.style.display = 'none'; return; }
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => performSearch(term, false), 300);
-    });
-
-    function performSearch(term, isEnterKey) {
-        if(!term) return;
-        fetch(fixUrl("{{ route('store.pos.search-products') }}") + "?term=" + term)
-            .then(res => res.json())
-            .then(data => {
-                if (data.length === 1) {
-                    checkExpiryAndAdd(data[0]); // ✅ تم الاستبدال للفحص قبل الإضافة
-                    closeSearch();
-                    barcodeInput.focus();
-                } else if (data.length > 1) {
-                    showSuggestions(data);
-                } else {
-                    if(isEnterKey) { toastr.error("{{ __('product_not_found') }}"); closeSearch(); }
-                    else searchResults.style.display = 'none';
-                }
-            });
-    }
-
-    function showSuggestions(products) {
-        searchResults.innerHTML = '';
-        products.forEach((p) => {
-            let item = document.createElement('a');
-            item.className = 'list-group-item list-group-item-action d-flex align-items-center';
-            item.href = "#";
-            let qtyColor = p.quantity > 10 ? 'text-muted' : 'text-danger fw-bold';
-            item.innerHTML = `
-                <img src="${p.image}" class="product-thumb me-2">
-                <div class="flex-grow-1">
-                    <div class="fw-bold">${p.name}</div>
-                    <div class="d-flex justify-content-between">
-                        <small class="text-muted font-monospace">${p.default_barcode}</small>
-                        <small class="${qtyColor}">{{ __('stock_label') }} ${parseFloat(p.quantity).toFixed(2)}</small>
-                    </div>
-                </div>
-                <span class="badge bg-primary rounded-pill ms-2">${parseFloat(p.default_price).toFixed(2)}</span>
-            `;
-            item.onclick = function(e) { e.preventDefault(); checkExpiryAndAdd(p); closeSearch(); barcodeInput.focus(); }; // ✅ تم الاستبدال
-            searchResults.appendChild(item);
-        });
-        searchResults.style.display = 'block';
-    }
-
-    function closeSearch() {
-        barcodeInput.value = '';
-        searchResults.style.display = 'none';
-        currentFocus = -1;
-    }
 
     // --- السلة ---
     function addToCart(product) {
@@ -1433,8 +1415,6 @@
             if (newUnit.image) item.image = newUnit.image;
             renderCart();
         }
-    };
-
     };
 
     // 🟢 عرض السعر بالعملة الأصلية وما يعادلها بالعملة الأساسية (للمبيعات)
@@ -2582,20 +2562,6 @@
     // 🔥 تصحيح روابط الصندوق (Shift) لتعمل مع المجلدات الفرعية 🔥
     // ========================================================================
 
-    window.checkShiftStatus = function() {
-        $.get(fixUrl("{{ route('store.pos.shift.status') }}"), function(res) {
-            isShiftOpen = res.has_open_shift; // تحديث الحالة
-            
-            if (isShiftOpen) {
-                $('#btnCloseShift').removeClass('d-none');
-                $('#btnOpenShift').addClass('d-none');
-            } else {
-                $('#btnOpenShift').removeClass('d-none');
-                $('#btnCloseShift').addClass('d-none');
-                // ❌ تم حذف سطر showOpenShiftModal() من هنا لمنع الفتح التلقائي
-            }
-        });
-    };
 
     window.showOpenShiftModal = function() {
         const modalEl = document.getElementById('openShiftModal');

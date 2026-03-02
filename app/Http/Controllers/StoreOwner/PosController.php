@@ -110,7 +110,11 @@ class PosController extends Controller
     {
         try {
             $term = $request->term;
-            $storeId = Auth::user()->store->id;
+            $user = Auth::user();
+            if (!$user || !$user->store) {
+                return response()->json(['results' => [], 'error' => 'Store context missing']);
+            }
+            $storeId = $user->store->id;
 
             $query = Product::where('store_id', $storeId)
             ->where('is_active', true)
@@ -120,23 +124,12 @@ class PosController extends Controller
                   ->orWhereHas('units', function($q2) use ($term) {
                       $q2->where('barcode', 'LIKE', "%{$term}%");
                   });
-            })
-            ->where(function($q) {
-                $q->where(function($qStandard) {
-                    $qStandard->whereIn('product_type', ['standard', 'meal'])
-                              ->whereHas('units', function($u) {
-                                  $u->where('is_sale', true);
-                              });
-                })->orWhere(function($qIngredient) {
-                    $qIngredient->whereIn('product_type', ['ingredient', 'compound'])
-                                ->whereHas('units', function($u) {
-                                    $u->where('is_base_unit', true)->where('is_sale', true);
-                                });
-                });
             });
 
-            // Removed hardcoded removal of ingredients for restaurants
-            // if ($store->type == 'restaurant') { ... }
+            // Relaxed filtering: Any product that has at least one unit marked as is_sale
+            $query->whereHas('units', function($u) {
+                $u->where('is_sale', true);
+            });
 
             $products = $query->with(['baseUnit.sellCurrency', 'units.sellCurrency']) 
                 ->take(20)
@@ -231,8 +224,16 @@ class PosController extends Controller
     // 2. بحث العملاء
     public function searchCustomers(Request $request)
     {
+        $user = Auth::user();
+        if (!$user || (!$user->store_id && !$user->store)) {
+            Log::error("POS Search Error: User or Store context missing for customer search.");
+            return response()->json(['results' => [], 'error' => 'Unauthorized or Store missing']);
+        }
+        
+        $storeId = $user->store_id ?? $user->store->id;
         $term = $request->term;
-        $storeId = Auth::user()->store->id;
+
+        Log::info("POS Customer Search Request - Term: '$term', Store: $storeId");
 
         // ✅ التأكد من وجود "صاحب المتجر"
         $ownerContact = Contact::where('store_id', $storeId)->where('is_store_owner', true)->first();
