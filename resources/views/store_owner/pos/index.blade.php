@@ -1106,7 +1106,7 @@
                         <small class="${p.quantity > 10 ? 'text-muted' : 'text-danger fw-bold'}">{{ __('stock_label') }} ${parseFloat(p.quantity).toFixed(2)}</small>
                     </div>
                 </div>
-                <span class="badge bg-primary rounded-pill ms-2">${parseFloat(p.default_price).toFixed(2)} {{ $globalCurrencySymbol }}</span>
+                <span class="badge bg-primary rounded-pill ms-2">${parseFloat(p.default_price).toFixed(2)} ${p.default_currency_symbol || '₺'}</span>
             </a>`);
             item.on('click', function(e) { 
                 e.preventDefault(); 
@@ -1269,16 +1269,23 @@
             return;
         }
 
-        // NEW: Convert to base price for internal calculation
+        // NEW: Convert to base price for internal calculation (Refined Priority)
         let rawPrice = parseFloat(unit.price || 0);
+        let taxPercent = parseFloat(product.tax_percent || 0);
         let currId = unit.currency_id || baseCurrency.id;
+        
         let rate = 1;
         if (currId != baseCurrency.id) {
-            rate = (unit.sell_exchange_rate && unit.sell_exchange_rate > 0) 
-                ? unit.sell_exchange_rate 
-                : (allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+            let sellRate = parseFloat(unit.sell_exchange_rate || 0);
+            if (sellRate > 0 && sellRate != 1) {
+                rate = sellRate;
+            } else {
+                rate = parseFloat(allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+            }
         }
-        let basePrice = rawPrice * parseFloat(rate);
+        
+        let priceWithTax = rawPrice * (1 + taxPercent / 100);
+        let basePrice = priceWithTax * rate;
 
         let existing = cart.find(item => item.id === product.id && item.selected_unit_id == unitId);
         if (existing) { 
@@ -1290,6 +1297,7 @@
                 sku: product.default_barcode,
                 image: product.image,
                 price: basePrice, // Store in base currency
+                tax_percent: taxPercent,
                 qty: 1,
                 units: product.available_units,
                 selected_unit_id: unitId,
@@ -1410,17 +1418,24 @@
                 return;
             }
 
-            // في حال كان المخزون كافياً من البداية، يتم التغيير فوراً
             item.selected_unit_id = newUnitId;
-            // NEW: Convert to base price
+            // NEW: Convert to base price (Refined Priority)
             let currId = newUnit.currency_id || baseCurrency.id;
+            let taxPercent = parseFloat(item.tax_percent || 0);
+            let rawPrice = parseFloat(newUnit.price || 0);
+            
             let rate = 1;
             if (currId != baseCurrency.id) {
-                rate = (newUnit.sell_exchange_rate && newUnit.sell_exchange_rate > 0)
-                    ? newUnit.sell_exchange_rate
-                    : (allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+                let sellRate = parseFloat(newUnit.sell_exchange_rate || 0);
+                if (sellRate > 0 && sellRate != 1) {
+                    rate = sellRate;
+                } else {
+                    rate = parseFloat(allCurrencies.find(c => c.id == currId)?.exchange_rate || 1);
+                }
             }
-            item.price = parseFloat(newUnit.price) * parseFloat(rate);
+            
+            let priceWithTax = rawPrice * (1 + taxPercent / 100);
+            item.price = priceWithTax * rate;
             
             item.sku = newUnit.barcode;
             if (newUnit.image) item.image = newUnit.image;
@@ -1441,9 +1456,12 @@
         if(currId == baseCurrency.id) return '';
         
         // السعر المعروض هو item.price (المحول للأساسية بالفعل)
-        // نريد فقط إظهار "أصله"
+        // نريد فقط إظهار "أصله" شاملاً الضريبة
+        let taxPercent = parseFloat(item.tax_percent || 0);
+        let rawPriceWithTax = rawPrice * (1 + taxPercent / 100);
+
         return `
-            <span class="text-muted fw-bold d-block">${rawPrice.toFixed(2)} ${symbol}</span>
+            <span class="text-muted fw-bold d-block">${rawPriceWithTax.toFixed(2)} ${symbol}</span>
             <span class="text-secondary small d-block">(${baseCurrency.code} ${item.price.toFixed(2)})</span>
         `;
     }

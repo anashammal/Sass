@@ -21,7 +21,7 @@ class ExchangeRateService
         return Cache::remember($cacheKey, now()->addHours(1), function () use ($baseCurrencyCode) {
             try {
                 // Using reliable open API for exchange rates
-                $response = Http::get("https://open.er-api.com/v6/latest/{$baseCurrencyCode}");
+                $response = Http::withoutVerifying()->get("https://open.er-api.com/v6/latest/{$baseCurrencyCode}");
                 
                 if ($response->successful()) {
                     $data = $response->json();

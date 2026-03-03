@@ -151,11 +151,16 @@ class ProductController extends Controller
         $categories = \App\Models\Category::where('store_id', $storeId)->get();
         $store = Auth::user()->store;
 
+        // Fetch Live Rates for all supported currencies
+        $exchangeService = app(\App\Services\ExchangeRateService::class);
+        $baseCurrencyCode = $store->baseCurrency->code ?? 'TRY';
+        $liveRates = $exchangeService->getRates($baseCurrencyCode) ?? [];
+
         if ($request->ajax()) {
-            return view('store_owner.products.partials.table_rows', compact('products', 'store'))->render();
+            return view('store_owner.products.partials.table_rows', compact('products', 'store', 'liveRates'))->render();
         }
 
-        return view('store_owner.products.index', compact('products', 'prodStats', 'categories', 'store'));
+        return view('store_owner.products.index', compact('products', 'prodStats', 'categories', 'store', 'liveRates'));
     }
 
     public function create() 

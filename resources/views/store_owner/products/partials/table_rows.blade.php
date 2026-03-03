@@ -1,4 +1,6 @@
+<!-- DIAG: Store: {{ $store->id }}, Base: {{ $store->base_currency_id }}, Symbol: {{ $globalCurrencySymbol }} -->
 @forelse($products as $product)
+
 <tr class="align-middle">
     <td>
         {{-- عرض الصورة بشكل ذكي --}}
@@ -36,7 +38,17 @@
                 $baseCost = $cost;
                 $pRate = 1;
                 if($pCurrency && $pCurrency->id != $store->base_currency_id) {
-                    $pRate = $u->purchase_exchange_rate ?? ($store->acceptedCurrencies->find($pCurrency->id)->pivot->custom_rate ?? 1);
+                    $savedRate = (float)($u->purchase_exchange_rate ?? 0);
+                    $customRate = $store->acceptedCurrencies->find($pCurrency->id)->pivot->custom_rate ?? null;
+                    $liveRate = (isset($liveRates['rates'][$pCurrency->code]) && $liveRates['rates'][$pCurrency->code] > 0) ? (1 / $liveRates['rates'][$pCurrency->code]) : null;
+
+                    if ($savedRate > 0 && $savedRate != 1) {
+                        $pRate = $savedRate;
+                    } elseif ($customRate > 0) {
+                        $pRate = $customRate;
+                    } else {
+                        $pRate = $liveRate ?? 1;
+                    }
                     $baseCost = $cost * $pRate;
                 }
 @endphp
@@ -68,7 +80,17 @@
                 $basePriceTax = $priceWithTax;
                 $sRate = 1;
                 if($sCurrency && $sCurrency->id != $store->base_currency_id) {
-                    $sRate = $u->sell_exchange_rate ?? ($store->acceptedCurrencies->find($sCurrency->id)->pivot->custom_rate ?? 1);
+                    $savedRate = (float)($u->sell_exchange_rate ?? 0);
+                    $customRate = $store->acceptedCurrencies->find($sCurrency->id)->pivot->custom_rate ?? null;
+                    $liveRate = (isset($liveRates['rates'][$sCurrency->code]) && $liveRates['rates'][$sCurrency->code] > 0) ? (1 / $liveRates['rates'][$sCurrency->code]) : null;
+
+                    if ($savedRate > 0 && $savedRate != 1) {
+                        $sRate = $savedRate;
+                    } elseif ($customRate > 0) {
+                        $sRate = $customRate;
+                    } else {
+                        $sRate = $liveRate ?? 1;
+                    }
                     $basePriceTax = $priceWithTax * $sRate;
                 }
 @endphp
@@ -97,13 +119,33 @@
             // تحويل للعملة الأساسية
             $baseCost = $cost;
             if($u->purchaseCurrency && $u->purchaseCurrency->id != $store->base_currency_id) {
-                $pRate = $u->purchase_exchange_rate ?? ($store->acceptedCurrencies->find($u->purchase_price_currency_id)->pivot->custom_rate ?? 1);
+                $savedRate = (float)($u->purchase_exchange_rate ?? 0);
+                $customRate = $store->acceptedCurrencies->find($u->purchase_price_currency_id)->pivot->custom_rate ?? null;
+                $liveRate = (isset($liveRates['rates'][$u->purchaseCurrency->code]) && $liveRates['rates'][$u->purchaseCurrency->code] > 0) ? (1 / $liveRates['rates'][$u->purchaseCurrency->code]) : null;
+
+                if ($savedRate > 0 && $savedRate != 1) {
+                    $pRate = $savedRate;
+                } elseif ($customRate > 0) {
+                    $pRate = $customRate;
+                } else {
+                    $pRate = $liveRate ?? 1;
+                }
                 $baseCost = $cost * $pRate;
             }
             
             $baseSell = $sell;
             if($u->sellCurrency && $u->sellCurrency->id != $store->base_currency_id) {
-                $sRate = $u->sell_exchange_rate ?? ($store->acceptedCurrencies->find($u->sell_price_currency_id)->pivot->custom_rate ?? 1);
+                $savedRate = (float)($u->sell_exchange_rate ?? 0);
+                $customRate = $store->acceptedCurrencies->find($u->sell_price_currency_id)->pivot->custom_rate ?? null;
+                $liveRate = (isset($liveRates['rates'][$u->sellCurrency->code]) && $liveRates['rates'][$u->sellCurrency->code] > 0) ? (1 / $liveRates['rates'][$u->sellCurrency->code]) : null;
+
+                if ($savedRate > 0 && $savedRate != 1) {
+                    $sRate = $savedRate;
+                } elseif ($customRate > 0) {
+                    $sRate = $customRate;
+                } else {
+                    $sRate = $liveRate ?? 1;
+                }
                 $baseSell = $sell * $sRate;
             }
 
@@ -181,7 +223,17 @@
                                     $uBaseCost = $uCost;
                                     $uPRate = 1;
                                     if($uPCurrency && $uPCurrency->id != $store->base_currency_id) {
-                                        $uPRate = $unit->purchase_exchange_rate ?? ($store->acceptedCurrencies->find($uPCurrency->id)->pivot->custom_rate ?? 1);
+                                        $savedRate = (float)($unit->purchase_exchange_rate ?? 0);
+                                        $customRate = $store->acceptedCurrencies->find($uPCurrency->id)->pivot->custom_rate ?? null;
+                                        $liveRate = (isset($liveRates['rates'][$uPCurrency->code]) && $liveRates['rates'][$uPCurrency->code] > 0) ? (1 / $liveRates['rates'][$uPCurrency->code]) : null;
+
+                                        if ($savedRate > 0 && $savedRate != 1) {
+                                            $uPRate = $savedRate;
+                                        } elseif ($customRate > 0) {
+                                            $uPRate = $customRate;
+                                        } else {
+                                            $uPRate = $liveRate ?? 1;
+                                        }
                                         $uBaseCost = $uCost * $uPRate;
                                     }
 @endphp
@@ -206,7 +258,17 @@
             $uBasePriceTax = $uPriceTax;
             $uSRate = 1;
             if($uSCurrency && $uSCurrency->id != $store->base_currency_id) {
-                $uSRate = $unit->sell_exchange_rate ?? ($store->acceptedCurrencies->find($uSCurrency->id)->pivot->custom_rate ?? 1);
+                $savedRate = (float)($unit->sell_exchange_rate ?? 0);
+                $customRate = $store->acceptedCurrencies->find($uSCurrency->id)->pivot->custom_rate ?? null;
+                $liveRate = (isset($liveRates['rates'][$uSCurrency->code]) && $liveRates['rates'][$uSCurrency->code] > 0) ? (1 / $liveRates['rates'][$uSCurrency->code]) : null;
+
+                if ($savedRate > 0 && $savedRate != 1) {
+                    $uSRate = $savedRate;
+                } elseif ($customRate > 0) {
+                    $uSRate = $customRate;
+                } else {
+                    $uSRate = $liveRate ?? 1;
+                }
                 $uBasePriceTax = $uPriceTax * $uSRate;
             }
 @endphp
@@ -230,13 +292,33 @@
         // تحويل للعملة الأساسية لحساب الربح
         $uBaseSell = $uSell;
         if($unit->sellCurrency && $unit->sellCurrency->id != $store->base_currency_id) {
-            $uSRate = $unit->sell_exchange_rate ?? ($store->acceptedCurrencies->find($unit->sell_price_currency_id)->pivot->custom_rate ?? 1);
+            $savedRate = (float)($unit->sell_exchange_rate ?? 0);
+            $customRate = $store->acceptedCurrencies->find($unit->sell_price_currency_id)->pivot->custom_rate ?? null;
+            $liveRate = (isset($liveRates['rates'][$unit->sellCurrency->code]) && $liveRates['rates'][$unit->sellCurrency->code] > 0) ? (1 / $liveRates['rates'][$unit->sellCurrency->code]) : null;
+
+            if ($savedRate > 0 && $savedRate != 1) {
+                $uSRate = $savedRate;
+            } elseif ($customRate > 0) {
+                $uSRate = $customRate;
+            } else {
+                $uSRate = $liveRate ?? 1;
+            }
             $uBaseSell = $uSell * $uSRate;
         }
 
         $uBaseCost = $uCost;
         if($unit->purchaseCurrency && $unit->purchaseCurrency->id != $store->base_currency_id) {
-            $uPRate = $unit->purchase_exchange_rate ?? ($store->acceptedCurrencies->find($unit->purchase_price_currency_id)->pivot->custom_rate ?? 1);
+            $savedRate = (float)($unit->purchase_exchange_rate ?? 0);
+            $customRate = $store->acceptedCurrencies->find($unit->purchase_price_currency_id)->pivot->custom_rate ?? null;
+            $liveRate = (isset($liveRates['rates'][$unit->purchaseCurrency->code]) && $liveRates['rates'][$unit->purchaseCurrency->code] > 0) ? (1 / $liveRates['rates'][$unit->purchaseCurrency->code]) : null;
+
+            if ($savedRate > 0 && $savedRate != 1) {
+                $uPRate = $savedRate;
+            } elseif ($customRate > 0) {
+                $uPRate = $customRate;
+            } else {
+                $uPRate = $liveRate ?? 1;
+            }
             $uBaseCost = $uCost * $uPRate;
         }
 

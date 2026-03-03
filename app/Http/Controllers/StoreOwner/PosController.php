@@ -153,8 +153,17 @@ class PosController extends Controller
                 }
             }
 
-            $results = $products->map(function($p) use ($term, $baseCurrency, $liveRates) {
+            // Prepare Custom Rates for this store
+            $customRates = [];
+            foreach ($store->acceptedCurrencies as $cur) {
+                if ($cur->pivot && $cur->pivot->custom_rate > 0) {
+                    $customRates[$cur->id] = (float)$cur->pivot->custom_rate;
+                }
+            }
+
+            $results = $products->map(function($p) use ($term, $baseCurrency, $liveRates, $customRates) {
                 $productImg = $p->image_url; 
+                $taxPercent = (float)($p->tax_percent ?? 0);
                 
                 $hasExpired = \App\Models\ProductBatch::where('product_id', $p->id)
                     ->where('quantity', '>', 0)
@@ -172,7 +181,7 @@ class PosController extends Controller
                     $units->push([
                         'unit_id' => $p->baseUnit->id, 
                         'unit_name' => $p->baseUnit->unit_name ?? 'قطعة', 
-                        'price' => $p->baseUnit->selling_price, 
+                        'price' => (float)$p->baseUnit->selling_price, 
                         'currency_id' => $p->baseUnit->sell_price_currency_id,
                         'currency_code' => optional($p->baseUnit->sellCurrency)->code,
                         'currency_symbol' => optional($p->baseUnit->sellCurrency)->symbol,
@@ -191,13 +200,13 @@ class PosController extends Controller
                     $units->push([
                         'unit_id' => $u->id, 
                         'unit_name' => $u->unit_name, 
-                        'price' => $u->selling_price, 
+                        'price' => (float)$u->selling_price, 
                         'currency_id' => $u->sell_price_currency_id,
                         'currency_code' => optional($u->sellCurrency)->code,
                         'currency_symbol' => optional($u->sellCurrency)->symbol,
                         'barcode' => $u->barcode, 
                         'image' => $unitImg,
-                        'factor' => $u->conversion_factor ?? 1,
+                        'factor' => (float)($u->conversion_factor ?? 1),
                         'sell_exchange_rate' => (float)($u->sell_exchange_rate ?? 0)
                     ]);
                 }
@@ -206,15 +215,30 @@ class PosController extends Controller
                 $defaultUnit = $matchedUnit ?? $units->first();
                 $displayQty = (float)($p->current_stock ?? 0);
 
+                // Priority Logic for Conversion Rate
                 $rawPrice = (float)($defaultUnit['price'] ?? 0);
                 $currId = $defaultUnit['currency_id'] ?? null;
                 $sellRate = (float)($defaultUnit['sell_exchange_rate'] ?? 0);
+                $currCode = $defaultUnit['currency_code'] ?? null;
                 
-                $finalBasePrice = $rawPrice;
+                $rate = 1;
                 if ($currId && $baseCurrency && $currId != $baseCurrency->id) {
-                    $rate = ($sellRate > 0) ? $sellRate : (isset($liveRates[$defaultUnit['currency_code']]) && $liveRates[$defaultUnit['currency_code']] > 0 ? (1 / $liveRates[$defaultUnit['currency_code']]) : 1);
-                    $finalBasePrice = $rawPrice * $rate;
+                    // 1. Saved Unit Rate (if configured)
+                    if ($sellRate > 0 && $sellRate != 1) {
+                        $rate = $sellRate;
+                    } 
+                    // 2. Store Custom Rate
+                    elseif (isset($customRates[$currId])) {
+                        $rate = $customRates[$currId];
+                    }
+                    // 3. Live Rate
+                    elseif (isset($liveRates[$currCode]) && $liveRates[$currCode] > 0) {
+                        $rate = 1 / $liveRates[$currCode];
+                    }
                 }
+
+                $priceWithTax = $rawPrice * (1 + $taxPercent / 100);
+                $finalBasePrice = $priceWithTax * $rate;
 
                 return [
                     'id' => $p->id,
@@ -223,11 +247,14 @@ class PosController extends Controller
                     'base_image' => $productImg, 
                     'quantity' => max(0, $displayQty), 
                     'base_quantity' => $displayQty, 
+                    'tax_percent' => $taxPercent,
                     'alert_status' => $hasExpired ? 'expired' : ($isNearExpiry ? 'near' : 'ok'),
-                    'alert_msg' => $hasExpired ? '⚠️ يوجد كميات منتهية!' : ($isNearExpiry ? '⚠️ قارب على الانتهاء' : ''),
+                    'alert_msg' => $hasExpired ? '⚠️ يوجد كميات منتهي!' : ($isNearExpiry ? '⚠️ قارب على الانتهاء' : ''),
                     'default_unit_id' => $defaultUnit['unit_id'] ?? null,
-                    'default_price' => $finalBasePrice,
-                    'default_currency_id' => $defaultUnit['currency_id'] ?? null,
+                    'default_price' => round($finalBasePrice, 2),
+                    'default_currency_id' => $baseCurrency->id ?? null,
+                    'default_currency_code' => $baseCurrency->code ?? 'TRY',
+                    'default_currency_symbol' => $baseCurrency->symbol ?? '₺',
                     'default_barcode' => $defaultUnit['barcode'] ?? $p->sku,
                     'available_units' => $units->values()
                 ];
