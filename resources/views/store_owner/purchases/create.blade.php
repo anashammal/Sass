@@ -422,6 +422,8 @@
                     .then(data => {
                         supplierResultsEl.innerHTML = '';
                         if (!Array.isArray(data) || data.length === 0) { supplierResultsEl.style.display = 'none'; return; }
+                        // اختيار تلقائي عند نتيجة واحدة
+                        if (data.length === 1) { selectSupplier(data[0]); return; }
                         data.forEach(item => {
                             const a = document.createElement('a');
                             a.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center';
@@ -485,11 +487,13 @@
                         productResultsEl.innerHTML = '';
                         if (!Array.isArray(data) || data.length === 0) { productResultsEl.style.display = 'none'; return; }
 
-                        // اختيار تلقائي عند نتيجة واحدة بالباركود
-                        if (data.length === 1 && term === data[0].sku) {
-                            addProductRow(data[0]);
+                        // اختيار تلقائي عند نتيجة واحدة (باركود أو اسم)
+                        if (data.length === 1) {
                             productInput.value = '';
                             productResultsEl.style.display = 'none';
+                            addProductRow(data[0]);
+                            productInput.value = '';
+                            productInput.focus();
                             return;
                         }
 
@@ -497,11 +501,13 @@
                             const a = document.createElement('a');
                             a.className = 'list-group-item list-group-item-action cursor-pointer';
                             a.innerHTML = `<strong>${item.name || ''}</strong> <small class="text-muted">${item.sku || ''}</small>`;
-                            a.addEventListener('click', function() {
+                            a.addEventListener('mousedown', function(e) {
+                                e.preventDefault();
+                                productInput.value = '';
+                                productResultsEl.style.display = 'none';
                                 addProductRow(item);
                                 productInput.value = '';
                                 productInput.focus();
-                                productResultsEl.style.display = 'none';
                             });
                             productResultsEl.appendChild(a);
                         });
