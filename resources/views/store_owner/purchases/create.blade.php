@@ -387,15 +387,31 @@
             // Optionally, we could show an exchange rate warning here if it's different from base currency
         });
 
-        // ✅ بحث المورد - مباشر بدون أي تبعية
+        // ✅ بحث المورد - مع رقم الهاتف والأسهم
         (function() {
             const supplierInput = document.getElementById('supplierSearchInput');
             const supplierResultsEl = document.getElementById('supplierResults');
             if (!supplierInput || !supplierResultsEl) { console.error('Supplier search elements missing!'); return; }
 
             let supTimer;
+            let activeIndex = -1;
+
+            function selectSupplier(item) {
+                supplierInput.value = item.contact_name || item.company_name;
+                document.getElementById('supplierId').value = item.id;
+                let balance = parseFloat(item.current_balance || 0);
+                document.getElementById('currentSupplierBalance').value = balance;
+                const displayDiv = document.getElementById('supplierBalanceDisplay');
+                if (balance > 0) displayDiv.innerHTML = `<span class="text-danger fs-3"><i class="fas fa-arrow-down"></i> له علينا: ${formatNum(balance)}</span>`;
+                else if (balance < 0) displayDiv.innerHTML = `<span class="text-success fs-3"><i class="fas fa-arrow-up"></i> لنا عنده: ${formatNum(Math.abs(balance))}</span>`;
+                else displayDiv.innerHTML = `<span class="text-primary fs-3">الرصيد: 0.00</span>`;
+                supplierResultsEl.style.display = 'none';
+                activeIndex = -1;
+            }
+
             supplierInput.addEventListener('input', function() {
                 clearTimeout(supTimer);
+                activeIndex = -1;
                 const term = this.value.trim();
                 if (term.length < 1) { supplierResultsEl.style.display = 'none'; return; }
                 supTimer = setTimeout(function() {
@@ -408,19 +424,11 @@
                         if (!Array.isArray(data) || data.length === 0) { supplierResultsEl.style.display = 'none'; return; }
                         data.forEach(item => {
                             const a = document.createElement('a');
-                            a.className = 'list-group-item list-group-item-action cursor-pointer';
-                            a.textContent = item.contact_name || item.company_name || '';
-                            a.addEventListener('click', function() {
-                                supplierInput.value = item.contact_name || item.company_name;
-                                document.getElementById('supplierId').value = item.id;
-                                let balance = parseFloat(item.current_balance || 0);
-                                document.getElementById('currentSupplierBalance').value = balance;
-                                const displayDiv = document.getElementById('supplierBalanceDisplay');
-                                if (balance > 0) displayDiv.innerHTML = `<span class="text-danger fs-3"><i class="fas fa-arrow-down"></i> له علينا: ${formatNum(balance)}</span>`;
-                                else if (balance < 0) displayDiv.innerHTML = `<span class="text-success fs-3"><i class="fas fa-arrow-up"></i> لنا عنده: ${formatNum(Math.abs(balance))}</span>`;
-                                else displayDiv.innerHTML = `<span class="text-primary fs-3">الرصيد: 0.00</span>`;
-                                supplierResultsEl.style.display = 'none';
-                            });
+                            a.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center';
+                            const name = item.contact_name || item.company_name || '';
+                            const phone = item.phone || '';
+                            a.innerHTML = `<span class="fw-bold">${name}</span>${phone ? `<small class="text-muted ms-2"><i class="fas fa-phone-alt"></i> ${phone}</small>` : ''}`;
+                            a.addEventListener('click', function() { selectSupplier(item); });
                             supplierResultsEl.appendChild(a);
                         });
                         supplierResultsEl.style.display = 'block';
@@ -428,6 +436,30 @@
                     .catch(err => console.error('Supplier search error:', err));
                 }, 300);
             });
+
+            // ⬆️⬇️ التنقل بالأسهم
+            supplierInput.addEventListener('keydown', function(e) {
+                const items = supplierResultsEl.querySelectorAll('a');
+                if (!items.length) return;
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex + 1) % items.length;
+                    items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+                    items[activeIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex - 1 + items.length) % items.length;
+                    items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+                    items[activeIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'Enter' && activeIndex >= 0) {
+                    e.preventDefault();
+                    items[activeIndex].click();
+                } else if (e.key === 'Escape') {
+                    supplierResultsEl.style.display = 'none';
+                    activeIndex = -1;
+                }
+            });
+
             document.addEventListener('click', function(e) {
                 if (e.target !== supplierInput) supplierResultsEl.style.display = 'none';
             });
