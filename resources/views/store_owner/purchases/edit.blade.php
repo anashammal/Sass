@@ -47,7 +47,8 @@
                                 <label class="form-label fw-bold">{{ __('العملة') }}</label>
                                 <select name="currency_id" id="currency_id" class="form-select" onchange="onInvoiceCurrencyChange(this)">
                                     @foreach($currencies as $cur)
-                                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" {{ $cur->id == $purchase->currency_id ? 'selected' : ($purchase->currency_id == null && $cur->id == optional($baseCurrency)->id ? 'selected' : '') }}>
+                                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-symbol="{{ $cur->symbol ?? $cur->code }}" 
+                                            {{ $cur->id == $purchase->currency_id ? 'selected' : ($purchase->currency_id == null && $cur->id == optional($baseCurrency)->id ? 'selected' : '') }}>
                                             {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
                                         </option>
                                     @endforeach
@@ -184,6 +185,14 @@
 
     // Currency setup
     const defaultCurrencyCode = "{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}";
+    const baseCurrencyId = "{{ optional($baseCurrency)->id }}";
+    const baseCurrencyCode = "{{ optional($baseCurrency)->code }}";
+
+    function parseMoney(value) {
+        if (!value) return 0;
+        let clean = String(value).replace(/[^0-9.]/g, ''); 
+        return parseFloat(clean) || 0;
+    }
 
     // Localization helper
     const LANG = {
@@ -198,6 +207,13 @@
         updated_related_units: "{{ __('updated_related_units') }}"
     };
 
+    // --- المتغيرات العامة ---
+    let rowIdx = {{ count($purchase->items) }};
+    const storeTaxRates = @json($taxRates); 
+    window.productsData = {}; 
+    const baseCurrencyId = "{{ optional($baseCurrency)->id }}";
+    const defaultCurrencyCode = "{{ optional($baseCurrency)->code }}";
+
     // Current Locale for JS
     const CURRENT_LOCALE = "{{ app()->getLocale() == 'pt-BR' ? 'pt' : app()->getLocale() }}";
 
@@ -206,9 +222,77 @@
 // دالة جديدة لا تقرب الأرقام وتعرضها كما هي
 function formatNum(num) { 
     if (num === null || num === undefined || num === '') return 0;
-    // نتأكد أنه رقم ولكن لا نستخدم toFixed حتى لا يقرب الكسور
-    return parseFloat(num); 
+    let val = parseFloat(num) || 0;
+    return parseFloat(val.toFixed(4)); 
 }
+
+// أسعار الصرف المحملة مسبقاً
+const preloadedRates = @json($currenciesData ?? []);
+const ratesMap = {};
+preloadedRates.forEach(c => { ratesMap[c.id] = c; });
+
+function onInvoiceCurrencyChange(select) {
+    let opt = select.options[select.selectedIndex];
+    let currId = select.value;
+    let currCode = opt.dataset.code;
+    let baseCurrId = "{{ optional($baseCurrency)->id }}";
+    let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+
+    // Update labels in UI (Priority: Symbol > Code)
+    let label = opt.dataset.symbol || currCode;
+    document.querySelectorAll('.currency-label').forEach(el => el.innerText = label);
+
+    if (currId == baseCurrId) {
+        document.getElementById('invoice_exchange_rate').value = 1;
+        document.getElementById('invoice_rate_info').classList.add('d-none');
+        calculateGrandTotal();
+        return;
+    }
+
+    let currData = ratesMap[currId];
+    let suggestedRate = currData ? parseFloat(currData.exchange_rate).toFixed(6) : '1.000000';
+
+    Swal.fire({
+        title: `💱 سعر صرف الفاتورة: ${currCode} ↔ ${baseCurrCode}`,
+        icon: 'info',
+        html: `
+            <div class="text-start mb-3">
+                <label class="form-label fw-bold">✏️ سعر صرف (1 ${currCode} = ؟ ${baseCurrCode}):</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-primary text-white fw-bold">1 ${currCode}</span>
+                    <input type="text" inputmode="decimal" id="swalInvoiceRate" class="form-control text-center fw-bold fs-5" value="${suggestedRate}">
+                    <span class="input-group-text fw-bold">${baseCurrCode}</span>
+                </div>
+            </div>
+        `,
+        confirmButtonText: '✅ تأكيد',
+        showCancelButton: true,
+        cancelButtonText: '❌ إلغاء',
+        preConfirm: () => {
+            let val = parseFloat(document.getElementById('swalInvoiceRate').value);
+            if (!val || val <= 0) {
+                Swal.showValidationMessage('يرجى إدخال سعر صرف صحيح');
+            }
+            return val;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            let newRate = result.value;
+            document.getElementById('invoice_exchange_rate').value = newRate;
+            document.getElementById('selected_curr_code').innerText = currCode;
+            document.getElementById('selected_curr_rate').innerText = newRate;
+            document.getElementById('invoice_rate_info').classList.remove('d-none');
+            calculateGrandTotal();
+        } else {
+            select.value = prevCurrencyId;
+        }
+    });
+}
+
+let prevCurrencyId = "{{ $purchase->currency_id ?? optional($baseCurrency)->id }}";
+document.getElementById('currency_id').addEventListener('focus', function() {
+    prevCurrencyId = this.value;
+});
 
     // إضافة صف منتج (سواء جديد أو قادم من الداتابيس)
     function addProductRow(product, savedItem = null) {
@@ -224,14 +308,17 @@ function formatNum(num) {
         let maxUnit = product.units.reduce((prev, curr) => (parseFloat(prev.conversion_factor) > parseFloat(curr.conversion_factor)) ? prev : curr);
         let maxUnitCost = parseFloat(maxUnit.cost_price) || parseFloat(maxUnit.purchase_price) || 0;
         let maxFactor = parseFloat(maxUnit.conversion_factor) || 1;
-        let trueBaseCost = maxUnitCost / maxFactor; 
-
-        // تحديد الوحدة
+        
+        let mCurrId = maxUnit.purchase_currency_id || baseCurrencyId;
+        let mRate = (mCurrId == baseCurrencyId) ? 1 : (parseFloat(maxUnit.purchase_exchange_rate) || parseFloat(maxUnit.store_custom_purchase_rate) || ratesMap[mCurrId]?.exchange_rate || 1);
+        
+        // التكلفة بالعملة الأساسية (TRY)
+        let trueBaseCost = (maxUnitCost * mRate) / maxFactor; 
+        
         let selectedUnitId;
         if (savedItem) {
             selectedUnitId = savedItem.product_unit_id;
         } else {
-            // Check if scanned_unit_id exists in units, otherwise fallback correctly
             let foundScanned = product.units.find(u => u.id == product.scanned_unit_id);
             if (foundScanned) {
                 selectedUnitId = foundScanned.id;
@@ -243,19 +330,40 @@ function formatNum(num) {
         let selectedUnit = product.units.find(u => u.id == selectedUnitId);
         let selectedFactor = (selectedUnit.is_base_unit) ? 1 : (parseFloat(selectedUnit.conversion_factor) || 1);
         
-        // السعر المحسوب (الموحد)
-        let calculatedPrice = trueBaseCost * selectedFactor;
+        // التكلفة بالعملة الأساسية (TRY)
+        let priceInBase = trueBaseCost * selectedFactor;
+
+        // جلب سعر صرف الفاتورة
+        let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+        let baseCurrencyId = "{{ optional($baseCurrency)->id }}";
+
+        // التكلفة بعملة الفاتورة
+        let calculatedPrice = priceInBase / invRate;
+
+        // --- تصحيح تحويل سعر البيع إلى عملة الفاتورة ---
+        let rawSellPrice = parseFloat(selectedUnit.selling_price) || 0;
+        let sCurrId = selectedUnit.sell_currency_id || baseCurrencyId;
+        let sRate = (sCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.sell_exchange_rate) || parseFloat(selectedUnit.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
+        
+        // سعر البيع بالعملة الأساسية (TRY)
+        let sellInBase = rawSellPrice * sRate;
+        // سعر البيع بعملة الفاتورة
+        let sellPrice = sellInBase / invRate;
 
         // القيم الافتراضية
         let initialBarcode = selectedUnit ? (selectedUnit.barcode || '-') : '-';
-        let defaultSell = parseFloat(selectedUnit.selling_price) || 0;
         
         // استرجاع القيم المحفوظة (مع الحفاظ على السعر القديم إذا كان مخصصاً)
         // ملاحظة: في حالة الإضافة الجديدة نستخدم السعر المحسوب لتفادي القفزات
         let qty = savedItem ? parseFloat(savedItem.quantity) : 1;
+        
+        // السعر موجود في الداتابيس بعملة الفاتورة، لذلك لا نحتاج لتحويله هنا! (كنا نحوله سابقاً لليرة، الآن نعرض عملة الفاتورة مباشرة)
         let price = savedItem ? parseFloat(savedItem.unit_price) : parseFloat(calculatedPrice.toFixed(4));
-        let sellPrice = defaultSell; 
-        let discountVal = 0;
+        
+        // وكذلك سعر البيع، موجود بالداتابيس بعملة الفاتورة أو نستخرجه منها إذا كان جديداً
+        if (savedItem && savedItem.selling_price) {
+             sellPrice = parseFloat(savedItem.selling_price);
+        }
 
         // 🟢🟢 استرجاع تاريخ الانتهاء وأيام التنبيه من قاعدة البيانات 🟢🟢
         let expiryValue = savedItem ? (savedItem.expiry_date || '') : '';
@@ -287,12 +395,22 @@ function formatNum(num) {
                     ${product.units.filter(u => u.is_purchase == 1).map(u => {
                         let isBase = u.is_base_unit == 1;
                         let safeFactor = isBase ? 1 : (parseFloat(u.conversion_factor) || 1);
-                        let mathPrice = trueBaseCost * safeFactor;
+                        let mathPrice = (trueBaseCost * safeFactor) / invRate;
+
+                        // تحويل سعر البيع لكل وحدة أيضاً
+                        let rSell = parseFloat(u.selling_price) || 0;
+                        let rCurrId = u.sell_currency_id || baseCurrencyId;
+                        let rRate = (rCurrId == baseCurrencyId) ? 1 : (ratesMap[rCurrId]?.exchange_rate || 1);
+                        let rSellInBase = rSell * rRate;
+                        let rSellInInv = rSellInBase / invRate;
+
+                        let rProfit = (mathPrice > 0) ? ((rSellInInv - mathPrice) / mathPrice) * 100 : 0;
+
                         return `<option value="${u.id}" 
                                 data-barcode="${u.barcode || '-'}" 
                                 data-price="${mathPrice.toFixed(4)}" 
-                                data-sell="${u.selling_price}" 
-                                data-profit="${u.profit_percent}" 
+                                data-sell="${formatNum(rSellInInv)}" 
+                                data-profit="${formatNum(rProfit)}" 
                                 data-factor="${safeFactor}" 
                                 ${u.id == selectedUnitId ? 'selected' : ''}>
                                 ${u.unit_name}
@@ -302,20 +420,33 @@ function formatNum(num) {
             </td>
             
             <td><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty" value="${qty}" oninput="calcTotals(${rowIdx})"></td>
-            <td><input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control form-control-sm text-center price" value="${price}" oninput="syncSubUnits(${rowIdx})"></td>
+            <td>
+                <input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control form-control-sm text-center price text-danger fw-bold" value="${price}" oninput="syncSubUnits(${rowIdx})">
+                <div class="cost-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1; color: black !important;">
+                   <span class="cost-original d-block text-muted"></span>
+                   <span class="cost-base d-block text-info fw-bold"></span>
+                </div>
+            </td>
             <td><input type="text" inputmode="decimal" name="items[${rowIdx}][profit_percent]" class="form-control form-control-sm text-center profit text-primary" value="${profitPercent}" oninput="calcSellPrice(${rowIdx})"></td>
 
             <td>
                 <div class="input-group input-group-sm" style="min-width: 90px;">
                     <input type="text" inputmode="decimal" name="items[${rowIdx}][discount]" class="form-control text-center discount px-1" value="${discountVal}" oninput="calcTotals(${rowIdx})">
                     <select name="items[${rowIdx}][discount_type]" class="form-select discount-type px-0" style="max-width: 40px;" onchange="calcTotals(${rowIdx})">
-                        <option value="fixed">₺</option>
+                        <option value="fixed" class="currency-label">{{ optional($baseCurrency)->symbol ?? optional($baseCurrency)->code }}</option>
                         <option value="percent">%</option>
                     </select>
                 </div>
             </td>
 
-            <td><input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control form-control-sm text-center sell fw-bold text-success" value="${sellPrice}" oninput="calcProfitPercent(${rowIdx})"></td>
+            <td>
+                <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control form-control-sm text-center sell fw-bold text-success" value="${sellPrice}" oninput="calcProfitPercent(${rowIdx})">
+                <div class="sell-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1; color: black !important;">
+                   <span class="sell-original d-block text-muted"></span>
+                   <span class="sell-base d-block text-info fw-bold"></span>
+                </div>
+                <div class="main-warning-container mt-1" style="min-height:18px;"></div>
+            </td>
 
             {{-- 🟢 عرض التاريخ المخزن 🟢 --}}
             <td>
@@ -352,9 +483,57 @@ function formatNum(num) {
         document.getElementById('tableBody').appendChild(detailsTr);
 
         renderRelatedUnits(rowIdx, selectedUnitId); // 🟢 استدعاء الدالة الموحدة
-
+        updateDualPriceDisplay(rowIdx); // 🟢 عرض العملتين
         calcTotals(rowIdx); 
         rowIdx++;
+    }
+
+    // 🟢 عرض السعر بالعملة الأصلية وما يعادلها بالعملة الأساسية
+    function updateDualPriceDisplay(idx) {
+        let row = document.getElementById(`row_${idx}`);
+        if (!row) return;
+        
+        let product = window.productsData[idx];
+        let select = row.querySelector('.unit-select');
+        let selectedUnitId = select.value;
+        let unit = product.units.find(u => u.id == selectedUnitId);
+        
+        // 1. جلب القيم الحالية من الحقول (الآن أصبحت بعملة الفاتورة)
+        let priceInvoice = parseFloat(row.querySelector('.price').value) || 0;
+        let sellInvoice = parseFloat(row.querySelector('.sell').value) || 0;
+
+        // 2. التحويل لليرة التركية / العملة الأساسية
+        let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+        let priceBase = priceInvoice * invRate;
+        let sellBase = sellInvoice * invRate;
+        let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+
+        // 🟢 سعر الشراء الإضافي
+        let costOriginal = row.querySelector('.cost-original');
+        let costBaseEl = row.querySelector('.cost-base');
+        
+        // السعر بالأصلي (يورو مثلاً)
+        if (unit && unit.purchase_currency_id) {
+            let pPrice = parseFloat(unit.cost_price) || parseFloat(unit.purchase_price) || 0;
+            let pSym = unit.purchase_currency_symbol || unit.purchase_currency_code || '';
+            costOriginal.innerText = `${pSym} ${pPrice}`;
+        }
+        // السعر بالعملة الأساسية (TRY)
+        if(costBaseEl) costBaseEl.innerText = `${formatNum(priceBase)} ${baseCurrCode}`;
+
+        // 🟢 سعر البيع الإضافي
+        let sellOriginal = row.querySelector('.sell-original');
+        let sellBaseEl = row.querySelector('.sell-base');
+
+        // السعر بالأصلي
+        if (unit && (unit.sell_currency_id || unit.sell_price_currency_id)) {
+            let sCurrId = unit.sell_price_currency_id || unit.sell_currency_id;
+            let sPrice = parseFloat(unit.selling_price) || parseFloat(unit.sale_price) || 0;
+            let sSym = unit.sell_currency_symbol || unit.sell_currency_code || '';
+            sellOriginal.innerText = `${sSym} ${sPrice}`;
+        }
+        // السعر بالعملة الأساسية (TRY)
+        if(sellBaseEl) sellBaseEl.innerText = `${formatNum(sellBase)} ${baseCurrCode}`;
     }
 
     // --- العمليات الحسابية ---
@@ -373,6 +552,7 @@ function formatNum(num) {
         row.querySelector('.profit').value = formatNum(profit);
         row.querySelector('.barcode-display').value = barcode;
 
+        updateDualPriceDisplay(idx);
         renderRelatedUnits(idx, opt.value); // 🟢 إعادة رسم الوحدات عند تغيير الوحدة المختارة
         calcTotals(idx);
     }
@@ -381,19 +561,29 @@ function formatNum(num) {
         let row = document.getElementById(`row_${idx}`);
         if(!row) return;
 
-        let qty = parseFloat(row.querySelector('.qty').value) || 0;
-        let price = parseFloat(row.querySelector('.price').value) || 0;
+        let qty = parseMoney(row.querySelector('.qty').value);
+        let priceInvoice = parseMoney(row.querySelector('.price').value);
+        let invoiceRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+
         let taxRate = parseFloat(row.querySelector('.tax').value) || 0;
         let discountVal = parseFloat(row.querySelector('.discount').value) || 0;
         let discountType = row.querySelector('.discount-type').value;
 
-        let subTotal = qty * price;
-        let discountAmount = (discountType === 'percent') ? (subTotal * discountVal / 100) : discountVal;
-        let afterDiscount = subTotal - discountAmount;
-        let taxAmount = afterDiscount * (taxRate / 100);
-        let finalTotal = afterDiscount + taxAmount;
+        // الحسابات بعملة الفاتورة لأن الأسعار أصبحت بها
+        let subTotalInv = qty * priceInvoice;
+        let discountAmtInv = (discountType === 'percent') ? (subTotalInv * discountVal / 100) : discountVal;
+        let afterDiscountInv = subTotalInv - discountAmtInv;
+        let taxAmtInv = afterDiscountInv * (taxRate / 100);
+        let finalTotalInv = afterDiscountInv + taxAmtInv;
 
-        row.querySelector('.total').value = formatNum(finalTotal);
+        // حفظ إجمالي الصف بعملة الفاتورة لسهولة حساب المجموع الكلي لاحقاً
+        row.setAttribute('data-total-invoice', finalTotalInv.toFixed(6));
+
+        // عرض الإجمالي بالعملة الأساسية كما طلب المستخدم
+        let finalTotalBase = finalTotalInv * invoiceRate;
+        row.querySelector('.total').value = formatNum(finalTotalBase);
+        
+        updateDualPriceDisplay(idx);
         calculateGrandTotal();
     }
 
@@ -413,6 +603,94 @@ function formatNum(num) {
         let profit = parseFloat(row.querySelector('.profit').value) || 0;
         let sell = price * (1 + profit / 100);
         row.querySelector('.sell').value = formatNum(sell);
+        
+        updateDualPriceDisplay(idx);
+        calculateGrandTotal();
+    }
+
+    // 🟢 دالة إعادة حساب كافة الصفوف عند تغيير عملة الفاتورة
+    function recalculateAllRows() {
+        let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+        
+        Object.keys(window.productsData).forEach(idx => {
+            let row = document.getElementById(`row_${idx}`);
+            if (!row) return;
+
+            let product = window.productsData[idx];
+            let select = row.querySelector('.unit-select');
+            let selectedUnitId = select.value;
+            let selectedUnit = product.units.find(u => u.id == selectedUnitId);
+            
+            if (!selectedUnit) return;
+
+            let selectedFactor = (selectedUnit.is_base_unit) ? 1 : (parseFloat(selectedUnit.conversion_factor) || 1);
+            
+            // 1. حساب التكلفة بناءً على السعر المفضل في بيانات المنتج
+            let preferredPrice = parseFloat(selectedUnit.cost_price) || parseFloat(selectedUnit.purchase_price) || 0;
+            let pCurrId = selectedUnit.purchase_currency_id || baseCurrencyId;
+            let pRate = (pCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.purchase_exchange_rate) || parseFloat(selectedUnit.store_custom_purchase_rate) || ratesMap[pCurrId]?.exchange_rate || 1);
+            
+            let priceInBase = preferredPrice * pRate;
+            let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+            let calculatedCost = priceInBase / invRate;
+
+            // 2. معالجة الحالة الاحتياطية (إذا كان السعر صفر)
+            if (calculatedCost === 0) {
+                let maxUnit = product.units.reduce((prev, curr) => (parseFloat(prev.conversion_factor) > parseFloat(curr.conversion_factor)) ? prev : curr);
+                let maxUnitCost = parseFloat(maxUnit.cost_price) || parseFloat(maxUnit.purchase_price) || 0;
+                let maxFactor = parseFloat(maxUnit.conversion_factor) || 1;
+                let mCurrId = maxUnit.purchase_currency_id || baseCurrencyId;
+                let mRate = (mCurrId == baseCurrencyId) ? 1 : (parseFloat(maxUnit.purchase_exchange_rate) || parseFloat(maxUnit.store_custom_purchase_rate) || ratesMap[mCurrId]?.exchange_rate || 1);
+                
+                let basePriceFallback = (maxUnitCost * mRate / maxFactor) * selectedFactor;
+                calculatedCost = basePriceFallback / invRate;
+            }
+
+            // 3. تحديث حقل سعر الشراء في الصف بعملة الفاتورة
+            row.querySelector('.price').value = parseFloat(calculatedCost.toFixed(4));
+
+            // 4. تحديث سعر البيع بعملة الفاتورة
+            let rawSellPrice = parseFloat(selectedUnit.selling_price) || parseFloat(selectedUnit.sale_price) || 0;
+            let sCurrId = selectedUnit.sell_price_currency_id || selectedUnit.sell_currency_id || baseCurrencyId;
+            let sRate = (sCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.sell_exchange_rate) || parseFloat(selectedUnit.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
+            
+            let sellInBase = rawSellPrice * sRate;
+            let sellPrice = sellInBase / invRate;
+            row.querySelector('.sell').value = formatNum(sellPrice);
+
+            // 5. تحديث نسبة الربح
+            let newProfitPercent = (calculatedCost > 0) ? ((sellPrice - calculatedCost) / calculatedCost) * 100 : 0;
+            row.querySelector('.profit').value = formatNum(newProfitPercent);
+
+            // 6. تحديث قيم الـ data attributes في الـ select (بعملة الفاتورة)
+            let trueBaseCost = (selectedFactor > 0) ? (calculatedCost / selectedFactor) : 0;
+            Array.from(select.options).forEach(opt => {
+                let uId = opt.value;
+                let u = product.units.find(ux => ux.id == uId);
+                if (u) {
+                    let fac = (u.is_base_unit) ? 1 : (parseFloat(u.conversion_factor) || 1);
+                    let mPrice = trueBaseCost * fac;
+                    
+                    let rs = parseFloat(u.selling_price) || parseFloat(u.sale_price) || 0;
+                    let rci = u.sell_price_currency_id || u.sell_currency_id || baseCurrencyId;
+                    let rr = (rci == baseCurrencyId) ? 1 : (parseFloat(u.sell_exchange_rate) || parseFloat(u.store_custom_sell_rate) || ratesMap[rci]?.exchange_rate || 1);
+                    let rsiBase = rs * rr; 
+                    let rsi = rsiBase / invRate; // بعملة الفاتورة
+                    let rp = (mPrice > 0) ? ((rsi - mPrice) / mPrice) * 100 : 0;
+
+                    opt.setAttribute('data-price', mPrice.toFixed(4));
+                    opt.setAttribute('data-sell', formatNum(rsi));
+                    opt.setAttribute('data-profit', formatNum(rp));
+                }
+            });
+
+            // 7. تحديث الوحدات الفرعية (التفاصيل)
+            renderRelatedUnits(idx, selectedUnitId);
+            
+            // 8. تحديث العرض المزدوج والإجمالي
+            updateDualPriceDisplay(idx);
+            calcTotals(idx);
+        });
     }
 
     function removeRow(idx) {
@@ -422,16 +700,28 @@ function formatNum(num) {
     }
 
     function calculateGrandTotal() {
-        let subTotal = 0;
-        document.querySelectorAll('.total').forEach(el => subTotal += parseFloat(el.value) || 0);
-        document.getElementById('subTotalDisplay').innerText = formatNum(subTotal); 
-        
-        let discount = parseFloat(document.getElementById('discountInput').value) || 0;
-        let grandTotal = subTotal - discount;
-        document.getElementById('grandTotalDisplay').innerText = formatNum(grandTotal);
-
         let invoiceRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
-        let grandTotalInBase = grandTotal * invoiceRate;
+        let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+
+        // 1. حساب الإجمالي بعملة الفاتورة أولاً
+        let subTotalInvoice = 0;
+        document.querySelectorAll('tr[id^="row_"]').forEach(row => {
+            subTotalInvoice += parseFloat(row.getAttribute('data-total-invoice')) || 0;
+        });
+
+        // 2. تحويل وعرض المجموع الفرعي بالعملة الأساسية 
+        let subTotalBase = subTotalInvoice * invoiceRate;
+        document.getElementById('subTotalDisplay').innerHTML = `${formatNum(subTotalBase)} <span class="fs-6 text-muted">(${formatNum(subTotalInvoice)} Invoice)</span>`;
+        
+        // 3. تطبيق الخصم (يدخل المستخدم الخصم بعملة الفاتورة)
+        let discountInput = parseFloat(document.getElementById('discountInput').value) || 0;
+        let grandTotalInvoice = subTotalInvoice - discountInput; // افتراضاً الخصم هنا fixed بعملة الفاتورة بالمجمل
+        
+        // 4. تحويل وعرض الصافي النهائي بالعملة الأساسية
+        let grandTotalBase = grandTotalInvoice * invoiceRate;
+        document.getElementById('grandTotalDisplay').innerHTML = `${formatNum(grandTotalBase)} <span class="fs-6 text-muted">(${formatNum(grandTotalInvoice)} Invoice)</span>`;
+        // نحتفظ بهذه القيم للإستخدام في الدفعات لاحقاً
+        document.getElementById('grandTotalDisplay').setAttribute('data-grand-total', grandTotalBase);
 
         // حساب مجموع المدفوعات بالعملة الأساسية
         // في صفحة التعديل حالياً يوجد حقل واحد للدفع
@@ -553,7 +843,14 @@ function formatNum(num) {
             let safeFactor = isBase ? 1 : (parseFloat(u.conversion_factor) || 1);
             let calculatedCost = trueBaseCost * safeFactor; 
             
-            let uSell = parseFloat(u.selling_price) || 0;
+            let rawSell = parseFloat(u.selling_price) || 0;
+            let sCurrId = u.sell_currency_id || u.sell_price_currency_id || "{{ optional($baseCurrency)->id }}";
+            let sRate = (sCurrId == "{{ optional($baseCurrency)->id }}") ? 1 : (parseFloat(u.sell_exchange_rate) || parseFloat(u.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
+            
+            let sInBase = rawSell * sRate;
+            let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+            let uSell = sInBase / invRate;
+
             let originalProfit = parseFloat(u.profit_percent) || 0; 
             
             let uProfit = 0;
@@ -786,6 +1083,7 @@ function formatNum(num) {
                 document.getElementById('selected_curr_rate').innerText = rate;
                 document.getElementById('invoice_rate_info').classList.remove('d-none');
                 
+                recalculateAllRows();
                 calculateGrandTotal();
 
                 // مزامنة الدفعة الأولى مع عملة الفاتورة
@@ -798,6 +1096,7 @@ function formatNum(num) {
                 document.getElementById('invoice_exchange_rate').value = 1;
                 document.getElementById('invoice_rate_info').classList.add('d-none');
                 document.querySelectorAll('.currency-label').forEach(el => el.innerText = baseCurrCode);
+                recalculateAllRows();
                 calculateGrandTotal();
 
                 // إعادة مزامنة الدفعة للعملة الأساسية

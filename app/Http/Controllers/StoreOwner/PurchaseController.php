@@ -328,7 +328,8 @@ class PurchaseController extends Controller
             $exchangeService = app(ExchangeRateService::class);
             foreach ($currencies as $cur) {
                 if ($cur->id === $baseCurrency->id) continue;
-                $rate = $exchangeService->getExchangeRate($cur->code, $baseCurrency->code) ?? 1;
+                // إعطاء الأولوية للسعر المخصص في المتجر، وإلا الجلب من الخدمة
+                $rate = $cur->pivot->custom_rate ?? ($exchangeService->getExchangeRate($cur->code, $baseCurrency->code) ?? 1);
                 $currenciesData[] = [
                     'id'            => $cur->id,
                     'code'          => $cur->code,
@@ -377,7 +378,11 @@ class PurchaseController extends Controller
                     $targetCurrency = Currency::find($currencyId);
                     if ($targetCurrency) {
                         $exchangeRateService = app(ExchangeRateService::class);
-                        $rate = $exchangeRateService->getExchangeRate($targetCurrency->code, $baseCurrency->code);
+                        // جلب السعر المخصص إذا وجد
+                        $storeCurrency = \App\Models\StoreCurrency::where('store_id', $storeId)
+                            ->where('currency_id', $currencyId)
+                            ->first();
+                        $rate = $storeCurrency->custom_rate ?? ($exchangeRateService->getExchangeRate($targetCurrency->code, $baseCurrency->code) ?? 1);
                         $exchangeRate = $rate ?? 1;
                     }
                 }
@@ -487,12 +492,27 @@ class PurchaseController extends Controller
                         foreach ($itemData['related_updates'] as $uId => $updateData) {
                             $relatedUnit = \App\Models\ProductUnit::find($uId);
                             if ($relatedUnit) {
-                                $relatedUnit->update([
+                                // حساب سعر البيع المحول لعملة الوحدة الأصلية
+                                $sellInInvoice = (float)($updateData['selling_price'] ?? $relatedUnit->selling_price);
+                                $sellInBase = $sellInInvoice * $exchangeRate;
+                                $uCurrId = $relatedUnit->sell_price_currency_id;
+                                $uRate = 1;
+                                if ($uCurrId && $uCurrId != $baseCurrency->id) {
+                                    $sc = \App\Models\StoreCurrency::where('store_id', $storeId)->where('currency_id', $uCurrId)->first();
+                                    $uRate = $sc->custom_rate ?? (app(ExchangeRateService::class)->getExchangeRate($relatedUnit->sellCurrency->code, $baseCurrency->code) ?? 1);
+                                }
+                                $finalSell = $sellInBase / $uRate;
+
+                                $unitFields = [
                                     'purchase_price' => $updateData['price'],
                                     'cost_price'       => $updateData['price'],
-                                    'selling_price'  => $updateData['selling_price'] ?? $relatedUnit->selling_price,
+                                    'selling_price'  => $finalSell,
                                     'profit_percent' => $updateData['profit_percent'] ?? $relatedUnit->profit_percent,
-                                ]);
+                                ];
+                                if ($relatedUnit->purchase_price_currency_id == $currencyId) {
+                                    $unitFields['purchase_exchange_rate'] = $exchangeRate;
+                                }
+                                $relatedUnit->update($unitFields);
                             }
                         }
                     }
@@ -507,12 +527,28 @@ class PurchaseController extends Controller
                         }
                         
                         // 2. تحديث أسعار الوحدة المختارة
-                        $mainUnit->update([
+                        // حساب سعر البيع المحول لعملة الوحدة الأصلية
+                        $sellInInvoiceMain = (float)($itemData['selling_price'] ?? $mainUnit->selling_price);
+                        $sellInBaseMain = $sellInInvoiceMain * $exchangeRate;
+                        $uCurrIdMain = $mainUnit->sell_price_currency_id;
+                        $uRateMain = 1;
+                        if ($uCurrIdMain && $uCurrIdMain != $baseCurrency->id) {
+                            $scMain = \App\Models\StoreCurrency::where('store_id', $storeId)->where('currency_id', $uCurrIdMain)->first();
+                            $uRateMain = $scMain->custom_rate ?? (app(ExchangeRateService::class)->getExchangeRate($mainUnit->sellCurrency->code, $baseCurrency->code) ?? 1);
+                        }
+                        $finalSellMain = $sellInBaseMain / $uRateMain;
+
+                        $mainUpdateFields = [
                             'purchase_price' => $unitPrice,
                             'cost_price'     => $unitPrice,
-                            'selling_price'  => $itemData['selling_price'] ?? $mainUnit->selling_price,
+                            'selling_price'  => $finalSellMain,
                             'profit_percent' => $itemData['profit_percent'] ?? $mainUnit->profit_percent,
-                        ]);
+                        ];
+                        // تحديث سعر الصرف للوحدة الأساسية المختارة إذا كانت العملة متطابقة
+                        if ($mainUnit->purchase_price_currency_id == $currencyId) {
+                            $mainUpdateFields['purchase_exchange_rate'] = $exchangeRate;
+                        }
+                        $mainUnit->update($mainUpdateFields);
 
                         // 3. إنشاء الدفعة (Batch)
                         \App\Models\ProductBatch::create([
@@ -748,8 +784,22 @@ class PurchaseController extends Controller
         }
         $currencies = $acceptedCurrencies->unique('id')->values();
         
-        // جلب بيانات العملات وسعر الصرف الحالي
-        $currenciesData = \App\Models\Currency::whereIn('id', $currencies->pluck('id'))->get();
+        // جلب بيانات العملات وسعر الصرف الحالي (مع السعر المخصص)
+        $currenciesData = [];
+        if($baseCurrency) {
+            $exchangeService = app(ExchangeRateService::class);
+            foreach($currencies as $cur) {
+                if($cur->id === $baseCurrency->id) continue;
+                $rate = $cur->pivot->custom_rate ?? ($exchangeService->getExchangeRate($cur->code, $baseCurrency->code) ?? 1);
+                $currenciesData[] = [
+                    'id'            => $cur->id,
+                    'code'          => $cur->code,
+                    'symbol'        => $cur->symbol ?? $cur->code,
+                    'exchange_rate' => (float)$rate,
+                    'is_base'       => false,
+                ];
+            }
+        }
 
         return view('store_owner.purchases.edit', compact('purchase', 'suppliers', 'taxRates', 'itemsData', 'baseCurrency', 'currencies', 'currenciesData'));
     }
@@ -835,8 +885,14 @@ class PurchaseController extends Controller
     public function searchProducts(Request $request) {
         try {
             $term = $request->term;
-            $storeId = Auth::user()->store->id;
+            $store = Auth::user()->store;
+            $storeId = $store->id;
             
+            // جلب أسعار الصرف المخصصة للمتجر لاستخدامها كافتراضي إذا لم يوجد سعر خاص بالوحدة
+            $storeCustomRates = DB::table('store_currencies')
+                ->where('store_id', $storeId)
+                ->pluck('custom_rate', 'currency_id');
+
             // Limit the select fields to reduce memory usage and avoid accidental blob loading
             $products = Product::where('store_id', $storeId)
                 ->where(function($q) use ($term) {
@@ -851,14 +907,14 @@ class PurchaseController extends Controller
                     $q->where('is_purchase', true);
                 })
                 ->with(['units' => function($q) {
-                    $q->select('id','product_id','unit_name','barcode','cost_price','selling_price','conversion_factor','is_base_unit','is_purchase','profit_percent','purchase_price_currency_id','sell_price_currency_id')
+                    $q->select('id','product_id','unit_name','barcode','cost_price','selling_price','conversion_factor','is_base_unit','is_purchase','profit_percent','purchase_price_currency_id','sell_price_currency_id', 'purchase_exchange_rate', 'sell_exchange_rate')
                       ->with(['purchaseCurrency', 'sellCurrency']);
                 }]) 
                 ->take(20)
                 ->get();
             
             // Manual mapping to ensure no circular references or heavy objects
-            $results = $products->map(function ($product) use ($term) {
+            $results = $products->map(function ($product) use ($term, $storeCustomRates) {
                 // Find matched unit ID if searching by barcode
                 $matchedUnit = $product->units->firstWhere('barcode', $term);
                 
@@ -871,7 +927,7 @@ class PurchaseController extends Controller
                     'sku' => $product->sku,
                     'main_image' => $product->image_url,
                     'scanned_unit_id' => $matchedUnit ? $matchedUnit->id : null,
-                    'units' => $product->units->map(function($unit) {
+                    'units' => $product->units->map(function($unit) use ($storeCustomRates) {
                         return [
                             'id' => $unit->id,
                             'unit_name' => $unit->unit_name,
@@ -886,9 +942,13 @@ class PurchaseController extends Controller
                             'purchase_currency_id' => $unit->purchase_price_currency_id,
                             'purchase_currency_code' => optional($unit->purchaseCurrency)->code,
                             'purchase_currency_symbol' => optional($unit->purchaseCurrency)->symbol,
+                            'purchase_exchange_rate' => $unit->purchase_exchange_rate,
+                            'store_custom_purchase_rate' => $storeCustomRates[$unit->purchase_price_currency_id] ?? null,
                             'sell_currency_id' => $unit->sell_price_currency_id,
                             'sell_currency_code' => optional($unit->sellCurrency)->code,
                             'sell_currency_symbol' => optional($unit->sellCurrency)->symbol,
+                            'sell_exchange_rate' => $unit->sell_exchange_rate,
+                            'store_custom_sell_rate' => $storeCustomRates[$unit->sell_price_currency_id] ?? null,
                         ];
                     })
                 ];

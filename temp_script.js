@@ -1,510 +1,88 @@
-@extends('layouts.app')
-
-@section('content')
-<style>
-/* تأثير الوميض الأحمر عند التكرار */
-    @keyframes flashRed {
-        0% { background-color: #ffcccc; }
-        50% { background-color: #ff0000; color: white; }
-        100% { background-color: white; color: black; }
-    }
-    .duplicate-flash {
-        animation: flashRed 0.5s ease-in-out 3; /* يومض 3 مرات */
-    }
-    /* تعريف حركة الوميض */
-    @keyframes blink-animation {
-        0% { opacity: 1; }
-        50% { opacity: 0.2; }
-        100% { opacity: 1; }
-    }
-    /* كلاس التفعيل */
-    .flash-warning {
-        animation: blink-animation 1.5s infinite; /* يتكرر كل ثانية ونصف */
-        font-weight: bold;
-        font-size: 0.8rem;
-        display: inline-block;
-        padding: 2px 5px;
-        border-radius: 4px;
-    }
-
-    /* 1. تنسيق الجدول الذكي - Dynamic Table */
-    #itemsTable {
-        table-layout: auto !important; /* يسمح للجدول بالتوسع بناءً على المحتوى */
-        width: 100%;
-    }
-
-    #itemsTable th {
-        background-color: #343a40 !important;
-        color: white;
-        white-space: nowrap; /* منع العناوين من الالتفاف لضمان العرض الأدنى */
-        text-align: center;
-        padding: 10px 5px !important;
-        font-weight: 600;
-    }
-
-    #itemsTable td {
-        vertical-align: middle !important;
-        padding: 6px 4px !important;
-    }
-
-    /* 2. التحكم في عرض الأعمدة بالحد الأدنى */
-    /* عمود المنتج يأخذ المساحة المتبقية مع التفاف النص */
-    .product-col {
-        white-space: normal !important;
-        width: 130px !important; 
-        min-width: 100px !important;
-        max-width: 150px !important;
-        line-height: 1.2;
-        text-align: right !important;
-        font-size: 0.82rem;
-    }
-
-    /* باقي الأعمدة تأخذ أقل عرض ممكن يكفي لمحتواها */
-    .col-shrink {
-        width: 1%;
-        white-space: nowrap;
-    }
-    
-    /* تنسيق الصور والمصغرات */
-    .product-thumb { width: 35px; height: 35px; object-fit: cover; border-radius: 6px; border: 1px solid #dee2e6; }
-
-    /* تحسين شكل المدخلات الديناميكية */
-    #itemsTable .form-control, #itemsTable .form-select {
-        height: 30px;
-        padding: 2px 4px !important;
-        font-size: 0.8rem;
-        border-radius: 5px;
-        border: 1px solid #ced4da;
-        width: 100%; 
-        min-width: 40px;
-        field-sizing: content; 
-    }
-    
-    /* استثناءات لتحسين الوضوح */
-    .input-barcode { min-width: 115px !important; }
-    .input-expiry  { min-width: 110px !important; } 
-    .input-qty     { min-width: 45px !important; }
-    .input-price   { min-width: 75px !important; }
-    .input-total   { min-width: 95px !important; background-color: #fcfcfc !important; color: #000 !important; }
-    .input-unit    { min-width: 85px !important; }
-    
-    .discount-group .form-control { width: 60% !important; border-left: 0 !important; }
-    .discount-group .form-select { width: 40% !important; padding: 0 !important; font-size: 0.75rem; border-right: 0 !important; background-color: #f8f9fa; }
-</style>
-<div class="container-fluid">
-    <form action="{{ route('store.purchases.store') }}" method="POST" id="purchaseForm" enctype="multipart/form-data" novalidate>
-        @csrf
-        <input type="hidden" name="save_type" value="approved">
-        
-        <div class="row">
-            {{-- رأس الفاتورة --}}
-            <div class="col-lg-12 mb-4">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i> {{ __('فاتورة شراء جديدة') }} </h5>
-                        <a href="{{ route('store.purchases.index') }}" class="btn btn-sm btn-light text-primary fw-bold"> {{ __('العودة') }} </a>
-                    </div>
-                    <div class="card-body bg-light">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold"> {{ __('المورد') }} <span class="text-danger">*</span></label>
-                                <div class="position-relative">
-                                    <div class="input-group">
-    {{-- ✅ هذا هو الزر الذي كان مفقوداً --}}
-    <button type="button" class="btn btn-success" onclick="openCreateSupplierModal()" title="{{ __('مورد جديد') }}"><i class="fas fa-plus"></i></button>
-    
-    <input type="text" id="supplierSearchInput" class="form-control" placeholder="{{ __('ابحث عن مورد...') }}" autocomplete="off">
-    <input type="hidden" name="supplier_id" id="supplierId" required>
-    <input type="hidden" id="currentSupplierBalance" value="0">
-</div>
-                                    <div id="supplierResults" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1000; display: none;"></div>
-                                </div>
-                                {{-- 🟦🟥🟩 تكبير وتلوين الرصيد --}}
-                                <div id="supplierBalanceDisplay" class="mt-2 fs-5 fw-bold text-center p-2 rounded bg-white border">
-                                    <span class="text-muted small">الرصيد: --</span>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold"> {{ __('تاريخ وتوقيت الفاتورة') }} </label>
-                                <input type="datetime-local" name="invoice_date" class="form-control custom-date-input" 
-                                       value="{{ old('invoice_date', $currentDate) }}" required>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-bold"> {{ __('العملة') }} </label>
-                                <select name="currency_id" id="currency_id" class="form-select" onchange="onInvoiceCurrencyChange(this)">
-                                    @foreach($currencies as $cur)
-                                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-symbol="{{ $cur->symbol ?? $cur->code }}" {{ $cur->id == optional($baseCurrency)->id ? 'selected' : '' }}>
-                                            {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <input type="hidden" name="exchange_rate" id="invoice_exchange_rate" value="1">
-                                <div id="invoice_rate_info" class="small text-info mt-1 d-none" style="font-size: 0.7rem;">
-                                    {{ __('سعر الصرف:') }} 1 <span id="selected_curr_code"></span> = <span id="selected_curr_rate">1</span> {{ optional($baseCurrency)->code }}
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-bold"> {{ __('رقم الفاتورة') }} </label>
-                                <input type="text" name="invoice_number" class="form-control" value="{{ $nextInvoiceNumber }}" readonly>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- جدول المنتجات --}}
-            <div class="col-lg-12 mb-4">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body p-0">
-                        <div class="p-3 bg-white border-bottom position-relative">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search"></i></span>
-                                <input type="text" id="productSearch" class="form-control border-start-0" 
-                                       placeholder="ابحث باسم المنتج أو امسح الباركود (استخدم الأسهم ⬇️⬆️)..." autocomplete="off">
-                                {{-- تم التعديل لاستدعاء دالة فتح الإطار - مع دعم المطاعم --}}
-@if(Auth::user()->store->type == 'restaurant')
-<button type="button" class="btn btn-success" onclick="openCreateMealModal()"><i class="fas fa-plus-circle me-1"></i> وجبة أو مكون خام</button>
-@else
-<button type="button" class="btn btn-success" onclick="openCreateProductModal()"><i class="fas fa-plus-circle me-1"></i> منتج جديد</button>
-@endif
-                            </div>
-                            <div id="searchResults" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1000; top: 100%; display: none;"></div>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-bordered text-center align-middle mb-0" id="itemsTable">
-                                <thead class="bg-dark text-white small">
-                                    <tr>
-                                        <th class="col-shrink">صورة</th>
-                                        <th class="product-col">المنتج</th>
-                                        <th class="col-shrink"> {{ __('الباركود') }} </th>
-                                        <th class="col-shrink">الوحدة</th>
-                                        <th class="col-shrink">الكمية</th>
-                                        <th class="col-shrink">سعر الشراء</th>
-                                        <th class="col-shrink"> {{ __('الربح %') }} </th> 
-                                        <th class="col-shrink">الخصم</th>
-                                        <th class="col-shrink">سعر المبيع</th>
-                                        <th class="col-shrink">تاريخ الانتهاء</th>
-                                        <th class="col-shrink">تنبيه</th>
-                                        <th class="col-shrink">الضريبة</th>
-                                        <th class="col-shrink">الإجمالي</th>
-                                        <th class="col-shrink"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tableBody"></tbody>
-                            </table>
-                            <div id="emptyState" class="text-center py-5 text-muted">
-                                <i class="fas fa-box-open fa-3x mb-3 text-secondary opacity-50"></i>
-                                <p> {{ __('قم بالبحث لإضافة منتجات') }} </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- الحسابات والدفع --}}
-            <div class="col-lg-5 ms-auto">
-                <div class="card shadow border-primary">
-                    <div class="card-header bg-primary bg-opacity-10 py-2">
-                        <h6 class="mb-0 fw-bold text-primary"> {{ __('ملخص الدفع') }} </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span> {{ __('المجموع الفرعي:') }} </span> 
-                            <div><span id="subTotalDisplay" class="fw-bold">0.00</span> <span class="currency-label text-muted small">{{ optional($baseCurrency)->code }}</span></div>
-                        </div>
-                        <div class="input-group input-group-sm mb-3">
-                            <span class="input-group-text"> {{ __('خصم إضافي') }} </span>
-                            <input type="text" inputmode="decimal" name="discount" id="discountInput" class="form-control text-center fw-bold text-danger" value="0" oninput="calculateGrandTotal()">
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center border-top border-bottom py-2 mb-3">
-                            <span class="fs-5 fw-bold"> {{ __('الصافي النهائي:') }} </span>
-                            <div><span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">0.00</span> <span class="currency-label fw-bold text-primary">{{ optional($baseCurrency)->code }}</span></div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="small text-muted mb-1"> {{ __('المدفوعات') }} </label>
-                            <div id="paymentsContainer">
-                                <div class="payment-row mb-2">
-                                    <div class="input-group mb-1">
-                                        <select name="payments[0][method]" class="form-select method-select" style="max-width: 120px;">
-                                            <option value="cash"> {{ __('💰 نقدي') }} </option>
-                                            <option value="card"> {{ __('💳 بطاقة') }} </option>
-                                            <option value="bank"> {{ __('🏦 تحويل') }} </option>
-                                        </select>
-                                        <input type="text" inputmode="decimal" name="payments[0][amount]" class="form-control text-center payment-input" value="0" oninput="calculateGrandTotal()">
-                                        <select class="form-select currency-select pay-currency" style="max-width:110px;" onchange="onPayCurrencyChange(this, 0)">
-                                            <option value="{{ optional($baseCurrency)->id }}" data-rate="1" data-is-base="1" selected>{{ optional($baseCurrency)->code }}</option>
-                                            @foreach($currencies as $cur)
-                                                @if(!$baseCurrency || $cur->id != $baseCurrency->id)
-                                                <option value="{{ $cur->id }}" data-rate="1" data-is-base="0">{{ $cur->code }}</option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                        <button type="button" class="btn btn-outline-success" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
-                                    </div>
-                                    {{-- حقول مخفية لإرسال العملة وسعر الصرف --}}
-                                    <input type="hidden" name="payments[0][currency_id]" class="pay-currency-id" value="{{ optional($baseCurrency)->id }}">
-                                    <input type="hidden" name="payments[0][exchange_rate]" class="pay-rate-hidden" value="1">
-                                    {{-- حقل المعادل بالعملة الأساسية (يظهر عند اختيار عملة أخرى) --}}
-                                    <div class="rate-row d-none">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text text-muted small">يعادل ({{ optional($baseCurrency)->code }})</span>
-                                            <input type="text" readonly class="form-control bg-light text-center fw-bold rate-input" value="0.00" placeholder="المعادل">
-                                            <span class="input-group-text rate-note small text-info"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="alert p-2 text-center fw-bold" id="balanceAlert" style="display: none;">
-                            <span id="balanceLabel"> {{ __('المتبقي:') }} </span> <span id="balanceAmount">0.00</span>
-                        </div>
-                        
-                        <button type="button" onclick="checkBalanceAndSubmit()" class="btn btn-primary w-100 btn-lg mt-3"><i class="fas fa-save me-2"></i> {{ __('حفظ الفاتورة') }} </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </form>
-</div>
-
-{{-- مودال تأكيد الرصيد والدين --}}
-<div class="modal fade" id="balanceConfirmModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> تأكيد العملية المالية</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center" dir="rtl">
-                <h5 class="mb-3">ملخص تأثير الفاتورة على الرصيد</h5>
-                
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
-                    <span>الرصيد الحالي للمورد:</span>
-                    <span id="modalOldBalance" class="fw-bold"></span>
-                </div>
-                
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
-                    <span>قيمة الفاتورة (الصافي):</span>
-                    <span id="modalGrandTotal" class="fw-bold text-primary"></span>
-                </div>
-
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
-                    <span>المبلغ المدفوع الآن:</span>
-                    <span id="modalPaid" class="fw-bold text-success"></span>
-                </div>
-
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
-                    <span>المتبقي (الآجل):</span>
-                    <span id="modalDiff" class="fw-bold text-danger"></span>
-                </div>
-
-                <div class="alert alert-secondary mt-3">
-                    <strong>الرصيد الجديد بعد الحفظ:</strong><br>
-                    <span id="modalNewBalance" class="fs-4 fw-bold"></span>
-                </div>
-                
-                <p class="text-muted small" id="modalMessage"></p>
-            </div>
-            <div class="modal-footer justify-content-center">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" id="confirmSaveBtn" class="btn btn-primary px-5" onclick="ajaxSubmitPurchase()">موافق وحفظ</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- المودالات الأخرى --}}
-{{-- مودال إضافة مورد (نافذة Iframe) --}}
-<div class="modal fade" id="addSupplierModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95%;">
-        <div class="modal-content" style="height: 90vh;">
-            <div class="modal-header bg-success text-white py-2">
-                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> {{ __('إضافة مورد جديد') }} </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" style="overflow: hidden;">
-                <iframe id="createSupplierFrame" src="" style="width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
-            </div>
-        </div>
-    </div>
-</div>
-{{-- مودال إضافة منتج سريع (نافذة Iframe) --}}
-<div class="modal fade" id="quickProductModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95%;">
-        <div class="modal-content" style="height: 90vh;">
-            <div class="modal-header bg-success text-white py-2">
-                <h5 class="modal-title"><i class="fas fa-cube me-2"></i> {{ __('إضافة منتج جديد') }} </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" style="overflow: hidden;">
-                {{-- هنا سيتم تحميل صفحة الإضافة --}}
-                <iframe id="createProductFrame" src="" style="width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- مودال إضافة وجبة (خاص بالمطاعم) --}}
-<div class="modal fade" id="quickMealModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95%;">
-        <div class="modal-content" style="height: 90vh;">
-            <div class="modal-header bg-success text-white py-2">
-                <h5 class="modal-title"><i class="fas fa-utensils me-2"></i> إضافة وجبة أو مكون جديد</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" style="overflow: hidden;">
-                <iframe id="createMealFrame" src="" style="width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // --- المتغيرات العامة ---
+﻿
+    // --- ط§ظ„ظ…طھط؛ظٹط±ط§طھ ط§ظ„ط¹ط§ظ…ط© ---
     let rowIdx = 0;
     let paymentIdx = 1;
-    const storeTaxRates = @json($taxRates); 
+    const storeTaxRates = []; 
     window.productsData = {}; 
 
     // Currency setup
-    const defaultCurrencyCode = "{{ optional($baseCurrency)->code }}";
-    const baseCurrencyId = "{{ optional($baseCurrency)->id }}";
+    const defaultCurrencyCode = "dummy";
+    const baseCurrencyId = "dummy";
 
-    // --- عند تحميل الصفحة ---
+    // --- ط¹ظ†ط¯ طھط­ظ…ظٹظ„ ط§ظ„طµظپط­ط© ---
     document.addEventListener("DOMContentLoaded", function() {
-        console.log("✅ Main Script Loaded");
+        console.log("âœ… Main Script Loaded");
 
-        // إعداد بحث الموردين (مع الاختيار التلقائي)
+        // ط¥ط¹ط¯ط§ط¯ ط¨ط­ط« ط§ظ„ظ…ظˆط±ط¯ظٹظ† (ظ…ط¹ ط§ظ„ط§ط®طھظٹط§ط± ط§ظ„طھظ„ظ‚ط§ط¦ظٹ)
         console.log("Initializing Supplier Search...");
         
         // Currency change listener
         document.getElementById('currency_id').addEventListener('change', function() {
-            let selectedCode = this.options[this.selectedIndex].text.split(' — ')[0];
+            let selectedCode = this.options[this.selectedIndex].text.split(' â€” ')[0];
             document.querySelectorAll('.currency-label').forEach(el => el.innerText = selectedCode);
             // Optionally, we could show an exchange rate warning here if it's different from base currency
         });
 
-        // ✅ بحث المورد - مباشر بدون أي تبعية
-        (function() {
-            const supplierInput = document.getElementById('supplierSearchInput');
-            const supplierResultsEl = document.getElementById('supplierResults');
-            if (!supplierInput || !supplierResultsEl) { console.error('Supplier search elements missing!'); return; }
+        setupSearch('supplierSearchInput', 'supplierResults', "dummy", function(s) {
+            console.log("Supplier Selected:", s);
+            document.getElementById('supplierSearchInput').value = s.contact_name || s.company_name;
+            document.getElementById('supplierId').value = s.id;
+            
+            // ًںں¦ًںں¥ًںں© ظ…ظ†ط·ظ‚ ط§ظ„ط±طµظٹط¯ ط§ظ„ط¬ط¯ظٹط¯
+            let balance = parseFloat(s.current_balance || 0);
+            let displayDiv = document.getElementById('supplierBalanceDisplay');
+            document.getElementById('currentSupplierBalance').value = balance;
 
-            let supTimer;
-            supplierInput.addEventListener('input', function() {
-                clearTimeout(supTimer);
-                const term = this.value.trim();
-                if (term.length < 1) { supplierResultsEl.style.display = 'none'; return; }
-                supTimer = setTimeout(function() {
-                    fetch('{{ route("store.contacts.search") }}?term=' + encodeURIComponent(term), {
-                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        supplierResultsEl.innerHTML = '';
-                        if (!Array.isArray(data) || data.length === 0) { supplierResultsEl.style.display = 'none'; return; }
-                        data.forEach(item => {
-                            const a = document.createElement('a');
-                            a.className = 'list-group-item list-group-item-action cursor-pointer';
-                            a.textContent = item.contact_name || item.company_name || '';
-                            a.addEventListener('click', function() {
-                                supplierInput.value = item.contact_name || item.company_name;
-                                document.getElementById('supplierId').value = item.id;
-                                let balance = parseFloat(item.current_balance || 0);
-                                document.getElementById('currentSupplierBalance').value = balance;
-                                const displayDiv = document.getElementById('supplierBalanceDisplay');
-                                if (balance > 0) displayDiv.innerHTML = `<span class="text-danger fs-3"><i class="fas fa-arrow-down"></i> له علينا: ${formatNum(balance)}</span>`;
-                                else if (balance < 0) displayDiv.innerHTML = `<span class="text-success fs-3"><i class="fas fa-arrow-up"></i> لنا عنده: ${formatNum(Math.abs(balance))}</span>`;
-                                else displayDiv.innerHTML = `<span class="text-primary fs-3">الرصيد: 0.00</span>`;
-                                supplierResultsEl.style.display = 'none';
-                            });
-                            supplierResultsEl.appendChild(a);
-                        });
-                        supplierResultsEl.style.display = 'block';
-                    })
-                    .catch(err => console.error('Supplier search error:', err));
-                }, 300);
-            });
-            document.addEventListener('click', function(e) {
-                if (e.target !== supplierInput) supplierResultsEl.style.display = 'none';
-            });
-        })();
+            if (balance > 0) {
+                // ط£ط­ظ…ط±
+                displayDiv.innerHTML = `<span class="text-danger fs-3"><i class="fas fa-arrow-down"></i> ظ„ظ‡ ط¹ظ„ظٹظ†ط§: ${formatNum(balance)}</span>`;
+            } else if (balance < 0) {
+                // ط£ط®ط¶ط±
+                displayDiv.innerHTML = `<span class="text-success fs-3"><i class="fas fa-arrow-up"></i> ظ„ظ†ط§ ط¹ظ†ط¯ظ‡: ${formatNum(Math.abs(balance))}</span>`;
+            } else {
+                // ط£ط²ط±ظ‚
+                displayDiv.innerHTML = `<span class="text-primary fs-3">ط§ظ„ط±طµظٹط¯: 0.00</span>`;
+            }
+            // ظ…ط³ط­ ط§ظ„ط¨ط­ط«
+            document.getElementById('supplierResults').style.display = 'none';
+        }, true); // true = طھظپط¹ظٹظ„ ط§ظ„ط§ط®طھظٹط§ط± ط§ظ„طھظ„ظ‚ط§ط¦ظٹ ظ„ظ„ظ…ظˆط±ط¯ظٹظ†
 
-        // ✅ بحث المنتج - مباشر بدون أي تبعية
-        (function() {
-            const productInput = document.getElementById('productSearch');
-            const productResultsEl = document.getElementById('searchResults');
-            if (!productInput || !productResultsEl) { console.error('Product search elements missing!'); return; }
+        // ط­ط³ط§ط¨ ط§ظ„ط±ط§ط¨ط· ط¯ظٹظ†ط§ظ…ظٹظƒظٹط§ظ‹ ظ…ط¹ ط§ط³طھط®ط¯ط§ظ… Alias ط¬ط¯ظٹط¯ ظ„طھط¬ظ†ط¨ ط§ظ„ط­ط¸ط±
+        const basePath = window.location.pathname.split('/store-owner/')[0];
+        const searchUrl = `${window.location.origin}${basePath}/store-owner/core/lookup`;
+        console.log('Computed Search URL (Safe Alias):', searchUrl);
 
-            let prodTimer;
-            productInput.addEventListener('input', function() {
-                clearTimeout(prodTimer);
-                const term = this.value.trim();
-                if (term.length < 1) { productResultsEl.style.display = 'none'; return; }
-                prodTimer = setTimeout(function() {
-                    fetch('{{ route("store.core.lookup") }}?term=' + encodeURIComponent(term), {
-                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        productResultsEl.innerHTML = '';
-                        if (!Array.isArray(data) || data.length === 0) { productResultsEl.style.display = 'none'; return; }
-
-                        // اختيار تلقائي عند نتيجة واحدة بالباركود
-                        if (data.length === 1 && term === data[0].sku) {
-                            addProductRow(data[0]);
-                            productInput.value = '';
-                            productResultsEl.style.display = 'none';
-                            return;
-                        }
-
-                        data.forEach(item => {
-                            const a = document.createElement('a');
-                            a.className = 'list-group-item list-group-item-action cursor-pointer';
-                            a.innerHTML = `<strong>${item.name || ''}</strong> <small class="text-muted">${item.sku || ''}</small>`;
-                            a.addEventListener('click', function() {
-                                addProductRow(item);
-                                productInput.value = '';
-                                productInput.focus();
-                                productResultsEl.style.display = 'none';
-                            });
-                            productResultsEl.appendChild(a);
-                        });
-                        productResultsEl.style.display = 'block';
-                    })
-                    .catch(err => console.error('Product search error:', err));
-                }, 300);
-            });
-            document.addEventListener('click', function(e) {
-                if (e.target !== productInput) productResultsEl.style.display = 'none';
-            });
-        })();
-    // --- 🟢 كود مراقبة نافذة إضافة المورد للإضافة التلقائية ---
+        setupSearch('productSearch', 'searchResults', searchUrl, function(p) {
+            console.log("Product Selected:", p);
+            addProductRow(p);
+            // طھظپط±ظٹط؛ ط§ظ„ط­ظ‚ظ„
+            let input = document.getElementById('productSearch');
+            input.value = ''; 
+            input.focus();
+        }, true);
+    // --- ًںں¢ ظƒظˆط¯ ظ…ط±ط§ظ‚ط¨ط© ظ†ط§ظپط°ط© ط¥ط¶ط§ظپط© ط§ظ„ظ…ظˆط±ط¯ ظ„ظ„ط¥ط¶ط§ظپط© ط§ظ„طھظ„ظ‚ط§ط¦ظٹط© ---
         const supplierFrame = document.getElementById('createSupplierFrame');
         if(supplierFrame) {
             supplierFrame.onload = function() {
                 try {
                     const newUrl = supplierFrame.contentWindow.location.href;
                     
-                    // التحقق من الحفظ (خروج من صفحة create/edit)
+                    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط­ظپط¸ (ط®ط±ظˆط¬ ظ…ظ† طµظپط­ط© create/edit)
                     if (!newUrl.includes('create') && !newUrl.includes('edit')) {
-                        console.log("✅ تم حفظ المورد، الرابط: " + newUrl);
+                        console.log("âœ… طھظ… ط­ظپط¸ ط§ظ„ظ…ظˆط±ط¯طŒ ط§ظ„ط±ط§ط¨ط·: " + newUrl);
                         
-                        // 1. إغلاق المودال
+                        // 1. ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ…ظˆط¯ط§ظ„
                         var modalEl = document.getElementById('addSupplierModal');
                         var modal = bootstrap.Modal.getInstance(modalEl);
                         if(modal) modal.hide();
 
-                        // 2. استخراج ID المورد من الرابط (مثال: /contacts/50)
+                        // 2. ط§ط³طھط®ط±ط§ط¬ ID ط§ظ„ظ…ظˆط±ط¯ ظ…ظ† ط§ظ„ط±ط§ط¨ط· (ظ…ط«ط§ظ„: /contacts/50)
                         const match = newUrl.match(/contacts\/(\d+)/);
                         if (match && match[1]) {
                             const newContactId = match[1];
                             
-                            // 3. جلب بيانات المورد وتعبئة الحقول
-                            fetch(`{{ route('store.contacts.search') }}?term=${newContactId}`)
+                            // 3. ط¬ظ„ط¨ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظˆط±ط¯ ظˆطھط¹ط¨ط¦ط© ط§ظ„ط­ظ‚ظˆظ„
+                            fetch(`dummy?term=${newContactId}`)
                                 .then(r => r.json())
                                 .then(data => {
                                      let contact = null;
@@ -515,27 +93,27 @@
                                      }
 
                                      if(contact) {
-                                         // ✅ تعبئة البيانات في الفاتورة مباشرة
+                                         // âœ… طھط¹ط¨ط¦ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ظپظٹ ط§ظ„ظپط§طھظˆط±ط© ظ…ط¨ط§ط´ط±ط©
                                          document.getElementById('supplierSearchInput').value = contact.contact_name || contact.company_name;
                                          document.getElementById('supplierId').value = contact.id;
                                          
-                                         // تحديث الرصيد
+                                         // طھط­ط¯ظٹط« ط§ظ„ط±طµظٹط¯
                                          let balance = parseFloat(contact.current_balance || 0);
                                          let displayDiv = document.getElementById('supplierBalanceDisplay');
                                          document.getElementById('currentSupplierBalance').value = balance;
 
                                          if (balance > 0) {
-                                             displayDiv.innerHTML = `<span class="text-danger fs-3"><i class="fas fa-arrow-down"></i> له علينا: ${formatNum(balance)}</span>`;
+                                             displayDiv.innerHTML = `<span class="text-danger fs-3"><i class="fas fa-arrow-down"></i> ظ„ظ‡ ط¹ظ„ظٹظ†ط§: ${formatNum(balance)}</span>`;
                                          } else if (balance < 0) {
-                                             displayDiv.innerHTML = `<span class="text-success fs-3"><i class="fas fa-arrow-up"></i> لنا عنده: ${formatNum(Math.abs(balance))}</span>`;
+                                             displayDiv.innerHTML = `<span class="text-success fs-3"><i class="fas fa-arrow-up"></i> ظ„ظ†ط§ ط¹ظ†ط¯ظ‡: ${formatNum(Math.abs(balance))}</span>`;
                                          } else {
-                                             displayDiv.innerHTML = `<span class="text-primary fs-3">الرصيد: 0.00</span>`;
+                                             displayDiv.innerHTML = `<span class="text-primary fs-3">ط§ظ„ط±طµظٹط¯: 0.00</span>`;
                                          }
 
-                                         if(typeof toastr !== 'undefined') toastr.success('تم اختيار المورد الجديد تلقائياً');
+                                         if(typeof toastr !== 'undefined') toastr.success('طھظ… ط§ط®طھظٹط§ط± ط§ظ„ظ…ظˆط±ط¯ ط§ظ„ط¬ط¯ظٹط¯ طھظ„ظ‚ط§ط¦ظٹط§ظ‹');
                                      }
                                 })
-                                .catch(err => console.error('خطأ في جلب المورد', err));
+                                .catch(err => console.error('ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظˆط±ط¯', err));
                         }
                     }
                 } catch (e) {
@@ -543,82 +121,82 @@
                 }
             };
         }
-    // true = تفعيل الاختيار التلقائي للمنتجات
-// --- 🟢 كود مراقبة نافذة إضافة المنتج للإضافة التلقائية للفاتورة ---
+    // true = طھظپط¹ظٹظ„ ط§ظ„ط§ط®طھظٹط§ط± ط§ظ„طھظ„ظ‚ط§ط¦ظٹ ظ„ظ„ظ…ظ†طھط¬ط§طھ
+// --- ًںں¢ ظƒظˆط¯ ظ…ط±ط§ظ‚ط¨ط© ظ†ط§ظپط°ط© ط¥ط¶ط§ظپط© ط§ظ„ظ…ظ†طھط¬ ظ„ظ„ط¥ط¶ط§ظپط© ط§ظ„طھظ„ظ‚ط§ط¦ظٹط© ظ„ظ„ظپط§طھظˆط±ط© ---
         const frame = document.getElementById('createProductFrame');
         if(frame) {
             frame.onload = function() {
                 try {
-                    // قراءة الرابط الحالي داخل الـ iframe
+                    // ظ‚ط±ط§ط،ط© ط§ظ„ط±ط§ط¨ط· ط§ظ„ط­ط§ظ„ظٹ ط¯ط§ط®ظ„ ط§ظ„ظ€ iframe
                     const newUrl = frame.contentWindow.location.href;
                     
-                    // إذا تغير الرابط ولم يعد في صفحة الإنشاء (create) أو التعديل (edit)
-                    // فهذا يعني أن المستخدم ضغط حفظ وتم تحويله
+                    // ط¥ط°ط§ طھط؛ظٹط± ط§ظ„ط±ط§ط¨ط· ظˆظ„ظ… ظٹط¹ط¯ ظپظٹ طµظپط­ط© ط§ظ„ط¥ظ†ط´ط§ط، (create) ط£ظˆ ط§ظ„طھط¹ط¯ظٹظ„ (edit)
+                    // ظپظ‡ط°ط§ ظٹط¹ظ†ظٹ ط£ظ† ط§ظ„ظ…ط³طھط®ط¯ظ… ط¶ط؛ط· ط­ظپط¸ ظˆطھظ… طھط­ظˆظٹظ„ظ‡
                     if (!newUrl.includes('create') && !newUrl.includes('edit')) {
-                        console.log("✅ تم الحفظ بنجاح، الرابط الجديد: " + newUrl);
+                        console.log("âœ… طھظ… ط§ظ„ط­ظپط¸ ط¨ظ†ط¬ط§ط­طŒ ط§ظ„ط±ط§ط¨ط· ط§ظ„ط¬ط¯ظٹط¯: " + newUrl);
                         
-                        // 1. إغلاق المودال
+                        // 1. ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ…ظˆط¯ط§ظ„
                         var myModalEl = document.getElementById('quickProductModal');
                         var modal = bootstrap.Modal.getInstance(myModalEl);
                         if(modal) modal.hide();
 
-                        // 2. محاولة استخراج ID المنتج من الرابط (مثال: /products/15)
+                        // 2. ظ…ط­ط§ظˆظ„ط© ط§ط³طھط®ط±ط§ط¬ ID ط§ظ„ظ…ظ†طھط¬ ظ…ظ† ط§ظ„ط±ط§ط¨ط· (ظ…ط«ط§ظ„: /products/15)
                         const match = newUrl.match(/products\/(\d+)/);
                         if (match && match[1]) {
                             const newProductId = match[1];
                             
-                            // 3. جلب بيانات المنتج الجديد وإضافته للجدول
-                            fetch(`{{ route('store.products.search') }}?term=${newProductId}`)
+                            // 3. ط¬ظ„ط¨ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†طھط¬ ط§ظ„ط¬ط¯ظٹط¯ ظˆط¥ط¶ط§ظپطھظ‡ ظ„ظ„ط¬ط¯ظˆظ„
+                            fetch(`dummy?term=${newProductId}`)
                                 .then(r => r.json())
                                 .then(data => {
-                                     // التأكد من أن النتيجة مصفوفة أو كائن
+                                     // ط§ظ„طھط£ظƒط¯ ظ…ظ† ط£ظ† ط§ظ„ظ†طھظٹط¬ط© ظ…طµظپظˆظپط© ط£ظˆ ظƒط§ط¦ظ†
                                      let product = null;
                                      if(Array.isArray(data)) {
-                                         // البحث عن المنتج الذي يطابق الـ ID
+                                         // ط§ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظ…ظ†طھط¬ ط§ظ„ط°ظٹ ظٹط·ط§ط¨ظ‚ ط§ظ„ظ€ ID
                                          product = data.find(p => p.id == newProductId) || data[0];
                                      } else {
                                          product = data;
                                      }
 
                                      if(product) {
-                                         addProductRow(product); // إضافة للصف
+                                         addProductRow(product); // ط¥ط¶ط§ظپط© ظ„ظ„طµظپ
                                          
-                                         // تنبيه نجاح (اختياري)
-                                         if(typeof toastr !== 'undefined') toastr.success('تم إضافة المنتج الجديد للفاتورة');
-                                         else alert('تم إضافة المنتج الجديد للفاتورة بنجاح!');
+                                         // طھظ†ط¨ظٹظ‡ ظ†ط¬ط§ط­ (ط§ط®طھظٹط§ط±ظٹ)
+                                         if(typeof toastr !== 'undefined') toastr.success('طھظ… ط¥ط¶ط§ظپط© ط§ظ„ظ…ظ†طھط¬ ط§ظ„ط¬ط¯ظٹط¯ ظ„ظ„ظپط§طھظˆط±ط©');
+                                         else alert('طھظ… ط¥ط¶ط§ظپط© ط§ظ„ظ…ظ†طھط¬ ط§ظ„ط¬ط¯ظٹط¯ ظ„ظ„ظپط§طھظˆط±ط© ط¨ظ†ط¬ط§ط­!');
                                      }
                                 })
-                                .catch(err => console.error('خطأ في جلب المنتج الجديد', err));
+                                .catch(err => console.error('ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظ†طھط¬ ط§ظ„ط¬ط¯ظٹط¯', err));
                         }
                     }
                 } catch (e) {
-                    console.log('لا يمكن الوصول لمحتوى الإطار بسبب سياسات الأمان (Cross-origin) أو لم يتم التحميل بعد.');
+                    console.log('ظ„ط§ ظٹظ…ظƒظ† ط§ظ„ظˆطµظˆظ„ ظ„ظ…ط­طھظˆظ‰ ط§ظ„ط¥ط·ط§ط± ط¨ط³ط¨ط¨ ط³ظٹط§ط³ط§طھ ط§ظ„ط£ظ…ط§ظ† (Cross-origin) ط£ظˆ ظ„ظ… ظٹطھظ… ط§ظ„طھط­ظ…ظٹظ„ ط¨ط¹ط¯.');
                 }
             };
         }
 
-        // --- 🟢 كود مراقبة نافذة إضافة الوجبة للمطاعم ---
+        // --- ًںں¢ ظƒظˆط¯ ظ…ط±ط§ظ‚ط¨ط© ظ†ط§ظپط°ط© ط¥ط¶ط§ظپط© ط§ظ„ظˆط¬ط¨ط© ظ„ظ„ظ…ط·ط§ط¹ظ… ---
         const mealFrame = document.getElementById('createMealFrame');
         if(mealFrame) {
             mealFrame.onload = function() {
                 try {
                     const newUrl = mealFrame.contentWindow.location.href;
                     if (!newUrl.includes('create') && !newUrl.includes('edit')) {
-                        console.log("✅ تم حفظ الوجبة بنجاح، الرابط الجديد: " + newUrl);
+                        console.log("âœ… طھظ… ط­ظپط¸ ط§ظ„ظˆط¬ط¨ط© ط¨ظ†ط¬ط§ط­طŒ ط§ظ„ط±ط§ط¨ط· ط§ظ„ط¬ط¯ظٹط¯: " + newUrl);
                         
                         var mealModalEl = document.getElementById('quickMealModal');
                         var modal = bootstrap.Modal.getInstance(mealModalEl);
                         if(modal) modal.hide();
 
-                        // الوجبات والمكونات تعامل كمنتجات في الفاتورة
-                        // نحاول استخراج ID
+                        // ط§ظ„ظˆط¬ط¨ط§طھ ظˆط§ظ„ظ…ظƒظˆظ†ط§طھ طھط¹ط§ظ…ظ„ ظƒظ…ظ†طھط¬ط§طھ ظپظٹ ط§ظ„ظپط§طھظˆط±ط©
+                        // ظ†ط­ط§ظˆظ„ ط§ط³طھط®ط±ط§ط¬ ID
                         const match = newUrl.match(/meals\/(\d+)/);
-                        // أو products إذا كان مكوناً خاماً وتم تحويله لصفحة المنتجات (يعتمد على النظام)
-                        // لكن لنفترض أنه سيعود لصفحة الوجبات أو المنتجات.
-                        // في نظامك، الوجبات قد تكون في جدول products أيضاً أو منفصلة.
-                        // إذا كانت في products فالرابط سيكون products/id. 
-                        // إذا كانت meals/id، فنحتاج endpoint للبحث عنها.
-                        // لكنك قلت "وجبة أو مكون خام"، وكلاهما يخزنان كمنتجات عادةً.
+                        // ط£ظˆ products ط¥ط°ط§ ظƒط§ظ† ظ…ظƒظˆظ†ط§ظ‹ ط®ط§ظ…ط§ظ‹ ظˆطھظ… طھط­ظˆظٹظ„ظ‡ ظ„طµظپط­ط© ط§ظ„ظ…ظ†طھط¬ط§طھ (ظٹط¹طھظ…ط¯ ط¹ظ„ظ‰ ط§ظ„ظ†ط¸ط§ظ…)
+                        // ظ„ظƒظ† ظ„ظ†ظپطھط±ط¶ ط£ظ†ظ‡ ط³ظٹط¹ظˆط¯ ظ„طµظپط­ط© ط§ظ„ظˆط¬ط¨ط§طھ ط£ظˆ ط§ظ„ظ…ظ†طھط¬ط§طھ.
+                        // ظپظٹ ظ†ط¸ط§ظ…ظƒطŒ ط§ظ„ظˆط¬ط¨ط§طھ ظ‚ط¯ طھظƒظˆظ† ظپظٹ ط¬ط¯ظˆظ„ products ط£ظٹط¶ط§ظ‹ ط£ظˆ ظ…ظ†ظپطµظ„ط©.
+                        // ط¥ط°ط§ ظƒط§ظ†طھ ظپظٹ products ظپط§ظ„ط±ط§ط¨ط· ط³ظٹظƒظˆظ† products/id. 
+                        // ط¥ط°ط§ ظƒط§ظ†طھ meals/idطŒ ظپظ†ط­طھط§ط¬ endpoint ظ„ظ„ط¨ط­ط« ط¹ظ†ظ‡ط§.
+                        // ظ„ظƒظ†ظƒ ظ‚ظ„طھ "ظˆط¬ط¨ط© ط£ظˆ ظ…ظƒظˆظ† ط®ط§ظ…"طŒ ظˆظƒظ„ط§ظ‡ظ…ط§ ظٹط®ط²ظ†ط§ظ† ظƒظ…ظ†طھط¬ط§طھ ط¹ط§ط¯ط©ظ‹.
                         
                         let newId = null;
                         if (match && match[1]) newId = match[1];
@@ -628,7 +206,7 @@
                         }
 
                         if (newId) {
-                            fetch(`{{ route('store.products.search') }}?term=${newId}`) // نستخدم نفس البحث لأن الوجبات منتجات
+                            fetch(`dummy?term=${newId}`) // ظ†ط³طھط®ط¯ظ… ظ†ظپط³ ط§ظ„ط¨ط­ط« ظ„ط£ظ† ط§ظ„ظˆط¬ط¨ط§طھ ظ…ظ†طھط¬ط§طھ
                                 .then(r => r.json())
                                 .then(data => {
                                      let item = null;
@@ -637,10 +215,10 @@
 
                                      if(item) {
                                          addProductRow(item);
-                                         if(typeof toastr !== 'undefined') toastr.success('تم إضافة الوجبة/المكون للفاتورة');
+                                         if(typeof toastr !== 'undefined') toastr.success('طھظ… ط¥ط¶ط§ظپط© ط§ظ„ظˆط¬ط¨ط©/ط§ظ„ظ…ظƒظˆظ† ظ„ظ„ظپط§طھظˆط±ط©');
                                      }
                                 })
-                                .catch(err => console.error('خطأ في جلب الوجبة', err));
+                                .catch(err => console.error('ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظˆط¬ط¨ط©', err));
                         }
                     }
                 } catch (e) {
@@ -650,7 +228,7 @@
         }
     });
 
-    // --- دوال مساعدة ---
+    // --- ط¯ظˆط§ظ„ ظ…ط³ط§ط¹ط¯ط© ---
     function parseMoney(value) {
         if (!value) return 0;
         let clean = String(value).replace(/[^0-9.]/g, ''); 
@@ -663,7 +241,7 @@
         return parseFloat(val.toFixed(4)); 
     }
 
-    // --- دالة إضافة صف المنتج المصححة ---
+    // --- ط¯ط§ظ„ط© ط¥ط¶ط§ظپط© طµظپ ط§ظ„ظ…ظ†طھط¬ ط§ظ„ظ…طµط­ط­ط© ---
     function addProductRow(product) {
         if (!product || !product.units || product.units.length === 0) {
             console.error("Product has no units or is null:", product);
@@ -672,7 +250,7 @@
         document.getElementById('emptyState').style.display = 'none';
         window.productsData[rowIdx] = product;
 
-        // تحديد الوحدة الافتراضية
+        // طھط­ط¯ظٹط¯ ط§ظ„ظˆط­ط¯ط© ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©
         let selectedUnitId = product.scanned_unit_id;
         if (!selectedUnitId) {
             let base = product.units.find(u => u.is_base_unit == 1) || product.units[0];
@@ -680,24 +258,24 @@
         }
         if (!selectedUnitId) return;
 
-        // حسابات التكلفة (تعديل: الاعتماد على سعر الوحدة المختارة أولاً)
+        // ط­ط³ط§ط¨ط§طھ ط§ظ„طھظƒظ„ظپط© (طھط¹ط¯ظٹظ„: ط§ظ„ط§ط¹طھظ…ط§ط¯ ط¹ظ„ظ‰ ط³ط¹ط± ط§ظ„ظˆط­ط¯ط© ط§ظ„ظ…ط®طھط§ط±ط© ط£ظˆظ„ط§ظ‹)
         let selectedUnit = product.units.find(u => u.id == selectedUnitId);
         let selectedFactor = (selectedUnit.is_base_unit) ? 1 : (parseFloat(selectedUnit.conversion_factor) || 1);
         
-        // 1. حساب التكلفة بناءً على العملة (جديد)
+        // 1. ط­ط³ط§ط¨ ط§ظ„طھظƒظ„ظپط© ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط§ظ„ط¹ظ…ظ„ط© (ط¬ط¯ظٹط¯)
         let preferredPrice = parseFloat(selectedUnit.cost_price) || parseFloat(selectedUnit.purchase_price) || 0;
         let pCurrId = selectedUnit.purchase_currency_id || baseCurrencyId;
         let pRate = (pCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.purchase_exchange_rate) || parseFloat(selectedUnit.store_custom_purchase_rate) || ratesMap[pCurrId]?.exchange_rate || 1);
         
-        // התكلفة بالعملة الأساسية (TRY)
+        // ×”×ھظƒظ„ظپط© ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© (TRY)
         let priceInBase = preferredPrice * pRate;
-        // جلب سعر صرف الفاتورة
+        // ط¬ظ„ط¨ ط³ط¹ط± طµط±ظپ ط§ظ„ظپط§طھظˆط±ط©
         let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
         
-        // حساب التكلفة بعملة الفاتورة - هي ما سيتم إدخاله في الحقل الأحمر
+        // ط­ط³ط§ط¨ ط§ظ„طھظƒظ„ظپط© ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© - ظ‡ظٹ ظ…ط§ ط³ظٹطھظ… ط¥ط¯ط®ط§ظ„ظ‡ ظپظٹ ط§ظ„ط­ظ‚ظ„ ط§ظ„ط£ط­ظ…ط±
         let calculatedCost = priceInBase / invRate; 
 
-        // 2. إذا كانت صفر، نحاول استنتاجها من أكبر وحدة (المنطق الاحتياطي)
+        // 2. ط¥ط°ط§ ظƒط§ظ†طھ طµظپط±طŒ ظ†ط­ط§ظˆظ„ ط§ط³طھظ†طھط§ط¬ظ‡ط§ ظ…ظ† ط£ظƒط¨ط± ظˆط­ط¯ط© (ط§ظ„ظ…ظ†ط·ظ‚ ط§ظ„ط§ط­طھظٹط§ط·ظٹ)
         if (calculatedCost === 0) {
             let maxUnit = product.units.reduce((prev, curr) => (parseFloat(prev.conversion_factor) > parseFloat(curr.conversion_factor)) ? prev : curr);
             let maxUnitCost = parseFloat(maxUnit.cost_price) || parseFloat(maxUnit.purchase_price) || 0;
@@ -706,22 +284,22 @@
             let mCurrId = maxUnit.purchase_currency_id || baseCurrencyId;
             let mRate = (mCurrId == baseCurrencyId) ? 1 : (parseFloat(maxUnit.purchase_exchange_rate) || parseFloat(maxUnit.store_custom_purchase_rate) || ratesMap[mCurrId]?.exchange_rate || 1);
             
-            // تكلفة الوحدة الأساسية بالعملة الأساسية
+            // طھظƒظ„ظپط© ط§ظ„ظˆط­ط¯ط© ط§ظ„ط£ط³ط§ط³ظٹط© ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط©
             calculatedCost = (maxUnitCost * mRate / maxFactor) * selectedFactor;
         }
 
-        // 3. حساب تكلفة الوحدة الأساسية (بالليرة) للاستخدام في باقي الوحدات
+        // 3. ط­ط³ط§ط¨ طھظƒظ„ظپط© ط§ظ„ظˆط­ط¯ط© ط§ظ„ط£ط³ط§ط³ظٹط© (ط¨ط§ظ„ظ„ظٹط±ط©) ظ„ظ„ط§ط³طھط®ط¯ط§ظ… ظپظٹ ط¨ط§ظ‚ظٹ ط§ظ„ظˆط­ط¯ط§طھ
         let trueBaseCost = (selectedFactor > 0) ? (calculatedCost / selectedFactor) : 0;
         
         let initialBarcode = selectedUnit.barcode || '-';
         
-        // --- تصحيح تحويل سعر البيع إلى عملة الفاتورة ---
+        // --- طھطµط­ظٹط­ طھط­ظˆظٹظ„ ط³ط¹ط± ط§ظ„ط¨ظٹط¹ ط¥ظ„ظ‰ ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© ---
         let rawSellPrice = parseFloat(selectedUnit.sale_price) || 0;
         let sCurrId = selectedUnit.sell_currency_id || baseCurrencyId;
         let sRate = (sCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.sell_exchange_rate) || parseFloat(selectedUnit.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
-        // سعر البيع بالعملة الأساسية (TRY)
+        // ط³ط¹ط± ط§ظ„ط¨ظٹط¹ ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© (TRY)
         let sellInBase = rawSellPrice * sRate;
-        // سعر البيع بعملة الفاتورة - هو ما سيتم إدخاله في الحقل الأخضر
+        // ط³ط¹ط± ط§ظ„ط¨ظٹط¹ ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© - ظ‡ظˆ ظ…ط§ ط³ظٹطھظ… ط¥ط¯ط®ط§ظ„ظ‡ ظپظٹ ط§ظ„ط­ظ‚ظ„ ط§ظ„ط£ط®ط¶ط±
         let sellPrice = sellInBase / invRate;
 
         let profitPercent = (calculatedCost > 0) ? ((sellPrice - calculatedCost) / calculatedCost) * 100 : 0;
@@ -738,12 +316,12 @@
             let safeFactor = isBase ? 1 : (parseFloat(u.conversion_factor) || 1);
             let mathPrice = trueBaseCost * safeFactor;
 
-            // تحويل سعر البيع لكل وحدة أيضاً
+            // طھط­ظˆظٹظ„ ط³ط¹ط± ط§ظ„ط¨ظٹط¹ ظ„ظƒظ„ ظˆط­ط¯ط© ط£ظٹط¶ط§ظ‹
             let rSell = parseFloat(u.sale_price) || 0;
             let rCurrId = u.sell_currency_id || baseCurrencyId;
             let rRate = (rCurrId == baseCurrencyId) ? 1 : (ratesMap[rCurrId]?.exchange_rate || 1);
             let rSellInBase = rSell * rRate;
-            let rSellInInv = rSellInBase / invRate; // بعملة الفاتورة
+            let rSellInInv = rSellInBase / invRate; // ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط©
 
             let rProfit = (mathPrice > 0) ? ((rSellInInv - mathPrice) / mathPrice) * 100 : 0;
 
@@ -759,7 +337,7 @@
                     </option>`;
         }).join('');
 
-        // بناء الصف (HTML) بشكل صحيح بدون تكرار أو قطع
+        // ط¨ظ†ط§ط، ط§ظ„طµظپ (HTML) ط¨ط´ظƒظ„ طµط­ظٹط­ ط¨ط¯ظˆظ† طھظƒط±ط§ط± ط£ظˆ ظ‚ط·ط¹
         tr.innerHTML = `
             <td class="col-shrink">
                 <div class="d-flex flex-column align-items-center gap-1">
@@ -788,7 +366,7 @@
                 <div class="input-group input-group-sm discount-group input-discount">
                     <input type="text" inputmode="decimal" name="items[${rowIdx}][discount]" class="form-control text-center discount px-1" value="0" oninput="calcTotals(${rowIdx})">
                     <select name="items[${rowIdx}][discount_type]" class="form-select discount-type px-0" onchange="calcTotals(${rowIdx})">
-                        <option value="fixed" class="currency-label">{{ optional($baseCurrency)->symbol ?? optional($baseCurrency)->code }}</option>
+                        <option value="fixed" class="currency-label">dummy</option>
                         <option value="percent">%</option>
                     </select>
                 </div>
@@ -803,11 +381,11 @@
             </td>
 
             <td class="col-shrink">
-                <input type="date" name="items[${rowIdx}][expiry_date]" class="form-control form-control-sm text-center px-1 input-expiry" title="تاريخ الانتهاء">
+                <input type="date" name="items[${rowIdx}][expiry_date]" class="form-control form-control-sm text-center px-1 input-expiry" title="طھط§ط±ظٹط® ط§ظ„ط§ظ†طھظ‡ط§ط،">
             </td>
 
             <td class="col-shrink">
-                <input type="number" name="items[${rowIdx}][alert_days]" class="form-control form-control-sm text-center text-danger fw-bold px-1" style="width: 50px;" value="10" placeholder="10" title="{{ __('نبهني قبل X يوم') }}">
+                <input type="number" name="items[${rowIdx}][alert_days]" class="form-control form-control-sm text-center text-danger fw-bold px-1" style="width: 50px;" value="10" placeholder="10" title="dummy">
             </td>
             
             <td class="col-shrink"><select name="items[${rowIdx}][tax]" class="form-select form-select-sm tax bg-warning bg-opacity-10" onchange="calcTotals(${rowIdx})">${taxOptionsHtml}</select></td>
@@ -817,7 +395,7 @@
         
         document.getElementById('tableBody').appendChild(tr);
 
-        // صف التفاصيل المخفية (مقسم لعمودين: وحدات + سجل)
+        // طµظپ ط§ظ„طھظپط§طµظٹظ„ ط§ظ„ظ…ط®ظپظٹط© (ظ…ظ‚ط³ظ… ظ„ط¹ظ…ظˆط¯ظٹظ†: ظˆط­ط¯ط§طھ + ط³ط¬ظ„)
         const detailsTr = document.createElement('tr');
         detailsTr.id = `details_${rowIdx}`;
         detailsTr.style.display = 'none';
@@ -827,13 +405,13 @@
                 <div class="p-3 border rounded bg-white">
                     <div class="row">
                         <div class="col-md-6 border-end">
-                            <h6 class="fw-bold text-primary mb-2"><i class="fas fa-sitemap"></i> تحديث الوحدات المرتبطة</h6>
+                            <h6 class="fw-bold text-primary mb-2"><i class="fas fa-sitemap"></i> طھط­ط¯ظٹط« ط§ظ„ظˆط­ط¯ط§طھ ط§ظ„ظ…ط±طھط¨ط·ط©</h6>
                             <div id="related_units_container_${rowIdx}"></div>
                         </div>
                         <div class="col-md-6">
-                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-history"></i> سجل آخر 5 مشتريات</h6>
+                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-history"></i> ط³ط¬ظ„ ط¢ط®ط± 5 ظ…ط´طھط±ظٹط§طھ</h6>
                             <div id="history_container_${rowIdx}" class="small">
-                                <div class="text-center text-muted p-2"><i class="fas fa-spinner fa-spin"></i> جاري الجلب...</div>
+                                <div class="text-center text-muted p-2"><i class="fas fa-spinner fa-spin"></i> ط¬ط§ط±ظٹ ط§ظ„ط¬ظ„ط¨...</div>
                             </div>
                         </div>
                     </div>
@@ -842,25 +420,25 @@
         document.getElementById('tableBody').appendChild(detailsTr);
 
         renderRelatedUnits(rowIdx, selectedUnitId);
-        renderHistory(rowIdx, product.id); // ✅ جلب السجل
-        updateDualPriceDisplay(rowIdx); // ✅ تحديث عرض العملتين
+        renderHistory(rowIdx, product.id); // âœ… ط¬ظ„ط¨ ط§ظ„ط³ط¬ظ„
+        updateDualPriceDisplay(rowIdx); // âœ… طھط­ط¯ظٹط« ط¹ط±ط¶ ط§ظ„ط¹ظ…ظ„طھظٹظ†
         calcTotals(rowIdx); 
         rowIdx++;
     }
 
-    // 🟢 دالة جلب ورسم السجل
+    // ًںں¢ ط¯ط§ظ„ط© ط¬ظ„ط¨ ظˆط±ط³ظ… ط§ظ„ط³ط¬ظ„
     function renderHistory(idx, productId) {
         console.log(`[History] Fetching for Product ID: ${productId} (Row: ${idx})`);
 
         if (!productId) {
             console.error("[History] Product ID is missing!");
-            document.getElementById(`history_container_${idx}`).innerHTML = '<span class="text-danger">معرف المنتج مفقود</span>';
+            document.getElementById(`history_container_${idx}`).innerHTML = '<span class="text-danger">ظ…ط¹ط±ظپ ط§ظ„ظ…ظ†طھط¬ ظ…ظپظ‚ظˆط¯</span>';
             return;
         }
 
-        // استخدام رابط مباشر للقضاء على مشاكل الـ replacement
-        // نستخدم الرابط الأساسي ثم نضيف الـ ID
-        let baseUrl = "{{ route('store.purchases.history', ['id' => ':id']) }}";
+        // ط§ط³طھط®ط¯ط§ظ… ط±ط§ط¨ط· ظ…ط¨ط§ط´ط± ظ„ظ„ظ‚ط¶ط§ط، ط¹ظ„ظ‰ ظ…ط´ط§ظƒظ„ ط§ظ„ظ€ replacement
+        // ظ†ط³طھط®ط¯ظ… ط§ظ„ط±ط§ط¨ط· ط§ظ„ط£ط³ط§ط³ظٹ ط«ظ… ظ†ط¶ظٹظپ ط§ظ„ظ€ ID
+        let baseUrl = "dummy";
         let url = baseUrl.replace(':id', productId);
         
         console.log(`[History] Request URL: ${url}`);
@@ -876,7 +454,7 @@
                 console.log(`[History] Data received:`, data);
                 let container = document.getElementById(`history_container_${idx}`);
                 if (data.length === 0) {
-                    container.innerHTML = '<div class="alert alert-secondary p-1 m-0 text-center">لا يوجد سجل مشتريات سابق</div>';
+                    container.innerHTML = '<div class="alert alert-secondary p-1 m-0 text-center">ظ„ط§ ظٹظˆط¬ط¯ ط³ط¬ظ„ ظ…ط´طھط±ظٹط§طھ ط³ط§ط¨ظ‚</div>';
                     return;
                 }
 
@@ -884,10 +462,10 @@
                     <table class="table table-sm table-bordered mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>التاريخ</th>
-                                <th> {{ __('المورد') }} </th>
-                                <th>الوحدة</th>
-                                <th>السعر</th>
+                                <th>ط§ظ„طھط§ط±ظٹط®</th>
+                                <th> dummy </th>
+                                <th>ط§ظ„ظˆط­ط¯ط©</th>
+                                <th>ط§ظ„ط³ط¹ط±</th>
                             </tr>
                         </thead>
                         <tbody>`;
@@ -907,7 +485,7 @@
             })
             .catch(err => {
                 console.error(err);
-                document.getElementById(`history_container_${idx}`).innerHTML = '<span class="text-danger">خطأ في جلب السجل</span>';
+                document.getElementById(`history_container_${idx}`).innerHTML = '<span class="text-danger">ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط³ط¬ظ„</span>';
             });
     }
 
@@ -938,12 +516,12 @@
         }
 
         renderRelatedUnits(idx, unitId);
-        // عند تغيير الوحدة لا نغير أسعار باقي الوحدات، فقط نعيد رسمها
+        // ط¹ظ†ط¯ طھط؛ظٹظٹط± ط§ظ„ظˆط­ط¯ط© ظ„ط§ ظ†ط؛ظٹط± ط£ط³ط¹ط§ط± ط¨ط§ظ‚ظٹ ط§ظ„ظˆط­ط¯ط§طھطŒ ظپظ‚ط· ظ†ط¹ظٹط¯ ط±ط³ظ…ظ‡ط§
         updateDualPriceDisplay(idx);
         calcTotals(idx);
     }
 
-    // 🟢 عرض السعر بالعملة الأصلية وما يعادلها بالعملة الأساسية
+    // ًںں¢ ط¹ط±ط¶ ط§ظ„ط³ط¹ط± ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£طµظ„ظٹط© ظˆظ…ط§ ظٹط¹ط§ط¯ظ„ظ‡ط§ ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط©
     function updateDualPriceDisplay(idx) {
         let row = document.getElementById(`row_${idx}`);
         if (!row) return;
@@ -954,9 +532,9 @@
         let unit = product.units.find(u => u.id == selectedUnitId);
         
         let invoiceCurrId = document.getElementById('currency_id').value;
-        let bCode = "{{ optional($baseCurrency)->code }}";
+        let bCode = "dummy";
 
-        // 1. معالجة سعر الشراء
+        // 1. ظ…ط¹ط§ظ„ط¬ط© ط³ط¹ط± ط§ظ„ط´ط±ط§ط،
         let costOriginal = row.querySelector('.cost-original');
         let costBase = row.querySelector('.cost-base');
         
@@ -974,7 +552,7 @@
             }
         }
 
-        // 2. معالجة سعر البيع
+        // 2. ظ…ط¹ط§ظ„ط¬ط© ط³ط¹ط± ط§ظ„ط¨ظٹط¹
         let sellOriginal = row.querySelector('.sell-original');
         let sellBase = row.querySelector('.sell-base');
 
@@ -1013,14 +591,14 @@
             let safeFactor = isBase ? 1 : (parseFloat(u.conversion_factor) || 1);
             let calculatedCost = trueBaseCost * safeFactor; 
             let rawSell = parseFloat(u.sale_price) || 0;
-            let sCurrId = u.sell_currency_id || "{{ optional($baseCurrency)->id }}";
-            let sRate = (sCurrId == "{{ optional($baseCurrency)->id }}") ? 1 : (parseFloat(u.sell_exchange_rate) || parseFloat(u.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
+            let sCurrId = u.sell_currency_id || "dummy";
+            let sRate = (sCurrId == "dummy") ? 1 : (parseFloat(u.sell_exchange_rate) || parseFloat(u.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
             
             let sInBase = rawSell * sRate;
             let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
             let uSell = sInBase / invRate;
 
-            // جلب الربح الأصلي من قاعدة البيانات للمقارنة
+            // ط¬ظ„ط¨ ط§ظ„ط±ط¨ط­ ط§ظ„ط£طµظ„ظٹ ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ„ظ„ظ…ظ‚ط§ط±ظ†ط©
             let originalProfit = parseFloat(u.profit_percent) || 0; 
             
             let uProfit = 0;
@@ -1032,7 +610,7 @@
                 <div class="row g-2 align-items-center mb-2 related-unit-row border-bottom pb-2" 
                      data-unit-id="${u.id}" 
                      data-factor="${safeFactor}"
-                     data-original-profit="${originalProfit}"> {{-- 🟢 تخزين الربح الأصلي هنا --}}
+                     data-original-profit="${originalProfit}"> dummy
                     
                     <input type="hidden" name="items[${idx}][related_updates][${u.id}][price]" class="hidden-sub-cost" value="${calculatedCost.toFixed(4)}">
                     <input type="hidden" name="items[${idx}][related_updates][${u.id}][selling_price]" class="hidden-sub-sell" value="${uSell}">
@@ -1047,24 +625,24 @@
                     </div>
                     <div class="col-md-3">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light text-muted"> {{ __('شراء') }} </span>
+                            <span class="input-group-text bg-light text-muted"> dummy </span>
                             <input type="text" class="form-control text-center bg-light sub-cost text-danger fw-bold" 
                                    value="${formatNum(calculatedCost)}" readonly>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text">ربح %</span>
+                            <span class="input-group-text">ط±ط¨ط­ %</span>
                             <input type="text" inputmode="decimal" class="form-control text-center sub-profit" value="${formatNum(uProfit)}" oninput="calcSubUnitSell(this)" onfocus="this.select()">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text"> {{ __('بيع') }} </span>
+                            <span class="input-group-text"> dummy </span>
                             <input type="text" inputmode="decimal" class="form-control text-center fw-bold sub-sell text-success" 
                                    value="${formatNum(uSell)}" oninput="calcSubUnitProfit(this)" onfocus="this.select()">
                         </div>
-                        {{-- 🟢 مكان التحذير (فارغ افتراضياً) --}}
+                        dummy
                         <div class="warning-container mt-1" style="min-height:20px;"></div>
                     </div>
                 </div>`;
@@ -1072,19 +650,19 @@
         container.innerHTML = html;
     }
 
-   // 🚀 تحديث ذكي للوحدات (تم التعديل لتحديث ربح الوحدة الحالية أيضاً)
+   // ًںڑ€ طھط­ط¯ظٹط« ط°ظƒظٹ ظ„ظ„ظˆط­ط¯ط§طھ (طھظ… ط§ظ„طھط¹ط¯ظٹظ„ ظ„طھط­ط¯ظٹط« ط±ط¨ط­ ط§ظ„ظˆط­ط¯ط© ط§ظ„ط­ط§ظ„ظٹط© ط£ظٹط¶ط§ظ‹)
    function syncSubUnits(idx, source) {
         calcTotals(idx);
         let row = document.getElementById(`row_${idx}`);
         
         let mainPrice = parseFloat(row.querySelector('.price').value) || 0; 
         
-        // تحديث ربح الوحدة الأساسية والتحذير الخاص بها
+        // طھط­ط¯ظٹط« ط±ط¨ط­ ط§ظ„ظˆط­ط¯ط© ط§ظ„ط£ط³ط§ط³ظٹط© ظˆط§ظ„طھط­ط°ظٹط± ط§ظ„ط®ط§طµ ط¨ظ‡ط§
         let mainSellInput = row.querySelector('.sell');
         let mainProfitInput = row.querySelector('.profit');
         let currentSell = parseFloat(mainSellInput.value) || 0;
         
-        // جلب الربح الأصلي للوحدة الأساسية
+        // ط¬ظ„ط¨ ط§ظ„ط±ط¨ط­ ط§ظ„ط£طµظ„ظٹ ظ„ظ„ظˆط­ط¯ط© ط§ظ„ط£ط³ط§ط³ظٹط©
         let select = row.querySelector('.unit-select');
         let selectedOption = select.options[select.selectedIndex];
         let originalMainProfit = parseFloat(selectedOption.getAttribute('data-profit')) || 0;
@@ -1095,15 +673,15 @@
             mainProfitInput.value = formatNum(newMainProfit);
         }
 
-        // 🟢 تحديث تحذير الوحدة الأساسية (بدون إطار)
+        // ًںں¢ طھط­ط¯ظٹط« طھط­ط°ظٹط± ط§ظ„ظˆط­ط¯ط© ط§ظ„ط£ط³ط§ط³ظٹط© (ط¨ط¯ظˆظ† ط¥ط·ط§ط±)
         let mainWarningDiv = row.querySelector('.main-warning-container');
         mainWarningDiv.innerHTML = ''; 
 
         if (newMainProfit <= 0) {
-            mainWarningDiv.innerHTML = `<span class="text-danger flash-warning">خسارة ⚠️</span>`;
+            mainWarningDiv.innerHTML = `<span class="text-danger flash-warning">ط®ط³ط§ط±ط© âڑ ï¸ڈ</span>`;
         } 
         else if (newMainProfit < originalMainProfit - 0.1) {
-            mainWarningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">📉 انخفاض الربح</span>`;
+            mainWarningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">ًں“‰ ط§ظ†ط®ظپط§ط¶ ط§ظ„ط±ط¨ط­</span>`;
         }
 
         // ---------------------------------------------------------
@@ -1131,27 +709,27 @@
                 subRow.querySelector('.sub-profit').value = formatNum(newSubProfit);
                 subRow.querySelector('.hidden-sub-profit').value = formatNum(newSubProfit);
 
-                // 🟢 تحديث تحذير الوحدات الفرعية (بدون إطار)
+                // ًںں¢ طھط­ط¯ظٹط« طھط­ط°ظٹط± ط§ظ„ظˆط­ط¯ط§طھ ط§ظ„ظپط±ط¹ظٹط© (ط¨ط¯ظˆظ† ط¥ط·ط§ط±)
                 let subWarningDiv = subRow.querySelector('.warning-container');
                 subWarningDiv.innerHTML = '';
 
                 if (newSubProfit <= 0) {
-                    subWarningDiv.innerHTML = `<span class="text-danger flash-warning">خسارة ⚠️</span>`;
+                    subWarningDiv.innerHTML = `<span class="text-danger flash-warning">ط®ط³ط§ط±ط© âڑ ï¸ڈ</span>`;
                 } 
                 else if (newSubProfit < originalSubProfit - 0.1) {
-                    subWarningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">📉 انخفاض الربح</span>`;
+                    subWarningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">ًں“‰ ط§ظ†ط®ظپط§ط¶ ط§ظ„ط±ط¨ط­</span>`;
                 }
             });
         }
     }
 
-    // دوال الحساب للوحدات الفرعية (مستقلة لكل وحدة)
+    // ط¯ظˆط§ظ„ ط§ظ„ط­ط³ط§ط¨ ظ„ظ„ظˆط­ط¯ط§طھ ط§ظ„ظپط±ط¹ظٹط© (ظ…ط³طھظ‚ظ„ط© ظ„ظƒظ„ ظˆط­ط¯ط©)
     function calcSubUnitSell(input) {
         let row = input.closest('.related-unit-row');
         let cost = parseFloat(row.querySelector('.sub-cost').value) || 0;
         let profit = parseFloat(input.value) || 0;
         
-        // تغيير الربح -> يغير سعر البيع
+        // طھط؛ظٹظٹط± ط§ظ„ط±ط¨ط­ -> ظٹط؛ظٹط± ط³ط¹ط± ط§ظ„ط¨ظٹط¹
         let sell = cost * (1 + profit / 100);
         row.querySelector('.sub-sell').value = formatNum(sell);
         row.querySelector('.hidden-sub-sell').value = sell.toFixed(2);
@@ -1175,29 +753,66 @@
             row.querySelector('.sub-profit').value = formatNum(newProfit);
         }
         
-        let hiddenProfit = row.querySelector('.hidden-sub-profit'); // تأكد من وجود هذا الحقل المخفي
-        if(hiddenProfit) hiddenProfit.value = newProfit; // تحديث القيمة المخفية للربح
+        let hiddenProfit = row.querySelector('.hidden-sub-profit'); // طھط£ظƒط¯ ظ…ظ† ظˆط¬ظˆط¯ ظ‡ط°ط§ ط§ظ„ط­ظ‚ظ„ ط§ظ„ظ…ط®ظپظٹ
+        if(hiddenProfit) hiddenProfit.value = newProfit; // طھط­ط¯ظٹط« ط§ظ„ظ‚ظٹظ…ط© ط§ظ„ظ…ط®ظپظٹط© ظ„ظ„ط±ط¨ط­
 
-        // 🟢 منطق إخفاء/إظهار التحذير لحظياً عند الكتابة للوحدات الفرعية
+        // ًںں¢ ظ…ظ†ط·ظ‚ ط¥ط®ظپط§ط،/ط¥ط¸ظ‡ط§ط± ط§ظ„طھط­ط°ظٹط± ظ„ط­ط¸ظٹط§ظ‹ ط¹ظ†ط¯ ط§ظ„ظƒطھط§ط¨ط© ظ„ظ„ظˆط­ط¯ط§طھ ط§ظ„ظپط±ط¹ظٹط©
         let originalProfit = parseFloat(row.getAttribute('data-original-profit')) || 0;
         let warningDiv = row.querySelector('.warning-container');
         
-        warningDiv.innerHTML = ''; // مسح القديم
+        warningDiv.innerHTML = ''; // ظ…ط³ط­ ط§ظ„ظ‚ط¯ظٹظ…
 
         if (newProfit <= 0) {
-            warningDiv.innerHTML = `<span class="text-danger flash-warning">خسارة ⚠️</span>`;
+            warningDiv.innerHTML = `<span class="text-danger flash-warning">ط®ط³ط§ط±ط© âڑ ï¸ڈ</span>`;
         } 
         else if (newProfit < originalProfit - 0.1) {
-            warningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">📉 انخفاض الربح</span>`;
+            warningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">ًں“‰ ط§ظ†ط®ظپط§ط¶ ط§ظ„ط±ط¨ط­</span>`;
         }
     }
 
-    // --- Search Logic: Using global window.setupSearch from app.blade.php ---
-    // (No local definition needed - global version handles this)
+    // --- Search Logic ---
+    function setupSearch(inputId, resultsId, url, onSelect, autoSelect = false) {
+        const input = document.getElementById(inputId);
+        const results = document.getElementById(resultsId);
+        if(!input) return;
+
+        let debounce;
+        input.addEventListener('input', function() {
+            clearTimeout(debounce);
+            const term = this.value.trim();
+            if(term.length < 1) { results.style.display='none'; return; }
+
+            debounce = setTimeout(() => {
+                fetch(`${url}?term=${term}`).then(r => r.json()).then(data => {
+                    results.innerHTML = '';
+                    if (data.length > 0) {
+                        data.forEach((item, index) => {
+                            let div = document.createElement('a');
+                            div.className = 'list-group-item list-group-item-action cursor-pointer';
+                            div.innerHTML = item.contact_name || `${item.name} - <small>${item.sku || ''}</small>`;
+                            div.onclick = function() { onSelect(item); results.style.display = 'none'; };
+                            results.appendChild(div);
+                            
+                            // ط§ظ„ط§ط®طھظٹط§ط± ط§ظ„طھظ„ظ‚ط§ط¦ظٹ ط¥ط°ط§ ظƒط§ظ† ظ‡ظ†ط§ظƒ ظ†طھظٹط¬ط© ظˆط§ط­ط¯ط© ظپظ‚ط· (ط§ط®طھظٹط§ط±ظٹ)
+                            if (autoSelect && data.length === 1 && term === item.sku) {
+                                onSelect(item);
+                                results.style.display = 'none';
+                            }
+                        });
+                        results.style.display = 'block';
+                    } else { results.style.display = 'none'; }
+                });
+            }, 300);
+        });
+        
+        document.addEventListener("click", function (e) { 
+            if (e.target !== input && e.target !== results) results.style.display = 'none'; 
+        });
+    }
 
 
 
-    // --- بقية الدوال (calcTotals, removeRow, etc...) ضروري تكون موجودة ---
+    // --- ط¨ظ‚ظٹط© ط§ظ„ط¯ظˆط§ظ„ (calcTotals, removeRow, etc...) ط¶ط±ظˆط±ظٹ طھظƒظˆظ† ظ…ظˆط¬ظˆط¯ط© ---
     function calcTotals(idx) { 
         let row = document.getElementById(`row_${idx}`);
         if(!row) return;
@@ -1209,17 +824,17 @@
         let discountVal = parseMoney(row.querySelector('.discount').value);
         let discountType = row.querySelector('.discount-type').value;
 
-        // الحسابات بعملة الفاتورة لأن الأسعار أصبحت بها
+        // ط§ظ„ط­ط³ط§ط¨ط§طھ ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© ظ„ط£ظ† ط§ظ„ط£ط³ط¹ط§ط± ط£طµط¨ط­طھ ط¨ظ‡ط§
         let subTotalInv = qty * priceInvoice;
         let discountAmtInv = (discountType === 'percent') ? (subTotalInv * discountVal / 100) : discountVal;
         let afterDiscountInv = subTotalInv - discountAmtInv;
         let taxAmtInv = afterDiscountInv * (taxRate / 100);
         let finalTotalInv = afterDiscountInv + taxAmtInv;
 
-        // حفظ إجمالي الصف بعملة الفاتورة لسهولة حساب المجموع الكلي لاحقاً
+        // ط­ظپط¸ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طµظپ ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© ظ„ط³ظ‡ظˆظ„ط© ط­ط³ط§ط¨ ط§ظ„ظ…ط¬ظ…ظˆط¹ ط§ظ„ظƒظ„ظٹ ظ„ط§ط­ظ‚ط§ظ‹
         row.setAttribute('data-total-invoice', finalTotalInv.toFixed(6));
 
-        // عرض الإجمالي بالعملة الأساسية كما طلب المستخدم
+        // ط¹ط±ط¶ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© ظƒظ…ط§ ط·ظ„ط¨ ط§ظ„ظ…ط³طھط®ط¯ظ…
         let finalTotalBase = finalTotalInv * invoiceRate;
         row.querySelector('.total').value = formatNum(finalTotalBase);
         
@@ -1227,7 +842,7 @@
         calculateGrandTotal();
     }
 
-    // 🟢 دالة إعادة حساب كافة الصفوف عند تغيير عملة الفاتورة
+    // ًںں¢ ط¯ط§ظ„ط© ط¥ط¹ط§ط¯ط© ط­ط³ط§ط¨ ظƒط§ظپط© ط§ظ„طµظپظˆظپ ط¹ظ†ط¯ طھط؛ظٹظٹط± ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط©
     function recalculateAllRows() {
         let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
         
@@ -1244,16 +859,16 @@
 
             let selectedFactor = (selectedUnit.is_base_unit) ? 1 : (parseFloat(selectedUnit.conversion_factor) || 1);
             
-            // 1. حساب التكلفة بناءً على السعر المفضل في بيانات المنتج
+            // 1. ط­ط³ط§ط¨ ط§ظ„طھظƒظ„ظپط© ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط§ظ„ط³ط¹ط± ط§ظ„ظ…ظپط¶ظ„ ظپظٹ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†طھط¬
             let preferredPrice = parseFloat(selectedUnit.cost_price) || parseFloat(selectedUnit.purchase_price) || 0;
-            let pCurrId = selectedUnit.purchase_currency_id || "{{ optional($baseCurrency)->id }}";
+            let pCurrId = selectedUnit.purchase_currency_id || "dummy";
             let pRate = (pCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.purchase_exchange_rate) || parseFloat(selectedUnit.store_custom_purchase_rate) || ratesMap[pCurrId]?.exchange_rate || 1);
             
             let priceInBase = preferredPrice * pRate;
             let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
             let calculatedCost = priceInBase / invRate;
 
-            // 2. معالجة الحالة الاحتياطية (إذا كان السعر صفر)
+            // 2. ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط­ط§ظ„ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط© (ط¥ط°ط§ ظƒط§ظ† ط§ظ„ط³ط¹ط± طµظپط±)
             if (calculatedCost === 0) {
                 let maxUnit = product.units.reduce((prev, curr) => (parseFloat(prev.conversion_factor) > parseFloat(curr.conversion_factor)) ? prev : curr);
                 let maxUnitCost = parseFloat(maxUnit.cost_price) || parseFloat(maxUnit.purchase_price) || 0;
@@ -1265,10 +880,10 @@
                 calculatedCost = basePriceFallback / invRate;
             }
 
-            // 3. تحديث حقل سعر الشراء في الصف بعملة الفاتورة
+            // 3. طھط­ط¯ظٹط« ط­ظ‚ظ„ ط³ط¹ط± ط§ظ„ط´ط±ط§ط، ظپظٹ ط§ظ„طµظپ ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط©
             row.querySelector('.price').value = parseFloat(calculatedCost.toFixed(4));
 
-            // 4. تحديث سعر البيع بعملة الفاتورة
+            // 4. طھط­ط¯ظٹط« ط³ط¹ط± ط§ظ„ط¨ظٹط¹ ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط©
             let rawSellPrice = parseFloat(selectedUnit.sale_price) || 0;
             let sCurrId = selectedUnit.sell_currency_id || baseCurrencyId;
             let sRate = (sCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.sell_exchange_rate) || parseFloat(selectedUnit.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
@@ -1277,11 +892,11 @@
             let sellPrice = sellInBase / invRate;
             row.querySelector('.sell').value = formatNum(sellPrice);
 
-            // 5. نسبة الربح
+            // 5. ظ†ط³ط¨ط© ط§ظ„ط±ط¨ط­
             let newProfitPercent = (calculatedCost > 0) ? ((sellPrice - calculatedCost) / calculatedCost) * 100 : 0;
             row.querySelector('.profit').value = formatNum(newProfitPercent);
 
-            // 6. تحديث قيم الـ data attributes (بعملة الفاتورة)
+            // 6. طھط­ط¯ظٹط« ظ‚ظٹظ… ط§ظ„ظ€ data attributes (ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط©)
             let trueBaseCost = (selectedFactor > 0) ? (calculatedCost / selectedFactor) : 0;
             Array.from(select.options).forEach(opt => {
                 let uId = opt.value;
@@ -1293,7 +908,7 @@
                     let rci = u.sell_currency_id || baseCurrencyId;
                     let rr = (rci == baseCurrencyId) ? 1 : (parseFloat(u.sell_exchange_rate) || parseFloat(u.store_custom_sell_rate) || ratesMap[rci]?.exchange_rate || 1);
                     let rsiBase = rs * rr; 
-                    let rsi = rsiBase / invRate; // بعملة الفاتورة
+                    let rsi = rsiBase / invRate; // ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط©
                     let rp = (mPrice > 0) ? ((rsi - mPrice) / mPrice) * 100 : 0;
 
                     opt.setAttribute('data-price', mPrice.toFixed(4));
@@ -1302,16 +917,16 @@
                 }
             });
 
-            // 7. تحديث الوحدات الفرعية (التفاصيل)
+            // 7. طھط­ط¯ظٹط« ط§ظ„ظˆط­ط¯ط§طھ ط§ظ„ظپط±ط¹ظٹط© (ط§ظ„طھظپط§طµظٹظ„)
             renderRelatedUnits(idx, selectedUnitId);
             
-            // 8. تحديث العرض المزدوج والإجمالي
+            // 8. طھط­ط¯ظٹط« ط§ظ„ط¹ط±ط¶ ط§ظ„ظ…ط²ط¯ظˆط¬ ظˆط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ
             updateDualPriceDisplay(idx);
             calcTotals(idx);
         });
     }
 
-    // 🟢 عرض السعر بالعملة الأصلية وما يعادلها بالعملة الأساسية
+    // ًںں¢ ط¹ط±ط¶ ط§ظ„ط³ط¹ط± ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£طµظ„ظٹط© ظˆظ…ط§ ظٹط¹ط§ط¯ظ„ظ‡ط§ ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط©
     function updateDualPriceDisplay(idx) {
         let row = document.getElementById(`row_${idx}`);
         if (!row) return;
@@ -1321,40 +936,40 @@
         let selectedUnitId = select.value;
         let unit = product.units.find(u => u.id == selectedUnitId);
         
-        // 1. جلب القيم الحالية من الحقول (الآن أصبحت بعملة الفاتورة)
+        // 1. ط¬ظ„ط¨ ط§ظ„ظ‚ظٹظ… ط§ظ„ط­ط§ظ„ظٹط© ظ…ظ† ط§ظ„ط­ظ‚ظˆظ„ (ط§ظ„ط¢ظ† ط£طµط¨ط­طھ ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط©)
         let priceInvoice = parseFloat(row.querySelector('.price').value) || 0;
         let sellInvoice = parseFloat(row.querySelector('.sell').value) || 0;
 
-        // 2. التحويل لليرة التركية / العملة الأساسية
+        // 2. ط§ظ„طھط­ظˆظٹظ„ ظ„ظ„ظٹط±ط© ط§ظ„طھط±ظƒظٹط© / ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط©
         let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
         let priceBase = priceInvoice * invRate;
         let sellBase = sellInvoice * invRate;
-        let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+        let baseCurrCode = "dummy";
 
-        // 🟢 سعر الشراء الإضافي
+        // ًںں¢ ط³ط¹ط± ط§ظ„ط´ط±ط§ط، ط§ظ„ط¥ط¶ط§ظپظٹ
         let costOriginal = row.querySelector('.cost-original');
         let costBaseEl = row.querySelector('.cost-base');
         
-        // السعر بالأصلي (يورو مثلاً)
+        // ط§ظ„ط³ط¹ط± ط¨ط§ظ„ط£طµظ„ظٹ (ظٹظˆط±ظˆ ظ…ط«ظ„ط§ظ‹)
         if (unit && unit.purchase_currency_id) {
             let pPrice = parseFloat(unit.cost_price) || parseFloat(unit.purchase_price) || 0;
             let pSym = unit.purchase_currency_symbol || unit.purchase_currency_code || '';
             costOriginal.innerText = `${pSym} ${pPrice}`;
         }
-        // السعر بالعملة الأساسية (TRY)
+        // ط§ظ„ط³ط¹ط± ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© (TRY)
         if(costBaseEl) costBaseEl.innerText = `${formatNum(priceBase)} ${baseCurrCode}`;
 
-        // 🟢 سعر البيع الإضافي
+        // ًںں¢ ط³ط¹ط± ط§ظ„ط¨ظٹط¹ ط§ظ„ط¥ط¶ط§ظپظٹ
         let sellOriginal = row.querySelector('.sell-original');
         let sellBaseEl = row.querySelector('.sell-base');
 
-        // السعر بالأصلي
+        // ط§ظ„ط³ط¹ط± ط¨ط§ظ„ط£طµظ„ظٹ
         if (unit && unit.sell_currency_id) {
             let sPrice = parseFloat(unit.sale_price) || 0;
             let sSym = unit.sell_currency_symbol || unit.sell_currency_code || '';
             sellOriginal.innerText = `${sSym} ${sPrice}`;
         }
-        // السعر بالعملة الأساسية (TRY)
+        // ط§ظ„ط³ط¹ط± ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© (TRY)
         if(sellBaseEl) sellBaseEl.innerText = `${formatNum(sellBase)} ${baseCurrCode}`;
     }
     
@@ -1369,34 +984,34 @@
 
     function calculateGrandTotal() {
         let invoiceRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
-        let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+        let baseCurrCode = "dummy";
 
-        // 1. حساب الإجمالي بعملة الفاتورة أولاً
+        // 1. ط­ط³ط§ط¨ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© ط£ظˆظ„ط§ظ‹
         let subTotalInvoice = 0;
         document.querySelectorAll('tr[id^="row_"]').forEach(row => {
             subTotalInvoice += parseFloat(row.getAttribute('data-total-invoice')) || 0;
         });
 
-        // 2. تحويل وعرض المجموع الفرعي بالعملة الأساسية 
+        // 2. طھط­ظˆظٹظ„ ظˆط¹ط±ط¶ ط§ظ„ظ…ط¬ظ…ظˆط¹ ط§ظ„ظپط±ط¹ظٹ ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© 
         let subTotalBase = subTotalInvoice * invoiceRate;
         document.getElementById('subTotalDisplay').innerHTML = `${formatNum(subTotalBase)} <span class="fs-6 text-muted">(${formatNum(subTotalInvoice)} Invoice)</span>`;
 
-        // 3. تطبيق الخصم (يدخل المستخدم الخصم بعملة الفاتورة)
+        // 3. طھط·ط¨ظٹظ‚ ط§ظ„ط®طµظ… (ظٹط¯ط®ظ„ ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ط®طµظ… ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط©)
         let discountInput = parseMoney(document.getElementById('discountInput').value);
-        let grandTotalInvoice = subTotalInvoice - discountInput; // افتراضاً الخصم هنا fixed بعملة الفاتورة بالمجمل
+        let grandTotalInvoice = subTotalInvoice - discountInput; // ط§ظپطھط±ط§ط¶ط§ظ‹ ط§ظ„ط®طµظ… ظ‡ظ†ط§ fixed ط¨ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© ط¨ط§ظ„ظ…ط¬ظ…ظ„
         
-        // 4. تحويل وعرض الصافي النهائي بالعملة الأساسية
+        // 4. طھط­ظˆظٹظ„ ظˆط¹ط±ط¶ ط§ظ„طµط§ظپظٹ ط§ظ„ظ†ظ‡ط§ط¦ظٹ ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط©
         let grandTotalBase = grandTotalInvoice * invoiceRate;
         document.getElementById('grandTotalDisplay').innerHTML = `${formatNum(grandTotalBase)} <span class="fs-6 text-muted">(${formatNum(grandTotalInvoice)} Invoice)</span>`;
-        // نحتفظ بهذه القيم للإستخدام في الدفعات لاحقاً
+        // ظ†ط­طھظپط¸ ط¨ظ‡ط°ظ‡ ط§ظ„ظ‚ظٹظ… ظ„ظ„ط¥ط³طھط®ط¯ط§ظ… ظپظٹ ط§ظ„ط¯ظپط¹ط§طھ ظ„ط§ط­ظ‚ط§ظ‹
         document.getElementById('grandTotalDisplay').setAttribute('data-grand-total', grandTotalBase);
 
-        // حساب مجموع المدفوعات بالعملة الأساسية
+        // ط­ط³ط§ط¨ ظ…ط¬ظ…ظˆط¹ ط§ظ„ظ…ط¯ظپظˆط¹ط§طھ ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط©
         let totalPaid = 0;
         document.querySelectorAll('.payment-row').forEach(row => {
             let amountInput = row.querySelector('.payment-input');
-            let rateInp = row.querySelector('.rate-input'); // هذا للعرض فقط (المعادل)
-            let hiddenRate = row.querySelector('.pay-rate-hidden'); // هذا سعر الصرف الحقيقي
+            let rateInp = row.querySelector('.rate-input'); // ظ‡ط°ط§ ظ„ظ„ط¹ط±ط¶ ظپظ‚ط· (ط§ظ„ظ…ط¹ط§ط¯ظ„)
+            let hiddenRate = row.querySelector('.pay-rate-hidden'); // ظ‡ط°ط§ ط³ط¹ط± ط§ظ„طµط±ظپ ط§ظ„ط­ظ‚ظٹظ‚ظٹ
             let currSel = row.querySelector('.currency-select');
             if (!amountInput) return;
             let amount = parseMoney(amountInput.value);
@@ -1406,7 +1021,7 @@
             let amtInBase = isBase ? amount : (rate > 0 ? amount * rate : 0);
             totalPaid += amtInBase;
 
-            // تحديث حقل "المعادل" في الواجهة
+            // طھط­ط¯ظٹط« ط­ظ‚ظ„ "ط§ظ„ظ…ط¹ط§ط¯ظ„" ظپظٹ ط§ظ„ظˆط§ط¬ظ‡ط©
             if (rateInp && !isBase) {
                 rateInp.value = formatNum(amtInBase);
             }
@@ -1416,34 +1031,34 @@
         const balDiv = document.getElementById('balanceAlert');
         const balLbl = document.getElementById('balanceLabel');
         const balAmt = document.getElementById('balanceAmount');
-        // baseCurrCode already declared above
+        const baseCurrCode = "dummy";
 
         balDiv.style.display = 'block';
         if (Math.abs(diff) < 0.01) {
             balDiv.className = 'alert p-2 text-center fw-bold alert-success';
-            balLbl.innerText = 'خالص (تم الدفع بالكامل)';
+            balLbl.innerText = 'ط®ط§ظ„طµ (طھظ… ط§ظ„ط¯ظپط¹ ط¨ط§ظ„ظƒط§ظ…ظ„)';
             balAmt.innerText = '';
         } else if (diff < 0) {
             balDiv.className = 'alert p-2 text-center fw-bold alert-danger';
-            balLbl.innerText = 'متبقي (عليك):';
+            balLbl.innerText = 'ظ…طھط¨ظ‚ظٹ (ط¹ظ„ظٹظƒ):';
             balAmt.innerText = formatNum(Math.abs(diff)) + " " + baseCurrCode;
         } else {
             balDiv.className = 'alert p-2 text-center fw-bold alert-info';
-            balLbl.innerText = 'رصيد (لك):';
+            balLbl.innerText = 'ط±طµظٹط¯ (ظ„ظƒ):';
             balAmt.innerText = formatNum(diff) + " " + baseCurrCode;
         }
     }
 
-    // عند تغيير العملة في صف الدفع
-    // مزامنة سعر الصرف مع الحقل المخفي للـ form
+    // ط¹ظ†ط¯ طھط؛ظٹظٹط± ط§ظ„ط¹ظ…ظ„ط© ظپظٹ طµظپ ط§ظ„ط¯ظپط¹
+    // ظ…ط²ط§ظ…ظ†ط© ط³ط¹ط± ط§ظ„طµط±ظپ ظ…ط¹ ط§ظ„ط­ظ‚ظ„ ط§ظ„ظ…ط®ظپظٹ ظ„ظ„ظ€ form
     function syncRateHidden(rateInp) {
         let row = rateInp.closest('.payment-row');
         let hidden = row ? row.querySelector('.pay-rate-hidden') : null;
         if (hidden) hidden.value = parseFloat(rateInp.value) || 1;
     }
 
-    // أسعار الصرف المحملة مسبقاً من الخادم
-    const preloadedRates = @json($currenciesData ?? []);
+    // ط£ط³ط¹ط§ط± ط§ظ„طµط±ظپ ط§ظ„ظ…ط­ظ…ظ„ط© ظ…ط³ط¨ظ‚ط§ظ‹ ظ…ظ† ط§ظ„ط®ط§ط¯ظ…
+    const preloadedRates = [];
     const ratesMap = {};
     preloadedRates.forEach(c => { ratesMap[c.id] = c; });
 
@@ -1451,8 +1066,8 @@
         let opt = select.options[select.selectedIndex];
         let currId = select.value;
         let currCode = opt.dataset.code;
-        let baseCurrId = "{{ optional($baseCurrency)->id }}";
-        let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+        let baseCurrId = "dummy";
+        let baseCurrCode = "dummy";
 
         // Update labels in UI (Priority: Symbol > Code)
         let label = opt.dataset.symbol || currCode;
@@ -1469,11 +1084,11 @@
         let suggestedRate = currData ? parseFloat(currData.exchange_rate).toFixed(6) : '1.000000';
 
         Swal.fire({
-            title: `💱 سعر صرف الفاتورة: ${currCode} ↔ ${baseCurrCode}`,
+            title: `ًں’± ط³ط¹ط± طµط±ظپ ط§ظ„ظپط§طھظˆط±ط©: ${currCode} â†” ${baseCurrCode}`,
             icon: 'info',
             html: `
                 <div class="text-start mb-3">
-                    <label class="form-label fw-bold">✏️ سعر صرف (1 ${currCode} = ؟ ${baseCurrCode}):</label>
+                    <label class="form-label fw-bold">âœڈï¸ڈ ط³ط¹ط± طµط±ظپ (1 ${currCode} = طں ${baseCurrCode}):</label>
                     <div class="input-group">
                         <span class="input-group-text bg-primary text-white fw-bold">1 ${currCode}</span>
                         <input type="text" inputmode="decimal" id="swalInvoiceRate" class="form-control text-center fw-bold fs-5" value="${suggestedRate}">
@@ -1481,13 +1096,13 @@
                     </div>
                 </div>
             `,
-            confirmButtonText: '✅ تأكيد',
+            confirmButtonText: 'âœ… طھط£ظƒظٹط¯',
             showCancelButton: true,
-            cancelButtonText: '❌ إلغاء',
+            cancelButtonText: 'â‌Œ ط¥ظ„ط؛ط§ط،',
             preConfirm: () => {
                 let val = parseFloat(document.getElementById('swalInvoiceRate').value);
                 if (!val || val <= 0) {
-                    Swal.showValidationMessage('⚠️ يرجى إدخال سعر صرف صحيح');
+                    Swal.showValidationMessage('âڑ ï¸ڈ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط³ط¹ط± طµط±ظپ طµط­ظٹط­');
                     return false;
                 }
                 return val;
@@ -1500,7 +1115,7 @@
                 document.getElementById('selected_curr_rate').innerText = rate;
                 document.getElementById('invoice_rate_info').classList.remove('d-none');
                 
-                // تحديث المبالغ المدفوعة المقترحة إذا كانت الفاتورة فارغة أو المتبقي كبير
+                // طھط­ط¯ظٹط« ط§ظ„ظ…ط¨ط§ظ„ط؛ ط§ظ„ظ…ط¯ظپظˆط¹ط© ط§ظ„ظ…ظ‚طھط±ط­ط© ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ظپط§طھظˆط±ط© ظپط§ط±ط؛ط© ط£ظˆ ط§ظ„ظ…طھط¨ظ‚ظٹ ظƒط¨ظٹط±
                 recalculateAllRows();
                 calculateGrandTotal();
             } else {
@@ -1519,7 +1134,7 @@
         let rateInput = row.querySelector('.rate-input');
         let hiddenInput = row.querySelector('.pay-rate-hidden');
         let noteSpan = row.querySelector('.rate-note');
-        let baseCurrCode = '{{ optional($baseCurrency)->code }}';
+        let baseCurrCode = 'dummy';
 
         if (hiddenInput) hiddenInput.value = rate;
         
@@ -1527,7 +1142,7 @@
             if (rateRow) rateRow.classList.add('d-none');
         } else {
             if (rateRow) rateRow.classList.remove('d-none');
-            // ملاحظة: الحساب الفعلي يتم في calculateGrandTotal
+            // ظ…ظ„ط§ط­ط¸ط©: ط§ظ„ط­ط³ط§ط¨ ط§ظ„ظپط¹ظ„ظٹ ظٹطھظ… ظپظٹ calculateGrandTotal
             if (noteSpan) noteSpan.innerText = `1 ${currCode} = ${rate} ${baseCurrCode}`;
         }
     }
@@ -1539,10 +1154,10 @@
         let isBase = selectedOpt.dataset.isBase === '1';
         let currCode = selectedOpt.text.trim();
         let currId   = select.value;
-        let baseCurrCode = '{{ optional($baseCurrency)->code }}';
-        let baseCurrId = '{{ optional($baseCurrency)->id }}';
+        let baseCurrCode = 'dummy';
+        let baseCurrId = 'dummy';
 
-        // 1. حساب الإجمالي والمتبقي بالعملة الأساسية (مرجع موحد لكافة الحالات)
+        // 1. ط­ط³ط§ط¨ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ ظˆط§ظ„ظ…طھط¨ظ‚ظٹ ط¨ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© (ظ…ط±ط¬ط¹ ظ…ظˆط­ط¯ ظ„ظƒط§ظپط© ط§ظ„ط­ط§ظ„ط§طھ)
         const invoiceId = document.getElementById('currency_id').value;
         const invoiceRateVal = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
         const grandTotalInInvoice = parseFloat(document.getElementById('grandTotalDisplay').innerText) || 0;
@@ -1565,7 +1180,7 @@
         if (remainingInBase < 0.0001) remainingInBase = 0;
         const amountInput = row.querySelector('.payment-input');
 
-        // 2. حالة العملة الأساسية (مثل الليرة التركية)
+        // 2. ط­ط§ظ„ط© ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© (ظ…ط«ظ„ ط§ظ„ظ„ظٹط±ط© ط§ظ„طھط±ظƒظٹط©)
         if (isBase) {
             let hiddenCurr = row.querySelector('.pay-currency-id');
             if (hiddenCurr) hiddenCurr.value = currId;
@@ -1586,7 +1201,7 @@
             return;
         }
 
-        // 3. حالة عملة الفاتورة (نفس سعر الصرف تلقائياً)
+        // 3. ط­ط§ظ„ط© ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© (ظ†ظپط³ ط³ط¹ط± ط§ظ„طµط±ظپ طھظ„ظ‚ط§ط¦ظٹط§ظ‹)
         if (currId == invoiceId) {
             let hiddenCurr = row.querySelector('.pay-currency-id');
             if (hiddenCurr) hiddenCurr.value = currId;
@@ -1604,49 +1219,49 @@
             return;
         }
 
-        // 4. حالة العملات الأخرى (تطلب سعر صرف وتظهر نافذة منبثقة)
+        // 4. ط­ط§ظ„ط© ط§ظ„ط¹ظ…ظ„ط§طھ ط§ظ„ط£ط®ط±ظ‰ (طھط·ظ„ط¨ ط³ط¹ط± طµط±ظپ ظˆطھط¸ظ‡ط± ظ†ط§ظپط°ط© ظ…ظ†ط¨ط«ظ‚ط©)
         let currData = ratesMap[currId];
         let suggestedRate = currData ? parseFloat(currData.exchange_rate).toFixed(6) : '1.000000';
 
         Swal.fire({
-            title: `💱 سعر الصرف: ${baseCurrCode} ↔ ${currCode}`,
+            title: `ًں’± ط³ط¹ط± ط§ظ„طµط±ظپ: ${baseCurrCode} â†” ${currCode}`,
             icon: 'info',
             width: '36rem',
             html: `
                 <div class="text-start mb-3">
-                    <label class="form-label text-muted small">📡 السعر المستورد (المقترح):</label>
+                    <label class="form-label text-muted small">ًں“، ط§ظ„ط³ط¹ط± ط§ظ„ظ…ط³طھظˆط±ط¯ (ط§ظ„ظ…ظ‚طھط±ط­):</label>
                     <div class="input-group mb-1">
                         <span class="input-group-text bg-light fw-bold">1 ${currCode}</span>
                         <input type="number" id="swalSuggestedRate" class="form-control text-center text-info fw-bold" value="${suggestedRate}" readonly>
                         <span class="input-group-text">${baseCurrCode}</span>
                     </div>
-                    <small class="text-muted">المصدر: open.er-api.com</small>
+                    <small class="text-muted">ط§ظ„ظ…طµط¯ط±: open.er-api.com</small>
                 </div>
                 <hr>
                 <div class="text-start mb-3">
-                    <label class="form-label fw-bold">✏️ سعر الصرف المعتمد للفاتورة:</label>
+                    <label class="form-label fw-bold">âœڈï¸ڈ ط³ط¹ط± ط§ظ„طµط±ظپ ط§ظ„ظ…ط¹طھظ…ط¯ ظ„ظ„ظپط§طھظˆط±ط©:</label>
                     <div class="input-group">
                         <span class="input-group-text bg-primary text-white fw-bold">1 ${currCode}</span>
                         <input type="text" inputmode="decimal" id="swalConfirmedRate" class="form-control text-center fw-bold fs-5" value="${suggestedRate}">
                         <span class="input-group-text fw-bold">${baseCurrCode}</span>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="document.getElementById('swalConfirmedRate').value=document.getElementById('swalSuggestedRate').value; updateCalcPreview(${remainingInBase})">
-                        ↩️ استخدم المقترح
+                        â†©ï¸ڈ ط§ط³طھط®ط¯ظ… ط§ظ„ظ…ظ‚طھط±ط­
                     </button>
                 </div>
                 <hr>
                 <div class="alert alert-success p-2 text-center" id="calcPreview">
-                    <div class="small text-muted mb-1">💡 لتسديد المتبقي:</div>
+                    <div class="small text-muted mb-1">ًں’، ظ„طھط³ط¯ظٹط¯ ط§ظ„ظ…طھط¨ظ‚ظٹ:</div>
                     <div class="fw-bold fs-5">
                         <span class="text-danger">${remainingInBase.toFixed(2)} ${baseCurrCode}</span>
-                        <span class="mx-2">←</span>
+                        <span class="mx-2">â†گ</span>
                         <span class="text-success" id="calcResult">${(remainingInBase / parseFloat(suggestedRate)).toFixed(4)}</span>
                         <span class="text-success"> ${currCode}</span>
                     </div>
                 </div>
             `,
-            confirmButtonText: '✅ تأكيد واملأ المبلغ',
-            cancelButtonText: '❌ إلغاء',
+            confirmButtonText: 'âœ… طھط£ظƒظٹط¯ ظˆط§ظ…ظ„ط£ ط§ظ„ظ…ط¨ظ„ط؛',
+            cancelButtonText: 'â‌Œ ط¥ظ„ط؛ط§ط،',
             showCancelButton: true,
             confirmButtonColor: '#198754',
             cancelButtonColor: '#d33',
@@ -1672,7 +1287,7 @@
             preConfirm: () => {
                 let val = parseFloat(document.getElementById('swalConfirmedRate').value);
                 if (!val || val <= 0) {
-                    Swal.showValidationMessage('⚠️ يرجى إدخال سعر صرف صحيح أكبر من صفر');
+                    Swal.showValidationMessage('âڑ ï¸ڈ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط³ط¹ط± طµط±ظپ طµط­ظٹط­ ط£ظƒط¨ط± ظ…ظ† طµظپط±');
                     return false;
                 }
                 return val;
@@ -1690,7 +1305,7 @@
                 }
                 calculateGrandTotal();
             } else {
-                // العودة للعملة الأساسية في حال الإلغاء
+                // ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط© ظپظٹ ط­ط§ظ„ ط§ظ„ط¥ظ„ط؛ط§ط،
                 select.value = baseCurrId;
                 onPayCurrencyChange(select, idx);
             }
@@ -1705,13 +1320,13 @@
         let currentPaidInBase = 0;
         document.querySelectorAll('.payment-row').forEach(row => {
             let amountInput = row.querySelector('.payment-input');
-            let hiddenRate = row.querySelector('.pay-rate-hidden'); // السعر الحقيقي
+            let hiddenRate = row.querySelector('.pay-rate-hidden'); // ط§ظ„ط³ط¹ط± ط§ظ„ط­ظ‚ظٹظ‚ظٹ
             let currSel = row.querySelector('.currency-select');
             if (!amountInput) return;
             let amount = parseMoney(amountInput.value);
             let isBase = currSel ? (currSel.options[currSel.selectedIndex]?.dataset?.isBase === '1') : true;
             let rate = hiddenRate ? (parseMoney(hiddenRate.value) || 1) : 1;
-            // التحويل للعملة الأساسية
+            // ط§ظ„طھط­ظˆظٹظ„ ظ„ظ„ط¹ظ…ظ„ط© ط§ظ„ط£ط³ط§ط³ظٹط©
             currentPaidInBase += isBase ? amount : (rate > 0 ? amount * rate : 0);
         });
 
@@ -1720,26 +1335,26 @@
         
         const invoiceCurrId = document.getElementById('currency_id').value;
         const invoiceCurrCode = document.getElementById('currency_id').options[document.getElementById('currency_id').selectedIndex]?.dataset?.code || '';
-        const baseCurrId = "{{ optional($baseCurrency)->id }}";
+        const baseCurrId = "dummy";
 
         let selectedCurrId = baseCurrId;
         let selectedRate = 1;
         let isNonBase = false;
 
-        // إذا كانت الفاتورة بعملة غير الأساسية، نجعل الدفع الأول (أو كل دفع جديد) يتبع عملة الفاتورة افتراضياً
+        // ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ظپط§طھظˆط±ط© ط¨ط¹ظ…ظ„ط© ط؛ظٹط± ط§ظ„ط£ط³ط§ط³ظٹط©طŒ ظ†ط¬ط¹ظ„ ط§ظ„ط¯ظپط¹ ط§ظ„ط£ظˆظ„ (ط£ظˆ ظƒظ„ ط¯ظپط¹ ط¬ط¯ظٹط¯) ظٹطھط¨ط¹ ط¹ظ…ظ„ط© ط§ظ„ظپط§طھظˆط±ط© ط§ظپطھط±ط§ط¶ظٹط§ظ‹
         if (invoiceCurrId != baseCurrId) {
             selectedCurrId = invoiceCurrId;
             selectedRate = invoiceRateVal;
             isNonBase = true;
         }
 
-        // خيارات العملات
-        let currencyOptions = `<option value="${baseCurrId}" data-is-base="1" ${selectedCurrId == baseCurrId ? 'selected' : ''}>{{ optional($baseCurrency)->code }}</option>`;
-        @foreach($currencies as $cur)
-            @if(!$baseCurrency || $cur->id != $baseCurrency->id)
-            currencyOptions += `<option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-is-base="0" ${selectedCurrId == "{{ $cur->id }}" ? 'selected' : ''}>{{ $cur->code }}</option>`;
-            @endif
-        @endforeach
+        // ط®ظٹط§ط±ط§طھ ط§ظ„ط¹ظ…ظ„ط§طھ
+        let currencyOptions = `<option value="${baseCurrId}" data-is-base="1" ${selectedCurrId == baseCurrId ? 'selected' : ''}>dummy</option>`;
+        for(let cur of []){
+            if(true){
+            currencyOptions += `<option value="dummy" data-code="dummy" data-is-base="0" ${selectedCurrId == "dummy" ? 'selected' : ''}>dummy</option>`;
+            }
+        }
 
         let finalDefaultVal = (remainingInBase > 0 && selectedRate > 0) ? formatNum(remainingInBase / selectedRate) : 0;
         
@@ -1748,9 +1363,9 @@
         div.innerHTML = `
             <div class="input-group mb-1">
                 <select name="payments[${paymentIdx}][method]" class="form-select method-select" style="max-width: 120px;">
-                    <option value="cash"> {{ __('💰 نقدي') }} </option>
-                    <option value="card"> {{ __('💳 بطاقة') }} </option>
-                    <option value="bank"> {{ __('🏦 تحويل') }} </option>
+                    <option value="cash"> dummy </option>
+                    <option value="card"> dummy </option>
+                    <option value="bank"> dummy </option>
                 </select>
                 <input type="text" inputmode="decimal" name="payments[${paymentIdx}][amount]" class="form-control text-center payment-input" value="${finalDefaultVal}" oninput="calculateGrandTotal()" onfocus="this.select()">
                 <select class="form-select currency-select pay-currency" style="max-width:110px;" onchange="onPayCurrencyChange(this, ${paymentIdx})">${currencyOptions}</select>
@@ -1760,9 +1375,9 @@
             <input type="hidden" name="payments[${paymentIdx}][exchange_rate]" class="pay-rate-hidden" value="${selectedRate}">
             <div class="rate-row ${isNonBase ? '' : 'd-none'}">
                 <div class="input-group input-group-sm">
-                    <span class="input-group-text text-muted small">{{ __('يعادل') }} ({{ optional($baseCurrency)->code }})</span>
-                    <input type="text" readonly class="form-control bg-light text-center fw-bold rate-input" value="0.00" placeholder="المعادل">
-                    <span class="input-group-text rate-note small text-info">${isNonBase ? `1 ${invoiceCurrCode} = ${selectedRate} {{ optional($baseCurrency)->code }}` : ''}</span>
+                    <span class="input-group-text text-muted small">dummy (dummy)</span>
+                    <input type="text" readonly class="form-control bg-light text-center fw-bold rate-input" value="0.00" placeholder="ط§ظ„ظ…ط¹ط§ط¯ظ„">
+                    <span class="input-group-text rate-note small text-info">${isNonBase ? `1 ${invoiceCurrCode} = ${selectedRate} dummy` : ''}</span>
                 </div>
             </div>
         `;
@@ -1789,18 +1404,18 @@
             profitInput.value = formatNum(newProfit);
         }
 
-        // 🟢 منطق إخفاء/إظهار التحذير لحظياً عند الكتابة
+        // ًںں¢ ظ…ظ†ط·ظ‚ ط¥ط®ظپط§ط،/ط¥ط¸ظ‡ط§ط± ط§ظ„طھط­ط°ظٹط± ظ„ط­ط¸ظٹط§ظ‹ ط¹ظ†ط¯ ط§ظ„ظƒطھط§ط¨ط©
         let select = row.querySelector('.unit-select');
         let originalMainProfit = parseFloat(select.options[select.selectedIndex].getAttribute('data-profit')) || 0;
         let mainWarningDiv = row.querySelector('.main-warning-container');
         
-        mainWarningDiv.innerHTML = ''; // مسح القديم دائماً
+        mainWarningDiv.innerHTML = ''; // ظ…ط³ط­ ط§ظ„ظ‚ط¯ظٹظ… ط¯ط§ط¦ظ…ط§ظ‹
 
         if (newProfit <= 0) {
-            mainWarningDiv.innerHTML = `<span class="text-danger flash-warning">خسارة ⚠️</span>`;
+            mainWarningDiv.innerHTML = `<span class="text-danger flash-warning">ط®ط³ط§ط±ط© âڑ ï¸ڈ</span>`;
         } 
         else if (newProfit < originalMainProfit - 0.1) {
-            mainWarningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">📉 انخفاض الربح</span>`;
+            mainWarningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">ًں“‰ ط§ظ†ط®ظپط§ط¶ ط§ظ„ط±ط¨ط­</span>`;
         }
     }
 
@@ -1812,49 +1427,49 @@
         row.querySelector('.sell').value = formatNum(sell);
     }
     
-    // الدالة المفقودة: checkBalanceAndSubmit
+    // ط§ظ„ط¯ط§ظ„ط© ط§ظ„ظ…ظپظ‚ظˆط¯ط©: checkBalanceAndSubmit
     function checkBalanceAndSubmit() {
-        // 🛑 1. التحقق من اختيار المورد
-        // نتحقق من القيمة المخفية (ID) وليس النص الظاهر فقط لضمان اختيار مورد صحيح
+        // ًں›‘ 1. ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ط®طھظٹط§ط± ط§ظ„ظ…ظˆط±ط¯
+        // ظ†طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ظ‚ظٹظ…ط© ط§ظ„ظ…ط®ظپظٹط© (ID) ظˆظ„ظٹط³ ط§ظ„ظ†طµ ط§ظ„ط¸ط§ظ‡ط± ظپظ‚ط· ظ„ط¶ظ…ط§ظ† ط§ط®طھظٹط§ط± ظ…ظˆط±ط¯ طµط­ظٹط­
         let supplierId = document.getElementById('supplierId').value;
         let supplierInput = document.getElementById('supplierSearchInput');
 
         if (!supplierId || supplierId.trim() === '') {
-            // تلوين الحقل بالأحمر
+            // طھظ„ظˆظٹظ† ط§ظ„ط­ظ‚ظ„ ط¨ط§ظ„ط£ط­ظ…ط±
             supplierInput.classList.add('is-invalid'); 
             
-            // إظهار رسالة خطأ (يدعم SweetAlert أو التنبيه العادي)
+            // ط¥ط¸ظ‡ط§ط± ط±ط³ط§ظ„ط© ط®ط·ط£ (ظٹط¯ط¹ظ… SweetAlert ط£ظˆ ط§ظ„طھظ†ط¨ظٹظ‡ ط§ظ„ط¹ط§ط¯ظٹ)
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'error',
-                    title: 'تنبيه',
-                    text: 'الرجاء اختيار المورد من القائمة قبل حفظ الفاتورة!',
-                    confirmButtonText: 'حسناً'
+                    title: 'طھظ†ط¨ظٹظ‡',
+                    text: 'ط§ظ„ط±ط¬ط§ط، ط§ط®طھظٹط§ط± ط§ظ„ظ…ظˆط±ط¯ ظ…ظ† ط§ظ„ظ‚ط§ط¦ظ…ط© ظ‚ط¨ظ„ ط­ظپط¸ ط§ظ„ظپط§طھظˆط±ط©!',
+                    confirmButtonText: 'ط­ط³ظ†ط§ظ‹'
                 });
             } else {
-                alert('الرجاء اختيار المورد من القائمة قبل حفظ الفاتورة!');
+                alert('ط§ظ„ط±ط¬ط§ط، ط§ط®طھظٹط§ط± ط§ظ„ظ…ظˆط±ط¯ ظ…ظ† ط§ظ„ظ‚ط§ط¦ظ…ط© ظ‚ط¨ظ„ ط­ظپط¸ ط§ظ„ظپط§طھظˆط±ط©!');
             }
-            return; // ⛔ إيقاف الدالة هنا
+            return; // â›” ط¥ظٹظ‚ط§ظپ ط§ظ„ط¯ط§ظ„ط© ظ‡ظ†ط§
         } else {
             supplierInput.classList.remove('is-invalid');
         }
 
-        // 🛑 2. التحقق من تواريخ الانتهاء لكل المنتجات
+        // ًں›‘ 2. ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طھظˆط§ط±ظٹط® ط§ظ„ط§ظ†طھظ‡ط§ط، ظ„ظƒظ„ ط§ظ„ظ…ظ†طھط¬ط§طھ
         let expiryInputs = document.querySelectorAll('input[name$="[expiry_date]"]');
         let missingExpiry = false;
 
-        // التأكد أولاً من وجود منتجات
+        // ط§ظ„طھط£ظƒط¯ ط£ظˆظ„ط§ظ‹ ظ…ظ† ظˆط¬ظˆط¯ ظ…ظ†طھط¬ط§طھ
         if (expiryInputs.length === 0) {
-            if (typeof toastr !== 'undefined') toastr.error('الفاتورة فارغة! أضف منتجات أولاً.');
-            else alert('الفاتورة فارغة! أضف منتجات أولاً.');
+            if (typeof toastr !== 'undefined') toastr.error('ط§ظ„ظپط§طھظˆط±ط© ظپط§ط±ط؛ط©! ط£ط¶ظپ ظ…ظ†طھط¬ط§طھ ط£ظˆظ„ط§ظ‹.');
+            else alert('ط§ظ„ظپط§طھظˆط±ط© ظپط§ط±ط؛ط©! ط£ط¶ظپ ظ…ظ†طھط¬ط§طھ ط£ظˆظ„ط§ظ‹.');
             return;
         }
 
         expiryInputs.forEach(input => {
-            // التحقق مما إذا كان الحقل فارغاً
+            // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ…ط§ ط¥ط°ط§ ظƒط§ظ† ط§ظ„ط­ظ‚ظ„ ظپط§ط±ط؛ط§ظ‹
             if (!input.value) {
                 missingExpiry = true;
-                input.classList.add('is-invalid'); // تلوين الحقل الفارغ بالأحمر
+                input.classList.add('is-invalid'); // طھظ„ظˆظٹظ† ط§ظ„ط­ظ‚ظ„ ط§ظ„ظپط§ط±ط؛ ط¨ط§ظ„ط£ط­ظ…ط±
             } else {
                 input.classList.remove('is-invalid');
             }
@@ -1864,17 +1479,17 @@
              if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'تاريخ الانتهاء مطلوب',
-                    text: 'لا يمكن حفظ الفاتورة. يوجد منتجات بدون تاريخ انتهاء!',
-                    confirmButtonText: 'مراجعة المنتجات'
+                    title: 'طھط§ط±ظٹط® ط§ظ„ط§ظ†طھظ‡ط§ط، ظ…ط·ظ„ظˆط¨',
+                    text: 'ظ„ط§ ظٹظ…ظƒظ† ط­ظپط¸ ط§ظ„ظپط§طھظˆط±ط©. ظٹظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ ط¨ط¯ظˆظ† طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط،!',
+                    confirmButtonText: 'ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ظ†طھط¬ط§طھ'
                 });
              } else {
-                 alert('لا يمكن حفظ الفاتورة. يوجد منتجات بدون تاريخ انتهاء!');
+                 alert('ظ„ط§ ظٹظ…ظƒظ† ط­ظپط¸ ط§ظ„ظپط§طھظˆط±ط©. ظٹظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ ط¨ط¯ظˆظ† طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط،!');
              }
-            return; // ⛔ إيقاف الدالة هنا
+            return; // â›” ط¥ظٹظ‚ط§ظپ ط§ظ„ط¯ط§ظ„ط© ظ‡ظ†ط§
         }
 
-        // ✅ إذا تجاوزنا الفحوصات أعلاه، نكمل الكود الطبيعي للحسابات والمودال
+        // âœ… ط¥ط°ط§ طھط¬ط§ظˆط²ظ†ط§ ط§ظ„ظپط­ظˆطµط§طھ ط£ط¹ظ„ط§ظ‡طŒ ظ†ظƒظ…ظ„ ط§ظ„ظƒظˆط¯ ط§ظ„ط·ط¨ظٹط¹ظٹ ظ„ظ„ط­ط³ط§ط¨ط§طھ ظˆط§ظ„ظ…ظˆط¯ط§ظ„
         let grandTotal = parseFloat(document.getElementById('grandTotalDisplay').innerText) || 0;
         let totalPaid = 0;
         document.querySelectorAll('.payment-row').forEach(row => {
@@ -1888,13 +1503,13 @@
         
         let diff = grandTotal - totalPaid;
         
-        // إذا كان المبلغ المدفوع يساوي الإجمالي تماماً (الفارق شبه معدوم)، احفظ مباشرة
+        // ط¥ط°ط§ ظƒط§ظ† ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط¯ظپظˆط¹ ظٹط³ط§ظˆظٹ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ طھظ…ط§ظ…ط§ظ‹ (ط§ظ„ظپط§ط±ظ‚ ط´ط¨ظ‡ ظ…ط¹ط¯ظˆظ…)طŒ ط§ط­ظپط¸ ظ…ط¨ط§ط´ط±ط©
         if (Math.abs(diff) < 0.01) {
             ajaxSubmitPurchase();
             return;
         }
 
-        // إعداد بيانات المودال (تأكيد الدين أو الرصيد)
+        // ط¥ط¹ط¯ط§ط¯ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظˆط¯ط§ظ„ (طھط£ظƒظٹط¯ ط§ظ„ط¯ظٹظ† ط£ظˆ ط§ظ„ط±طµظٹط¯)
         let oldBalance = parseFloat(document.getElementById('currentSupplierBalance').value) || 0;
         let newBalance = oldBalance + diff; 
 
@@ -1911,13 +1526,13 @@
         
         if (newBalance > 0) {
             colorClass = "text-danger";
-            balText = `سيصبح له علينا: ${formatNum(newBalance)} (دين)`;
+            balText = `ط³ظٹطµط¨ط­ ظ„ظ‡ ط¹ظ„ظٹظ†ط§: ${formatNum(newBalance)} (ط¯ظٹظ†)`;
         } else if (newBalance < 0) {
             colorClass = "text-success";
-            balText = `سيصبح لنا عنده: ${formatNum(Math.abs(newBalance))} (رصيد)`;
+            balText = `ط³ظٹطµط¨ط­ ظ„ظ†ط§ ط¹ظ†ط¯ظ‡: ${formatNum(Math.abs(newBalance))} (ط±طµظٹط¯)`;
         } else {
             colorClass = "text-primary";
-            balText = "الرصيد سيصبح 0.00 (خالص)";
+            balText = "ط§ظ„ط±طµظٹط¯ ط³ظٹطµط¨ط­ 0.00 (ط®ط§ظ„طµ)";
         }
 
         let modalNewBalance = document.getElementById('modalNewBalance');
@@ -1926,9 +1541,9 @@
 
         let msg = "";
         if (diff > 0) {
-            msg = "⚠️ المبلغ المدفوع أقل من الفاتورة. سيتم إضافة الفارق إلى الدين.";
+            msg = "âڑ ï¸ڈ ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط¯ظپظˆط¹ ط£ظ‚ظ„ ظ…ظ† ط§ظ„ظپط§طھظˆط±ط©. ط³ظٹطھظ… ط¥ط¶ط§ظپط© ط§ظ„ظپط§ط±ظ‚ ط¥ظ„ظ‰ ط§ظ„ط¯ظٹظ†.";
         } else {
-            msg = "⚠️ المبلغ المدفوع أكبر من الفاتورة. سيتم إضافة الفارق كرصيد لك.";
+            msg = "âڑ ï¸ڈ ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط¯ظپظˆط¹ ط£ظƒط¨ط± ظ…ظ† ط§ظ„ظپط§طھظˆط±ط©. ط³ظٹطھظ… ط¥ط¶ط§ظپط© ط§ظ„ظپط§ط±ظ‚ ظƒط±طµظٹط¯ ظ„ظƒ.";
         }
         document.getElementById('modalMessage').innerText = msg;
 
@@ -1943,35 +1558,35 @@
         const btn = document.getElementById('confirmSaveBtn');
         const originalText = btn ? btn.innerHTML : '';
         if(btn) {
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الحفظ...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> ط¬ط§ط±ظٹ ط§ظ„ط­ظپط¸...';
             btn.disabled = true;
         }
 
-        Swal.fire({title: 'جاري حفظ الفاتورة...', didOpen: () => Swal.showLoading()});
+        Swal.fire({title: 'ط¬ط§ط±ظٹ ط­ظپط¸ ط§ظ„ظپط§طھظˆط±ط©...', didOpen: () => Swal.showLoading()});
 
         fetch(form.action, {
             method: 'POST',
             body: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': 'dummy'
             }
         })
         .then(res => res.json())
         .then(data => {
             if(data.success) {
                 Swal.close();
-                // إذا كان هناك بيانات واتساب أو إيميل، اعرض خيارات المشاركة
+                // ط¥ط°ط§ ظƒط§ظ† ظ‡ظ†ط§ظƒ ط¨ظٹط§ظ†ط§طھ ظˆط§طھط³ط§ط¨ ط£ظˆ ط¥ظٹظ…ظٹظ„طŒ ط§ط¹ط±ط¶ ط®ظٹط§ط±ط§طھ ط§ظ„ظ…ط´ط§ط±ظƒط©
                 if (data.whatsapp_data) {
                     Swal.fire({
-                        title: 'تم الحفظ بنجاح',
-                        text: 'كيف ترغب في مشاركة الفاتورة مع المورد؟',
+                        title: 'طھظ… ط§ظ„ط­ظپط¸ ط¨ظ†ط¬ط§ط­',
+                        text: 'ظƒظٹظپ طھط±ط؛ط¨ ظپظٹ ظ…ط´ط§ط±ظƒط© ط§ظ„ظپط§طھظˆط±ط© ظ…ط¹ ط§ظ„ظ…ظˆط±ط¯طں',
                         icon: 'success',
                         showDenyButton: true,
                         showCancelButton: true,
-                        confirmButtonText: '<i class="fab fa-whatsapp"></i> واتساب',
-                        denyButtonText: '<i class="fas fa-envelope"></i> إيميل',
-                        cancelButtonText: 'إغلاق ومتابعة',
+                        confirmButtonText: '<i class="fab fa-whatsapp"></i> ظˆط§طھط³ط§ط¨',
+                        denyButtonText: '<i class="fas fa-envelope"></i> ط¥ظٹظ…ظٹظ„',
+                        cancelButtonText: 'ط¥ط؛ظ„ط§ظ‚ ظˆظ…طھط§ط¨ط¹ط©',
                         confirmButtonColor: '#25d366',
                         denyButtonColor: '#007bff',
                     }).then((result) => {
@@ -1979,7 +1594,7 @@
                             triggerWhatsappPrompt(
                                 data.whatsapp_data.phone, 
                                 data.whatsapp_data.message, 
-                                "إرسال فاتورة المشتريات للمورد",
+                                "ط¥ط±ط³ط§ظ„ ظپط§طھظˆط±ط© ط§ظ„ظ…ط´طھط±ظٹط§طھ ظ„ظ„ظ…ظˆط±ط¯",
                                 data.whatsapp_data.pdf_url,
                                 data.whatsapp_data.pdf_filename
                             );
@@ -1987,32 +1602,32 @@
                             triggerEmailPrompt(
                                 data.supplier_email || '', 
                                 data.whatsapp_data.message, 
-                                "فاتورة مشتريات - " + (data.invoice_no || ''), 
+                                "ظپط§طھظˆط±ط© ظ…ط´طھط±ظٹط§طھ - " + (data.invoice_no || ''), 
                                 data.pdf_url,
                                 data.pdf_filename
                             );
                         } else {
-                            window.location.href = "{{ route('store.purchases.index') }}";
+                            window.location.href = "dummy";
                         }
                         
-                        // نراقب إغلاق المودالات للعودة للفهرس
+                        // ظ†ط±ط§ظ‚ط¨ ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ…ظˆط¯ط§ظ„ط§طھ ظ„ظ„ط¹ظˆط¯ط© ظ„ظ„ظپظ‡ط±ط³
                         $(document).one('hidden.bs.modal', '#globalWhatsappModal, #globalEmailModal', function() {
-                            window.location.href = "{{ route('store.purchases.index') }}";
+                            window.location.href = "dummy";
                         });
                     });
                 } else {
-                    Swal.fire({icon: 'success', title: 'تم الحفظ بنجاح', timer: 1500, showConfirmButton: false})
+                    Swal.fire({icon: 'success', title: 'طھظ… ط§ظ„ط­ظپط¸ ط¨ظ†ط¬ط§ط­', timer: 1500, showConfirmButton: false})
                     .then(() => {
-                        window.location.href = "{{ route('store.purchases.index') }}";
+                        window.location.href = "dummy";
                     });
                 }
             } else {
-                Swal.fire({icon: 'error', title: 'خطأ', text: data.message || 'حدث خطأ غير متوقع'});
+                Swal.fire({icon: 'error', title: 'ط®ط·ط£', text: data.message || 'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹'});
             }
         })
         .catch(err => {
             console.error(err);
-            Swal.fire({icon: 'error', title: 'خطأ', text: 'فشل الاتصال بالسيرفر'});
+            Swal.fire({icon: 'error', title: 'ط®ط·ط£', text: 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±'});
         })
         .finally(() => {
             if(btn) {
@@ -2021,13 +1636,13 @@
             }
         });
     }
-// --- دالة فتح نافذة إضافة المنتج ---
+// --- ط¯ط§ظ„ط© ظپطھط­ ظ†ط§ظپط°ط© ط¥ط¶ط§ظپط© ط§ظ„ظ…ظ†طھط¬ ---
     function openCreateProductModal() {
         console.log("Opening Product Modal...");
         const frame = document.getElementById('createProductFrame');
         if (!frame) return console.error("createProductFrame not found");
         
-        frame.src = "{{ url('/store-owner/products/create') }}?iframe=1"; 
+        frame.src = "dummy?iframe=1"; 
         
         const modalEl = document.getElementById('quickProductModal');
         if (!modalEl) return console.error("quickProductModal not found");
@@ -2037,17 +1652,17 @@
             myModal.show();
         } else {
             console.error("Bootstrap is not defined!");
-            alert("خطأ في تحميل مكتبة Bootstrap");
+            alert("ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ظ…ظƒطھط¨ط© Bootstrap");
         }
     }
 
-// --- دالة فتح نافذة إضافة المورد ---
+// --- ط¯ط§ظ„ط© ظپطھط­ ظ†ط§ظپط°ط© ط¥ط¶ط§ظپط© ط§ظ„ظ…ظˆط±ط¯ ---
     function openCreateSupplierModal() {
         console.log("Opening Supplier Modal...");
         const frame = document.getElementById('createSupplierFrame');
         if (!frame) return console.error("createSupplierFrame not found");
 
-        frame.src = "{{ route('store.contacts.create') }}?type=supplier&iframe=1"; 
+        frame.src = "dummy?type=supplier&iframe=1"; 
         
         const modalEl = document.getElementById('addSupplierModal');
         if (!modalEl) return console.error("addSupplierModal not found");
@@ -2057,17 +1672,17 @@
             myModal.show();
         } else {
             console.error("Bootstrap is not defined!");
-            alert("خطأ في تحميل مكتبة Bootstrap");
+            alert("ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ظ…ظƒطھط¨ط© Bootstrap");
         }
     }
 
-    // --- دالة فتح نافذة إضافة وجبة (للمطاعم) ---
+    // --- ط¯ط§ظ„ط© ظپطھط­ ظ†ط§ظپط°ط© ط¥ط¶ط§ظپط© ظˆط¬ط¨ط© (ظ„ظ„ظ…ط·ط§ط¹ظ…) ---
     function openCreateMealModal() {
         console.log("Opening Meal Modal...");
         const frame = document.getElementById('createMealFrame');
         if (!frame) return console.error("createMealFrame not found");
 
-        frame.src = "{{ route('store.meals.create') }}?iframe=1"; 
+        frame.src = "dummy?iframe=1"; 
         
         const modalEl = document.getElementById('quickMealModal');
         if (!modalEl) return console.error("quickMealModal not found");
@@ -2077,9 +1692,7 @@
             myModal.show();
         } else {
             console.error("Bootstrap is not defined!");
-            alert("خطأ في تحميل مكتبة Bootstrap");
+            alert("ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ظ…ظƒطھط¨ط© Bootstrap");
         }
     }
-</script>
 
-@endsection
