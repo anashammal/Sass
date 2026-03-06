@@ -504,14 +504,14 @@ class PurchaseController extends Controller
                                 $finalSell = $sellInBase / $uRate;
 
                                 $unitFields = [
-                                    'purchase_price' => $updateData['price'],
-                                    'cost_price'       => $updateData['price'],
-                                    'selling_price'  => $finalSell,
-                                    'profit_percent' => $updateData['profit_percent'] ?? $relatedUnit->profit_percent,
+                                    'purchase_price'             => $updateData['price'],
+                                    'cost_price'                 => $updateData['price'],
+                                    'selling_price'              => $finalSell,
+                                    'profit_percent'             => $updateData['profit_percent'] ?? $relatedUnit->profit_percent,
+                                    // ✅ دائماً نُحدِّث عملة الشراء للوحدات الفرعية أيضاً
+                                    'purchase_price_currency_id' => $currencyId,
+                                    'purchase_exchange_rate'     => $exchangeRate,
                                 ];
-                                if ($relatedUnit->purchase_price_currency_id == $currencyId) {
-                                    $unitFields['purchase_exchange_rate'] = $exchangeRate;
-                                }
                                 $relatedUnit->update($unitFields);
                             }
                         }
@@ -539,15 +539,14 @@ class PurchaseController extends Controller
                         $finalSellMain = $sellInBaseMain / $uRateMain;
 
                         $mainUpdateFields = [
-                            'purchase_price' => $unitPrice,
-                            'cost_price'     => $unitPrice,
-                            'selling_price'  => $finalSellMain,
-                            'profit_percent' => $itemData['profit_percent'] ?? $mainUnit->profit_percent,
+                            'purchase_price'             => $unitPrice,
+                            'cost_price'                 => $unitPrice,
+                            'selling_price'              => $finalSellMain,
+                            'profit_percent'             => $itemData['profit_percent'] ?? $mainUnit->profit_percent,
+                            // ✅ دائماً نُحدِّث عملة الشراء وسعر الصرف بعملة الفاتورة الجديدة
+                            'purchase_price_currency_id' => $currencyId,
+                            'purchase_exchange_rate'     => $exchangeRate,
                         ];
-                        // تحديث سعر الصرف للوحدة الأساسية المختارة إذا كانت العملة متطابقة
-                        if ($mainUnit->purchase_price_currency_id == $currencyId) {
-                            $mainUpdateFields['purchase_exchange_rate'] = $exchangeRate;
-                        }
                         $mainUnit->update($mainUpdateFields);
 
                         // 3. إنشاء الدفعة (Batch)

@@ -133,7 +133,11 @@
                                 <label class="form-label fw-bold"> {{ __('العملة') }} </label>
                                 <select name="currency_id" id="currency_id" class="form-select" onchange="onInvoiceCurrencyChange(this)">
                                     @foreach($currencies as $cur)
-                                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-symbol="{{ $cur->symbol ?? $cur->code }}" {{ $cur->id == optional($baseCurrency)->id ? 'selected' : '' }}>
+                                        <option value="{{ $cur->id }}"
+                                            data-code="{{ $cur->code }}"
+                                            data-symbol="{{ $cur->symbol ?? $cur->code }}"
+                                            data-is-base="{{ $cur->id == optional($baseCurrency)->id ? '1' : '0' }}"
+                                            {{ $cur->id == optional($baseCurrency)->id ? 'selected' : '' }}>
                                             {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
                                         </option>
                                     @endforeach
@@ -211,7 +215,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
                             <span> {{ __('المجموع الفرعي:') }} </span> 
-                            <div><span id="subTotalDisplay" class="fw-bold">0.00</span> <span class="currency-label text-muted small">{{ optional($baseCurrency)->code }}</span></div>
+                            <div><span id="subTotalDisplay" class="fw-bold">0.00</span> <span class="text-muted small">{{ optional($baseCurrency)->symbol ?? optional($baseCurrency)->code }}</span></div>
                         </div>
                         <div class="input-group input-group-sm mb-3">
                             <span class="input-group-text"> {{ __('خصم إضافي') }} </span>
@@ -219,7 +223,7 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-top border-bottom py-2 mb-3">
                             <span class="fs-5 fw-bold"> {{ __('الصافي النهائي:') }} </span>
-                            <div><span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">0.00</span> <span class="currency-label fw-bold text-primary">{{ optional($baseCurrency)->code }}</span></div>
+                            <div><span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">0.00</span> <span class="fw-bold text-primary">{{ optional($baseCurrency)->symbol ?? optional($baseCurrency)->code }}</span></div>
                         </div>
                         
                         <div class="mb-3">
@@ -815,10 +819,12 @@
             </td>
             <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty input-qty" value="1" oninput="calcTotals(${rowIdx})" onfocus="this.select()"></td>
             <td class="col-shrink">
-                <input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control form-control-sm text-center price text-danger fw-bold input-price" value="${parseFloat(calculatedCost.toFixed(4))}" oninput="syncSubUnits(${rowIdx}, 'purchase')" onfocus="this.select()">
-                <div class="cost-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1; color: black !important;">
-                   <span class="cost-original d-block text-muted"></span>
-                   <span class="cost-base d-block text-info fw-bold"></span>
+                <div class="input-group input-group-sm">
+                    <input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control text-center price text-danger fw-bold input-price" value="${parseFloat(calculatedCost.toFixed(4))}" oninput="syncSubUnits(${rowIdx}, 'purchase')" onfocus="this.select()">
+                    <span id="inv-badge-${rowIdx}" class="input-group-text py-0 px-1 small text-danger fw-bold" style="display:none;"></span>
+                </div>
+                <div class="cost-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1;">
+                   <span id="cost-base-${rowIdx}" class="d-block text-info fw-bold"></span>
                 </div>
             </td>
             <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][profit_percent]" class="form-control form-control-sm text-center profit text-primary input-profit" value="${formatNum(profitPercent)}" oninput="calcSellPrice(${rowIdx})" onfocus="this.select()"></td>
@@ -832,10 +838,12 @@
                 </div>
             </td>
             <td class="col-shrink">
-                <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control form-control-sm text-center sell text-success fw-bold input-price" value="${formatNum(sellPrice)}" oninput="calcProfitPercent(${rowIdx})" onfocus="this.select()">
-                <div class="sell-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1; color: black !important;">
-                   <span class="sell-original d-block text-muted"></span>
-                   <span class="sell-base d-block text-info fw-bold"></span>
+                <div class="input-group input-group-sm">
+                    <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control text-center sell text-success fw-bold input-price" value="${formatNum(sellPrice)}" oninput="calcProfitPercent(${rowIdx})" onfocus="this.select()">
+                    <span id="sell-badge-${rowIdx}" class="input-group-text py-0 px-1 small text-success fw-bold" style="display:none;"></span>
+                </div>
+                <div class="sell-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1;">
+                   <span id="sell-base-${rowIdx}" class="d-block text-info fw-bold"></span>
                 </div>
                 <div class="main-warning-container mt-1" style="min-height:18px;"></div>
             </td>
@@ -981,56 +989,7 @@
         calcTotals(idx);
     }
 
-    // 🟢 عرض السعر بالعملة الأصلية وما يعادلها بالعملة الأساسية
-    function updateDualPriceDisplay(idx) {
-        let row = document.getElementById(`row_${idx}`);
-        if (!row) return;
-        
-        let product = window.productsData[idx];
-        let select = row.querySelector('.unit-select');
-        let selectedUnitId = select.value;
-        let unit = product.units.find(u => u.id == selectedUnitId);
-        
-        let invoiceCurrId = document.getElementById('currency_id').value;
-        let bCode = "{{ optional($baseCurrency)->code }}";
-
-        // 1. معالجة سعر الشراء
-        let costOriginal = row.querySelector('.cost-original');
-        let costBase = row.querySelector('.cost-base');
-        
-        if (unit && unit.purchase_currency_id) {
-            let pPrice = parseFloat(unit.cost_price) || parseFloat(unit.purchase_price) || 0;
-            let pSym = unit.purchase_currency_symbol || unit.purchase_currency_code || '';
-            
-            if (unit.purchase_currency_id == invoiceCurrId) {
-                costOriginal.innerText = `(${pSym} ${pPrice})`;
-                costBase.innerText = '';
-            } else {
-                costOriginal.innerText = `${pSym} ${pPrice}`;
-                let bRate = (unit.purchase_currency_id == baseCurrencyId) ? 1 : (ratesMap[unit.purchase_currency_id]?.exchange_rate || 1);
-                costBase.innerText = `= ${formatNum(pPrice * bRate)} ${bCode}`;
-            }
-        }
-
-        // 2. معالجة سعر البيع
-        let sellOriginal = row.querySelector('.sell-original');
-        let sellBase = row.querySelector('.sell-base');
-
-        if (unit && (unit.sell_currency_id || unit.sell_price_currency_id)) {
-            let sCurrId = unit.sell_price_currency_id || unit.sell_currency_id;
-            let sPrice = parseFloat(unit.selling_price) || parseFloat(unit.sale_price) || 0;
-            let sSym = unit.sell_currency_symbol || unit.sell_currency_code || '';
-
-            if (sCurrId == invoiceCurrId) {
-                sellOriginal.innerText = `(${sSym} ${sPrice})`;
-                sellBase.innerText = '';
-            } else {
-                sellOriginal.innerText = `${sSym} ${sPrice}`;
-                let bRate = (sCurrId == baseCurrencyId) ? 1 : (ratesMap[sCurrId]?.exchange_rate || 1);
-                sellBase.innerText = `= ${formatNum(sPrice * bRate)} ${bCode}`;
-            }
-        }
-    }
+    // updateDualPriceDisplay is defined below (correct version using getElementById)
 
     function renderRelatedUnits(idx, currentUnitId) {
         let product = window.productsData[idx];
@@ -1235,6 +1194,33 @@
 
 
 
+    // ✅ عند تغيير سعر المبيع → تحديث نسبة الربح والعملة الأساسية
+    function calcProfitPercent(idx) {
+        let row = document.getElementById(`row_${idx}`);
+        if (!row) return;
+        let cost = parseMoney(row.querySelector('.price').value);
+        let sell = parseMoney(row.querySelector('.sell').value);
+        let profitEl = row.querySelector('.profit');
+        if (cost > 0 && profitEl) {
+            profitEl.value = formatNum(((sell - cost) / cost) * 100);
+        }
+        calcTotals(idx); // يحسب الإجمالي ثم يحدث عرض العملة الأساسية
+    }
+
+    // ✅ عند تغيير نسبة الربح → تحديث سعر المبيع والعملة الأساسية
+    function calcSellPrice(idx) {
+        let row = document.getElementById(`row_${idx}`);
+        if (!row) return;
+        let cost = parseMoney(row.querySelector('.price').value);
+        let profit = parseMoney(row.querySelector('.profit').value);
+        let sellEl = row.querySelector('.sell');
+        if (sellEl) {
+            let newSell = cost * (1 + profit / 100);
+            sellEl.value = formatNum(newSell);
+        }
+        calcTotals(idx); // يحسب الإجمالي ثم يحدث عرض العملة الأساسية
+    }
+
     // --- بقية الدوال (calcTotals, removeRow, etc...) ضروري تكون موجودة ---
     function calcTotals(idx) { 
         let row = document.getElementById(`row_${idx}`);
@@ -1260,7 +1246,15 @@
         // عرض الإجمالي بالعملة الأساسية كما طلب المستخدم
         let finalTotalBase = finalTotalInv * invoiceRate;
         row.querySelector('.total').value = formatNum(finalTotalBase);
-        
+
+        // ✅ تحديث نسبة الربح عند تغيير سعر الشراء أو البيع
+        let sellPriceInvoice = parseMoney(row.querySelector('.sell').value);
+        if (priceInvoice > 0) {
+            let profitPct = sellPriceInvoice > 0 ? ((sellPriceInvoice - priceInvoice) / priceInvoice) * 100 : 0;
+            let profitEl = row.querySelector('.profit');
+            if (profitEl) profitEl.value = formatNum(profitPct);
+        }
+
         updateDualPriceDisplay(idx);
         calculateGrandTotal();
     }
@@ -1349,15 +1343,10 @@
         });
     }
 
-    // 🟢 عرض السعر بالعملة الأصلية وما يعادلها بالعملة الأساسية
+    // 🟢 عرض ما يعادل سعر الشراء والبيع بالعملة الافتراضية وإظهار badge العملة
     function updateDualPriceDisplay(idx) {
         let row = document.getElementById(`row_${idx}`);
         if (!row) return;
-        
-        let product = window.productsData[idx];
-        let select = row.querySelector('.unit-select');
-        let selectedUnitId = select.value;
-        let unit = product.units.find(u => u.id == selectedUnitId);
         
         // 1. جلب القيم الحالية من الحقول (الآن أصبحت بعملة الفاتورة)
         let priceInvoice = parseFloat(row.querySelector('.price').value) || 0;
@@ -1369,31 +1358,32 @@
         let sellBase = sellInvoice * invRate;
         let baseCurrCode = "{{ optional($baseCurrency)->code }}";
 
-        // 🟢 سعر الشراء الإضافي
-        let costOriginal = row.querySelector('.cost-original');
-        let costBaseEl = row.querySelector('.cost-base');
+        // 🟢 سعر الشراء — badge العملة + بالعملة الأساسية
+        let costBaseEl = document.getElementById('cost-base-' + idx);
+        let costBadge  = document.getElementById('inv-badge-' + idx);
         
-        // السعر بالأصلي (يورو مثلاً)
-        if (unit && unit.purchase_currency_id) {
-            let pPrice = parseFloat(unit.cost_price) || parseFloat(unit.purchase_price) || 0;
-            let pSym = unit.purchase_currency_symbol || unit.purchase_currency_code || '';
-            costOriginal.innerText = `${pSym} ${pPrice}`;
-        }
-        // السعر بالعملة الأساسية (TRY)
-        if(costBaseEl) costBaseEl.innerText = `${formatNum(priceBase)} ${baseCurrCode}`;
+        // badge العملة جنب الحقل — يظهر فقط إذا كانت غير الافتراضية
+        let invCurrSel = document.getElementById('currency_id');
+        let selOpt = invCurrSel ? invCurrSel.options[invCurrSel.selectedIndex] : null;
+        let isBaseInv = selOpt ? (selOpt.dataset.isBase === '1') : true;
+        let invCurrCode = selOpt ? (selOpt.dataset.code || baseCurrCode) : baseCurrCode;
+        let showBadge = !isBaseInv && invCurrCode && invCurrCode !== baseCurrCode;
 
-        // 🟢 سعر البيع الإضافي
-        let sellOriginal = row.querySelector('.sell-original');
-        let sellBaseEl = row.querySelector('.sell-base');
-
-        // السعر بالأصلي
-        if (unit && unit.sell_currency_id) {
-            let sPrice = parseFloat(unit.sale_price) || 0;
-            let sSym = unit.sell_currency_symbol || unit.sell_currency_code || '';
-            sellOriginal.innerText = `${sSym} ${sPrice}`;
+        if (costBadge) {
+            costBadge.textContent = invCurrCode;
+            costBadge.style.display = showBadge ? '' : 'none';
         }
-        // السعر بالعملة الأساسية (TRY)
-        if(sellBaseEl) sellBaseEl.innerText = `${formatNum(sellBase)} ${baseCurrCode}`;
+        if (costBaseEl) costBaseEl.innerText = `${formatNum(priceBase)} ${baseCurrCode}`;
+
+        // 🟢 سعر البيع — badge العملة + بالعملة الأساسية
+        let sellBaseEl = document.getElementById('sell-base-' + idx);
+        let sellBadge  = document.getElementById('sell-badge-' + idx);
+
+        if (sellBadge) {
+            sellBadge.textContent = invCurrCode;
+            sellBadge.style.display = showBadge ? '' : 'none';
+        }
+        if (sellBaseEl) sellBaseEl.innerText = `${formatNum(sellBase)} ${baseCurrCode}`;
     }
     
     function removeRow(idx) {
