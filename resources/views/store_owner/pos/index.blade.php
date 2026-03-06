@@ -1608,7 +1608,7 @@
                     let { diff } = calculateRemaining(); 
                     
                     if (diff > 0.001) {
-                        let amountInForeign = diff * approvedRate;
+                        let amountInForeign = diff / approvedRate;
                         amountInput.value = amountInForeign.toFixed(2);
                     }
                     
@@ -1662,10 +1662,9 @@
                 }
             }
 
-            // The actual amount deducted from the Due is (Entered Amount / Exchange Rate)
-            // Example: Bill is 100 TRY (Base). Customer pays in USD. 1 TRY = 0.03 USD.
-            // Customer pays 3 USD. Base = 3 / 0.03 = 100 TRY.
-            let baseAmountDeducted = amountInput / exchangeRate;
+            // Example: Bill is 750 TRY (Base). Customer pays in SAR. 1 SAR = 10 TRY.
+            // Customer pays 75 SAR. Base = 75 * 10 = 750 TRY.
+            let baseAmountDeducted = amountInput * exchangeRate;
             
             // Update Equivalent Display
             let eqAmountSpan = row.querySelector('.eq-amount');

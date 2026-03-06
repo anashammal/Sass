@@ -827,7 +827,7 @@
                    <span id="cost-base-${rowIdx}" class="d-block text-info fw-bold"></span>
                 </div>
             </td>
-            <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][profit_percent]" class="form-control form-control-sm text-center profit text-primary input-profit" value="${formatNum(profitPercent)}" oninput="calcSellPrice(${rowIdx})" onfocus="this.select()"></td>
+            <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][profit_percent]" class="form-control form-control-sm text-center profit text-primary input-profit" value="${formatNum(profitPercent)}" oninput="calcSellPrice(${rowIdx}, this.value)" onfocus="this.select()"></td>
             <td class="col-shrink">
                 <div class="input-group input-group-sm discount-group input-discount">
                     <input type="text" inputmode="decimal" name="items[${rowIdx}][discount]" class="form-control text-center discount px-1" value="0" oninput="calcTotals(${rowIdx})">
@@ -839,7 +839,7 @@
             </td>
             <td class="col-shrink">
                 <div class="input-group input-group-sm">
-                    <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control text-center sell text-success fw-bold input-price" value="${formatNum(sellPrice)}" oninput="calcProfitPercent(${rowIdx})" onfocus="this.select()">
+                    <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control text-center sell text-success fw-bold input-price" value="${formatNum(sellPrice)}" oninput="calcProfitPercent(${rowIdx}, this.value)" onfocus="this.select()">
                     <span id="sell-badge-${rowIdx}" class="input-group-text py-0 px-1 small text-success fw-bold" style="display:none;"></span>
                 </div>
                 <div class="sell-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1;">
@@ -1194,31 +1194,36 @@
 
 
 
-    // ✅ عند تغيير سعر المبيع → تحديث نسبة الربح والعملة الأساسية
-    function calcProfitPercent(idx) {
+    // ✅ عند تغيير سعر المبيع → تحديث نسبة الربح والعملة الأساسية فوراً
+    function calcProfitPercent(idx, rawVal) {
         let row = document.getElementById(`row_${idx}`);
         if (!row) return;
-        let cost = parseMoney(row.querySelector('.price').value);
-        let sell = parseMoney(row.querySelector('.sell').value);
+        let cost = parseFloat(row.querySelector('.price').value) || 0;
+        let sell = parseFloat(rawVal) || 0;
+        // كتب القيمة الجديدة في الحقل بشكل صريح
+        row.querySelector('.sell').value = sell;
         let profitEl = row.querySelector('.profit');
         if (cost > 0 && profitEl) {
             profitEl.value = formatNum(((sell - cost) / cost) * 100);
         }
-        calcTotals(idx); // يحسب الإجمالي ثم يحدث عرض العملة الأساسية
+        calcTotals(idx);
     }
 
-    // ✅ عند تغيير نسبة الربح → تحديث سعر المبيع والعملة الأساسية
-    function calcSellPrice(idx) {
+    // ✅ عند تغيير نسبة الربح → تحديث سعر المبيع والعملة الأساسية فوراً
+    function calcSellPrice(idx, rawVal) {
         let row = document.getElementById(`row_${idx}`);
         if (!row) return;
-        let cost = parseMoney(row.querySelector('.price').value);
-        let profit = parseMoney(row.querySelector('.profit').value);
+        let cost = parseFloat(row.querySelector('.price').value) || 0;
+        let profit = parseFloat(rawVal) || 0;
         let sellEl = row.querySelector('.sell');
-        if (sellEl) {
-            let newSell = cost * (1 + profit / 100);
-            sellEl.value = formatNum(newSell);
-        }
-        calcTotals(idx); // يحسب الإجمالي ثم يحدث عرض العملة الأساسية
+        let newSell = cost * (1 + profit / 100);
+        if (sellEl) sellEl.value = formatNum(newSell);
+        // تحديث فوري للمعادل بالعملة الافتراضية
+        let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+        let bCode = "{{ optional($baseCurrency)->code }}";
+        let sellBaseEl = document.getElementById('sell-base-' + idx);
+        if (sellBaseEl) sellBaseEl.innerText = formatNum(newSell * invRate) + ' ' + bCode;
+        calcTotals(idx);
     }
 
     // --- بقية الدوال (calcTotals, removeRow, etc...) ضروري تكون موجودة ---
@@ -1248,11 +1253,27 @@
         row.querySelector('.total').value = formatNum(finalTotalBase);
 
         // ✅ تحديث نسبة الربح عند تغيير سعر الشراء أو البيع
-        let sellPriceInvoice = parseMoney(row.querySelector('.sell').value);
+        let sellPriceInvoice = parseFloat(row.querySelector('.sell').value) || 0;
+        let currentProfit = 0;
+        let profitEl = row.querySelector('.profit');
         if (priceInvoice > 0) {
-            let profitPct = sellPriceInvoice > 0 ? ((sellPriceInvoice - priceInvoice) / priceInvoice) * 100 : 0;
-            let profitEl = row.querySelector('.profit');
-            if (profitEl) profitEl.value = formatNum(profitPct);
+            currentProfit = sellPriceInvoice > 0 ? ((sellPriceInvoice - priceInvoice) / priceInvoice) * 100 : 0;
+            if (profitEl) profitEl.value = formatNum(currentProfit);
+        } else if (profitEl) {
+             currentProfit = parseFloat(profitEl.value) || 0;
+        }
+
+        // 🟢 منطق إخفاء/إظهار التحذير المباشر للربح
+        let select = row.querySelector('.unit-select');
+        let originalMainProfit = select ? (parseFloat(select.options[select.selectedIndex].getAttribute('data-profit')) || 0) : 0;
+        let mainWarningDiv = row.querySelector('.main-warning-container');
+        if (mainWarningDiv) {
+            mainWarningDiv.innerHTML = ''; // مسح القديم
+            if (currentProfit <= 0 && priceInvoice > 0) {
+                mainWarningDiv.innerHTML = `<span class="text-danger flash-warning">خسارة ⚠️</span>`;
+            } else if (currentProfit < originalMainProfit - 0.1 && priceInvoice > 0) {
+                mainWarningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">📉 انخفاض الربح</span>`;
+            }
         }
 
         updateDualPriceDisplay(idx);
@@ -1805,40 +1826,7 @@
         else row.style.display = 'none';
     }
     
-    function calcProfitPercent(idx) {
-        let row = document.getElementById(`row_${idx}`);
-        let price = parseMoney(row.querySelector('.price').value);
-        let sell = parseMoney(row.querySelector('.sell').value);
-        let profitInput = row.querySelector('.profit');
-        
-        let newProfit = 0;
-        if(price > 0) {
-            newProfit = ((sell - price) / price) * 100;
-            profitInput.value = formatNum(newProfit);
-        }
-
-        // 🟢 منطق إخفاء/إظهار التحذير لحظياً عند الكتابة
-        let select = row.querySelector('.unit-select');
-        let originalMainProfit = parseFloat(select.options[select.selectedIndex].getAttribute('data-profit')) || 0;
-        let mainWarningDiv = row.querySelector('.main-warning-container');
-        
-        mainWarningDiv.innerHTML = ''; // مسح القديم دائماً
-
-        if (newProfit <= 0) {
-            mainWarningDiv.innerHTML = `<span class="text-danger flash-warning">خسارة ⚠️</span>`;
-        } 
-        else if (newProfit < originalMainProfit - 0.1) {
-            mainWarningDiv.innerHTML = `<span class="text-warning text-dark flash-warning">📉 انخفاض الربح</span>`;
-        }
-    }
-
-    function calcSellPrice(idx) {
-        let row = document.getElementById(`row_${idx}`);
-        let price = parseMoney(row.querySelector('.price').value);
-        let profit = parseMoney(row.querySelector('.profit').value);
-        let sell = price * (1 + profit / 100);
-        row.querySelector('.sell').value = formatNum(sell);
-    }
+    // The duplicate calcProfitPercent and calcSellPrice functions were removed to fix live UI calculation bugs
     
     // الدالة المفقودة: checkBalanceAndSubmit
     function checkBalanceAndSubmit() {

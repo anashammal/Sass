@@ -494,23 +494,20 @@ class PurchaseController extends Controller
                             if ($relatedUnit) {
                                 // حساب سعر البيع المحول لعملة الوحدة الأصلية
                                 $sellInInvoice = (float)($updateData['selling_price'] ?? $relatedUnit->selling_price);
-                                $sellInBase = $sellInInvoice * $exchangeRate;
-                                $uCurrId = $relatedUnit->sell_price_currency_id;
-                                $uRate = 1;
-                                if ($uCurrId && $uCurrId != $baseCurrency->id) {
-                                    $sc = \App\Models\StoreCurrency::where('store_id', $storeId)->where('currency_id', $uCurrId)->first();
-                                    $uRate = $sc->custom_rate ?? (app(ExchangeRateService::class)->getExchangeRate($relatedUnit->sellCurrency->code, $baseCurrency->code) ?? 1);
-                                }
-                                $finalSell = $sellInBase / $uRate;
+                                
+                                // ✅ بما أن المستخدم أدخل سعر المبيع الجديد في الفاتورة، يُفترض أنه بذات عملة الفاتورة
+                                $finalSell = $sellInInvoice;
 
                                 $unitFields = [
                                     'purchase_price'             => $updateData['price'],
                                     'cost_price'                 => $updateData['price'],
                                     'selling_price'              => $finalSell,
                                     'profit_percent'             => $updateData['profit_percent'] ?? $relatedUnit->profit_percent,
-                                    // ✅ دائماً نُحدِّث عملة الشراء للوحدات الفرعية أيضاً
+                                    // ✅ تحديث عملة الشراء والمبيع لتصبح هي عملة الفاتورة مع معدل الصرف الجديد
                                     'purchase_price_currency_id' => $currencyId,
+                                    'sell_price_currency_id'     => $currencyId,
                                     'purchase_exchange_rate'     => $exchangeRate,
+                                    'sell_exchange_rate'         => $exchangeRate,
                                 ];
                                 $relatedUnit->update($unitFields);
                             }
@@ -527,25 +524,20 @@ class PurchaseController extends Controller
                         }
                         
                         // 2. تحديث أسعار الوحدة المختارة
-                        // حساب سعر البيع المحول لعملة الوحدة الأصلية
+                        // ✅ بما أن المستخدم أدخل سعر المبيع الجديد في الفاتورة، يُفترض أنه بذات عملة الفاتورة
                         $sellInInvoiceMain = (float)($itemData['selling_price'] ?? $mainUnit->selling_price);
-                        $sellInBaseMain = $sellInInvoiceMain * $exchangeRate;
-                        $uCurrIdMain = $mainUnit->sell_price_currency_id;
-                        $uRateMain = 1;
-                        if ($uCurrIdMain && $uCurrIdMain != $baseCurrency->id) {
-                            $scMain = \App\Models\StoreCurrency::where('store_id', $storeId)->where('currency_id', $uCurrIdMain)->first();
-                            $uRateMain = $scMain->custom_rate ?? (app(ExchangeRateService::class)->getExchangeRate($mainUnit->sellCurrency->code, $baseCurrency->code) ?? 1);
-                        }
-                        $finalSellMain = $sellInBaseMain / $uRateMain;
+                        $finalSellMain = $sellInInvoiceMain;
 
                         $mainUpdateFields = [
                             'purchase_price'             => $unitPrice,
                             'cost_price'                 => $unitPrice,
                             'selling_price'              => $finalSellMain,
                             'profit_percent'             => $itemData['profit_percent'] ?? $mainUnit->profit_percent,
-                            // ✅ دائماً نُحدِّث عملة الشراء وسعر الصرف بعملة الفاتورة الجديدة
+                            // ✅ دائماً نُحدِّث عملة الشراء والمبيع وسعر الصرف بعملة الفاتورة الجديدة
                             'purchase_price_currency_id' => $currencyId,
+                            'sell_price_currency_id'     => $currencyId,
                             'purchase_exchange_rate'     => $exchangeRate,
+                            'sell_exchange_rate'         => $exchangeRate,
                         ];
                         $mainUnit->update($mainUpdateFields);
 

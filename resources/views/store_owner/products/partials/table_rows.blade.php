@@ -56,7 +56,7 @@
                 <span>{{ $cost }} <small class="text-muted">{{ $pSymbol }}</small></span>
                 @if($baseCost != $cost)
                     <small class="text-muted" style="font-size: 0.7rem;">(≈ {{ number_format($baseCost, 2) }} {{ $globalCurrencySymbol }})</small>
-                    <small class="text-muted" style="font-size: 0.65rem;">@ 1 {{ $pCurrency->code }} = {{ (float)$pRate }} {{ $globalCurrencySymbol }}</small>
+                    <div class="mt-1"><span class="badge bg-primary rounded-pill" dir="ltr" style="font-size: 0.70rem;">1 {{ $pCurrency->code }} = {{ (float)$pRate }} {{ $globalCurrencySymbol }}</span></div>
                 @endif
             </div>
         @else
@@ -98,7 +98,7 @@
                 <span class="fw-bold text-success">{{ number_format($priceWithTax, 2) }} <small class="text-muted">{{ $sSymbol }}</small></span>
                 @if($basePriceTax != $priceWithTax)
                     <small class="text-muted" style="font-size: 0.7rem;">(≈ {{ number_format($basePriceTax, 2) }} {{ $globalCurrencySymbol }})</small>
-                    <small class="text-muted" style="font-size: 0.65rem;">@ 1 {{ $sCurrency->code }} = {{ (float)$sRate }} {{ $globalCurrencySymbol }}</small>
+                    <div class="mt-1"><span class="badge bg-primary rounded-pill" dir="ltr" style="font-size: 0.70rem;">1 {{ $sCurrency->code }} = {{ (float)$sRate }} {{ $globalCurrencySymbol }}</span></div>
                 @endif
                 @if($tax > 0)
                     <small class="text-muted" style="font-size: 10px;">({{ __('شامل') }} {{ (float)$tax }}%)</small>
@@ -241,7 +241,7 @@
                                     <span>{{ $uCost }} <small class="text-muted">{{ $uPSymbol }}</small></span>
                                     @if($uBaseCost != $uCost)
                                         <small class="text-muted" style="font-size: 0.7rem;">(≈ {{ number_format($uBaseCost, 2) }} {{ $globalCurrencySymbol }})</small>
-                                        <small class="text-muted" style="font-size: 0.65rem;">@ 1 {{ $uPCurrency->code }} = {{ (float)$uPRate }} {{ $globalCurrencySymbol }}</small>
+                                        <div class="mt-1"><span class="badge bg-primary rounded-pill" dir="ltr" style="font-size: 0.70rem;">1 {{ $uPCurrency->code }} = {{ (float)$uPRate }} {{ $globalCurrencySymbol }}</span></div>
                                     @endif
                                 </div>
                             </td>
@@ -276,7 +276,7 @@
             <span>{{ number_format($uPriceTax, 2) }} <small class="text-muted">{{ $uSSymbol }}</small></span>
             @if($uBasePriceTax != $uPriceTax)
                 <small class="text-muted" style="font-size: 0.7rem;">(≈ {{ number_format($uBasePriceTax, 2) }} {{ $globalCurrencySymbol }})</small>
-                <small class="text-muted" style="font-size: 0.65rem;">@ 1 {{ $uSCurrency->code }} = {{ (float)$uSRate }} {{ $globalCurrencySymbol }}</small>
+                <div class="mt-1"><span class="badge bg-primary rounded-pill" dir="ltr" style="font-size: 0.70rem;">1 {{ $uSCurrency->code }} = {{ (float)$uSRate }} {{ $globalCurrencySymbol }}</span></div>
             @endif
         </div>
     @else
