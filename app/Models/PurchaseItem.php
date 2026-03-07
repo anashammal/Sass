@@ -20,7 +20,11 @@ class PurchaseItem extends Model
         'quantity_in_base_unit',
         'cost_per_base_unit',
         'expiry_date', // ✅ حقل تاريخ الانتهاء
-        'alert_days'   // ✅ حقل أيام التنبيه
+        'alert_days',   // ✅ حقل أيام التنبيه
+        'selling_price',
+        'discount',
+        'discount_type',
+        'tax_percent'
     ];
 
     // الفاتورة التابعة لها

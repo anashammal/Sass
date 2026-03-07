@@ -85,19 +85,19 @@
                             <table class="table table-bordered text-center align-middle mb-0" id="itemsTable">
                                 <thead class="bg-dark text-white small">
                                      <tr>
-                                        <th style="width: 10%">{{ __('image_label') }}</th>
-                                        <th style="width: 7%">{{ __('product_label') }}</th>
-                                        <th style="width: 14%">{{ __('barcode_label') }}</th>
-                                        <th style="width: 9%">{{ __('unit_label') }}</th>
+                                        <th style="width: 5%">{{ __('image_label') }}</th>
+                                        <th style="width: 10%">{{ __('product_label') }}</th>
+                                        <th style="min-width: 130px; width: 12%">{{ __('barcode_label') }}</th>
+                                        <th style="width: 8%">{{ __('unit_label') }}</th>
                                         <th style="width: 6%">{{ __('qty_label') }}</th>
-                                        <th style="width: 8%">{{ __('buy_price_label') }}</th>
+                                        <th style="min-width: 100px; width: 10%">{{ __('buy_price_label') }}</th>
                                         <th style="width: 7%">{{ __('profit_percent_label') }}</th> 
-                                        <th style="width: 7%">{{ __('discount_label') }}</th>
-                                        <th style="width: 7%">{{ __('sell_price_label') }}</th>
-                                        <th width="5%">{{ __('expiry_date_label') }}</th>
-                                        <th width="5%">{{ __('alert_days_label') }}</th>
-                                        <th style="width: 7%">{{ __('tax_label') }}</th>
-                                        <th style="width: 14%">{{ __('total_label') }}</th>
+                                        <th style="min-width: 110px; width: 11%">{{ __('discount_label') }}</th>
+                                        <th style="min-width: 100px; width: 10%">{{ __('sell_price_label') }}</th>
+                                        <th style="min-width: 110px; width: 10%">{{ __('expiry_date_label') }}</th>
+                                        <th style="width: 7%">{{ __('alert_days_label') }}</th>
+                                        <th style="width: 8%">{{ __('tax_label') }}</th>
+                                        <th style="width: 15%">{{ __('total_label') }}</th>
                                         <th style="width: 2%"></th>
                                     </tr>
                                 </thead>
@@ -130,21 +130,73 @@
                         
                         <div class="mb-3">
                             <label class="small text-muted mb-1">{{ __('payments_label') }}</label>
-                            <div id="paymentsContainer">
+                             <div id="paymentsContainer">
                                 @php
-                                    $invoiceRate = $purchase->exchange_rate ?? 1;
-                                    $displayAmount = ($invoiceRate > 0) ? ($purchase->paid_amount / $invoiceRate) : $purchase->paid_amount;
+                                    $baseCurrencyId = optional($baseCurrency)->id;
                                 @endphp
-                                <div class="input-group mb-2 payment-row">
-                                    <select name="payments[0][method]" class="form-select" style="max-width: 120px;">
-                                        <option value="cash" {{ $purchase->payment_method == 'cash' ? 'selected' : '' }}>{{ __('cash_method') }}</option>
-                                        <option value="card" {{ $purchase->payment_method == 'card' ? 'selected' : '' }}>{{ __('card_method') }}</option>
-                                        <option value="bank" {{ $purchase->payment_method == 'bank' ? 'selected' : '' }}>{{ __('bank_method') }}</option>
-                                    </select>
-                                    <input type="number" name="payments[0][amount]" class="form-control text-center payment-input" value="{{ number_format($displayAmount, 2, '.', '') }}" step="any" oninput="calculateGrandTotal()">
-                                </div>
-                                <input type="hidden" name="payments[0][currency_id]" id="pay_curr_id_0" value="{{ $purchase->currency_id ?? optional($baseCurrency)->id }}">
-                                <input type="hidden" name="payments[0][exchange_rate]" id="pay_rate_0" value="{{ $purchase->exchange_rate ?? 1 }}">
+                                @forelse($purchase->payments as $idx => $payment)
+                                    <div class="payment-row mb-2">
+                                        <div class="input-group mb-1">
+                                            <select name="payments[{{ $idx }}][method]" class="form-select method-select" style="max-width: 120px;">
+                                                <option value="cash" {{ $payment->method == 'cash' ? 'selected' : '' }}>{{ __('💰 نقدي') }}</option>
+                                                <option value="card" {{ $payment->method == 'card' ? 'selected' : '' }}>{{ __('💳 بطاقة') }}</option>
+                                                <option value="bank" {{ $payment->method == 'bank' ? 'selected' : '' }}>{{ __('🏦 تحويل') }}</option>
+                                            </select>
+                                            <input type="text" inputmode="decimal" name="payments[{{ $idx }}][amount]" class="form-control text-center payment-input" value="{{ number_format($payment->amount_in_foreign_currency, 2, '.', '') }}" oninput="calculateGrandTotal()">
+                                            <select class="form-select currency-select pay-currency" style="max-width:110px;" onchange="onPayCurrencyChange(this, {{ $idx }})">
+                                                <option value="{{ $baseCurrencyId }}" data-rate="1" data-is-base="1" {{ $payment->currency_id == $baseCurrencyId ? 'selected' : '' }}>{{ optional($baseCurrency)->code }}</option>
+                                                @foreach($currencies as $cur)
+                                                    @if($baseCurrencyId != $cur->id)
+                                                        <option value="{{ $cur->id }}" data-rate="{{ $cur->id == $payment->currency_id ? $payment->exchange_rate : 1 }}" data-is-base="0" {{ $payment->currency_id == $cur->id ? 'selected' : '' }}>{{ $cur->code }}</option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                            @if($loop->first)
+                                                <button type="button" class="btn btn-outline-success" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
+                                            @else
+                                                <button type="button" class="btn btn-outline-danger" onclick="this.closest('.payment-row').remove(); calculateGrandTotal();"><i class="fas fa-trash"></i></button>
+                                            @endif
+                                        </div>
+                                        <input type="hidden" name="payments[{{ $idx }}][currency_id]" class="pay-currency-id" value="{{ $payment->currency_id }}">
+                                        <input type="hidden" name="payments[{{ $idx }}][exchange_rate]" class="pay-rate-hidden" value="{{ $payment->exchange_rate }}">
+                                        <div class="rate-row {{ $payment->currency_id == $baseCurrencyId ? 'd-none' : '' }}">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text text-muted small">{{ __('يعادل') }} ({{ optional($baseCurrency)->code }})</span>
+                                                <input type="text" readonly class="form-control bg-light text-center fw-bold rate-input" value="{{ number_format($payment->amount, 2, '.', '') }}">
+                                                <span class="input-group-text rate-note small text-info">1 {{ optional($payment->currency)->code }} = {{ $payment->exchange_rate }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @empty
+                                    {{-- صف افتراضي في حال عدم وجود مدفوعات --}}
+                                    <div class="payment-row mb-2">
+                                        <div class="input-group mb-1">
+                                            <select name="payments[0][method]" class="form-select method-select" style="max-width: 120px;">
+                                                <option value="cash">{{ __('💰 نقدي') }}</option>
+                                                <option value="card">{{ __('💳 بطاقة') }}</option>
+                                                <option value="bank">{{ __('🏦 تحويل') }}</option>
+                                            </select>
+                                            <input type="text" inputmode="decimal" name="payments[0][amount]" class="form-control text-center payment-input" value="0" oninput="calculateGrandTotal()">
+                                            <select class="form-select currency-select pay-currency" style="max-width:110px;" onchange="onPayCurrencyChange(this, 0)">
+                                                <option value="{{ $baseCurrencyId }}" data-rate="1" data-is-base="1" selected>{{ optional($baseCurrency)->code }}</option>
+                                                @foreach($currencies as $cur)
+                                                    @if($baseCurrencyId != $cur->id)
+                                                        <option value="{{ $cur->id }}" data-rate="1" data-is-base="0">{{ $cur->code }}</option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                            <button type="button" class="btn btn-outline-success" onclick="addPaymentRow()"><i class="fas fa-plus"></i></button>
+                                        </div>
+                                        <input type="hidden" name="payments[0][currency_id]" class="pay-currency-id" value="{{ $baseCurrencyId }}">
+                                        <input type="hidden" name="payments[0][exchange_rate]" class="pay-rate-hidden" value="1">
+                                        <div class="rate-row d-none">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text text-muted small">{{ __('يعادل') }} ({{ optional($baseCurrency)->code }})</span>
+                                                <input type="text" readonly class="form-control bg-light text-center fw-bold rate-input" value="0.00">
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforelse
                             </div>
                         </div>
 
@@ -177,12 +229,12 @@
 <script>
     // --- المتغيرات العامة ---
     let rowIdx = {{ count($purchase->items) }};
-    let paymentIdx = 1;
     const storeTaxRates = @json($taxRates); 
     const oldItems = @json($itemsData ?? []); 
     window.productsData = {}; 
 
     // خريطة أسعار الصرف
+    let paymentIdx = {{ count($purchase->payments) > 0 ? count($purchase->payments) : 1 }};
     const preloadedRates = @json($currenciesData ?? []);
     const ratesMap = {};
     if (Array.isArray(preloadedRates)) {
@@ -232,7 +284,7 @@ function onInvoiceCurrencyChange(select) {
 
     // Update labels in UI (Priority: Symbol > Code)
     let label = opt.dataset.symbol || currCode;
-    document.querySelectorAll('.currency-label').forEach(el => el.innerText = label);
+    updateInvoiceCurrencySymbols();
 
     if (currId == baseCurrId) {
         document.getElementById('invoice_exchange_rate').value = 1;
@@ -297,7 +349,7 @@ function onInvoiceCurrencyChange(select) {
             select.value = prevCurrencyId;
             let revertedCode = select.options[select.selectedIndex].dataset.code;
             let revertedLabel = select.options[select.selectedIndex].dataset.symbol || revertedCode;
-            document.querySelectorAll('.currency-label').forEach(el => el.innerText = revertedLabel);
+            updateInvoiceCurrencySymbols();
         }
     });
 }
@@ -367,13 +419,13 @@ document.getElementById('currency_id').addEventListener('focus', function() {
 
         // --- تصحيح تحويل سعر البيع إلى عملة الفاتورة ---
         let rawSellPrice = parseFloat(selectedUnit.selling_price) || 0;
-        let sCurrId = selectedUnit.sell_currency_id || baseCurrencyId;
-        let sRate = (sCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.sell_exchange_rate) || parseFloat(selectedUnit.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
+        let sCurrId = selectedUnit.sell_price_currency_id || baseCurrencyId;
+        let sRate = (sCurrId == baseCurrencyId) ? 1 : (parseFloat(selectedUnit.sell_exchange_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
         
         // سعر البيع بالعملة الأساسية (TRY)
         let sellInBase = rawSellPrice * sRate;
         // سعر البيع بعملة الفاتورة
-        let sellPrice = sellInBase / invRate;
+        let sellPrice = (invRate > 0) ? (sellInBase / invRate) : sellInBase;
 
         // القيم الافتراضية
         let initialBarcode = selectedUnit ? (selectedUnit.barcode || '-') : '-';
@@ -382,11 +434,12 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         // ملاحظة: في حالة الإضافة الجديدة نستخدم السعر المحسوب لتفادي القفزات
         let qty = savedItem ? parseFloat(savedItem.quantity) : 1;
         
-        // السعر موجود في الداتابيس بعملة الفاتورة، لذلك لا نحتاج لتحويله هنا! (كنا نحوله سابقاً لليرة، الآن نعرض عملة الفاتورة مباشرة)
+        // السعر موجود في الداتابيس بعملة الفاتورة
         let price = savedItem ? parseFloat(savedItem.unit_price) : parseFloat(calculatedPrice.toFixed(4));
         
-        // وكذلك سعر البيع، موجود بالداتابيس بعملة الفاتورة أو نستخرجه منها إذا كان جديداً
-        if (savedItem && savedItem.selling_price) {
+        // جلب سعر المبيع من الداتابيس (يكون مخزناً بعملة الفاتورة)
+        // ✅ منع ظهور NaN للفواتير القديمة التي لم يكن مخزناً فيها سعر البيع بعد
+        if (savedItem && savedItem.selling_price !== undefined && savedItem.selling_price !== null) {
              sellPrice = parseFloat(savedItem.selling_price);
         }
 
@@ -434,8 +487,8 @@ document.getElementById('currency_id').addEventListener('focus', function() {
 
                         // تحويل سعر البيع لكل وحدة أيضاً
                         let rSell = parseFloat(u.selling_price) || 0;
-                        let rCurrId = u.sell_currency_id || baseCurrencyId;
-                        let rRate = (rCurrId == baseCurrencyId) ? 1 : (ratesMap[rCurrId]?.exchange_rate || 1);
+                        let rCurrId = u.sell_price_currency_id || baseCurrencyId;
+                        let rRate = (rCurrId == baseCurrencyId) ? 1 : (parseFloat(u.sell_exchange_rate) || ratesMap[rCurrId]?.exchange_rate || 1);
                         let rSellInBase = rSell * rRate;
                         let rSellInInv = rSellInBase / invRate;
 
@@ -456,37 +509,46 @@ document.getElementById('currency_id').addEventListener('focus', function() {
             
             <td><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty" value="${qty}" oninput="calcTotals(${rowIdx})"></td>
             <td>
-                <input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control form-control-sm text-center price text-danger fw-bold" value="${price}" oninput="syncSubUnits(${rowIdx})">
-                <div class="cost-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1; color: black !important;">
-                   <span class="cost-original d-block text-muted"></span>
+                <div class="input-group input-group-sm" style="min-width: 90px;">
+                    <input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control form-control-sm text-center price text-danger fw-bold" value="${price}" oninput="syncSubUnits(${rowIdx})">
+                    <span class="input-group-text p-1 currency-symbol-invoice small bg-light"></span>
+                </div>
+                <div class="cost-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1;">
                    <span class="cost-base d-block text-info fw-bold"></span>
                 </div>
             </td>
-            <td><input type="text" inputmode="decimal" name="items[${rowIdx}][profit_percent]" class="form-control form-control-sm text-center profit text-primary" value="${profitPercent}" oninput="calcSellPrice(${rowIdx})"></td>
+            <td>
+                <div class="input-group input-group-sm" style="min-width: 80px;">
+                    <input type="text" inputmode="decimal" name="items[${rowIdx}][profit_percent]" class="form-control form-control-sm text-center profit text-primary px-1" value="${profitPercent}" oninput="calcSellPrice(${rowIdx})">
+                    <span class="input-group-text p-1 small bg-light text-primary fw-bold">%</span>
+                </div>
+            </td>
 
             <td>
-                <div class="input-group input-group-sm" style="min-width: 90px;">
+                <div class="input-group input-group-sm" style="min-width: 100px;">
                     <input type="text" inputmode="decimal" name="items[${rowIdx}][discount]" class="form-control text-center discount px-1" value="${discountVal}" oninput="calcTotals(${rowIdx})">
-                    <select name="items[${rowIdx}][discount_type]" class="form-select discount-type px-0" style="max-width: 40px;" onchange="calcTotals(${rowIdx})">
-                        <option value="fixed" ${discountType === 'fixed' ? 'selected' : ''} class="currency-label">{{ optional($baseCurrency)->symbol ?? optional($baseCurrency)->code }}</option>
+                    <select name="items[${rowIdx}][discount_type]" class="form-select discount-type px-0" style="max-width: 45px;" onchange="calcTotals(${rowIdx})">
+                        <option value="fixed" ${discountType === 'fixed' ? 'selected' : ''} class="currency-label"></option>
                         <option value="percent" ${discountType === 'percent' ? 'selected' : ''}>%</option>
                     </select>
                 </div>
             </td>
 
             <td>
-                <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control form-control-sm text-center sell fw-bold text-success" value="${sellPrice}" oninput="calcProfitPercent(${rowIdx})">
-                <div class="sell-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1; color: black !important;">
-                   <span class="sell-original d-block text-muted"></span>
+                <div class="input-group input-group-sm" style="min-width: 90px;">
+                    <input type="text" inputmode="decimal" name="items[${rowIdx}][selling_price]" class="form-control form-control-sm text-center sell fw-bold text-success" value="${sellPrice}" oninput="calcProfitPercent(${rowIdx})">
+                    <span class="input-group-text p-1 currency-symbol-invoice small bg-light"></span>
+                </div>
+                <div class="sell-dual-price mt-1 text-center" style="font-size: 0.72rem; line-height: 1.1;">
                    <span class="sell-base d-block text-info fw-bold"></span>
                 </div>
                 <div class="main-warning-container mt-1" style="min-height:18px;"></div>
             </td>
 
             {{-- 🟢 عرض التاريخ المخزن 🟢 --}}
-            <td>
-                <input type="text" name="items[${rowIdx}][expiry_date]" 
+            <td><input type="text" name="items[${rowIdx}][expiry_date]" 
                        class="form-control form-control-sm text-center expiry-date-input" 
+                       style="min-width: 100px;"
                        value="${expiryValue}" title="${LANG.expiry_date || 'تاريخ الانتهاء'}" placeholder="YYYY-MM-DD">
             </td>
 
@@ -494,11 +556,12 @@ document.getElementById('currency_id').addEventListener('focus', function() {
             <td>
                 <input type="number" name="items[${rowIdx}][alert_days]" 
                        class="form-control form-control-sm text-center text-danger fw-bold" 
+                       style="min-width: 50px;"
                        value="${alertValue}" placeholder="10">
             </td>
 
-            <td><select name="items[${rowIdx}][tax]" class="form-select form-select-sm tax bg-warning bg-opacity-10" onchange="calcTotals(${rowIdx})">${taxOptionsHtml}</select></td>
-            <td><input type="text" class="form-control form-control-sm text-center bg-light fw-bold total" readonly></td>
+            <td><select name="items[${rowIdx}][tax]" class="form-select form-select-sm tax bg-warning bg-opacity-10" style="min-width: 70px;" onchange="calcTotals(${rowIdx})">${taxOptionsHtml}</select></td>
+            <td><input type="text" class="form-control form-control-sm text-center bg-light fw-bold total" style="min-width: 120px;" readonly></td>
             <td><button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removeRow(${rowIdx})"><i class="fas fa-times"></i></button></td>
         `;
         document.getElementById('tableBody').appendChild(tr);
@@ -519,8 +582,18 @@ document.getElementById('currency_id').addEventListener('focus', function() {
 
         renderRelatedUnits(rowIdx, selectedUnitId); // 🟢 استدعاء الدالة الموحدة
         updateDualPriceDisplay(rowIdx); // 🟢 عرض العملتين
+        updateInvoiceCurrencySymbols(); // 🟢 تحديث رموز العملة في الصف الجديد
         calcTotals(rowIdx); 
         rowIdx++;
+    }
+
+    function updateInvoiceCurrencySymbols() {
+        let select = document.getElementById('currency_id');
+        let opt = select.options[select.selectedIndex];
+        let symbol = opt.dataset.symbol || opt.dataset.code;
+        
+        document.querySelectorAll('.currency-symbol-invoice').forEach(el => el.innerText = symbol);
+        document.querySelectorAll('.currency-label').forEach(el => el.innerText = symbol);
     }
 
     // 🟢 عرض السعر بالعملة الأصلية وما يعادلها بالعملة الأساسية
@@ -544,30 +617,11 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         let baseCurrCode = "{{ optional($baseCurrency)->code }}";
 
         // 🟢 سعر الشراء الإضافي
-        let costOriginal = row.querySelector('.cost-original');
         let costBaseEl = row.querySelector('.cost-base');
-        
-        // السعر بالأصلي (يورو مثلاً)
-        if (unit && unit.purchase_currency_id) {
-            let pPrice = parseFloat(unit.cost_price) || parseFloat(unit.purchase_price) || 0;
-            let pSym = unit.purchase_currency_symbol || unit.purchase_currency_code || '';
-            costOriginal.innerText = `${pSym} ${pPrice}`;
-        }
-        // السعر بالعملة الأساسية (TRY)
         if(costBaseEl) costBaseEl.innerText = `${formatNum(priceBase)} ${baseCurrCode}`;
-
+        
         // 🟢 سعر البيع الإضافي
-        let sellOriginal = row.querySelector('.sell-original');
         let sellBaseEl = row.querySelector('.sell-base');
-
-        // السعر بالأصلي
-        if (unit && (unit.sell_currency_id || unit.sell_price_currency_id)) {
-            let sCurrId = unit.sell_price_currency_id || unit.sell_currency_id;
-            let sPrice = parseFloat(unit.selling_price) || parseFloat(unit.sale_price) || 0;
-            let sSym = unit.sell_currency_symbol || unit.sell_currency_code || '';
-            sellOriginal.innerText = `${sSym} ${sPrice}`;
-        }
-        // السعر بالعملة الأساسية (TRY)
         if(sellBaseEl) sellBaseEl.innerText = `${formatNum(sellBase)} ${baseCurrCode}`;
     }
 
@@ -759,20 +813,18 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         document.getElementById('grandTotalDisplay').setAttribute('data-grand-total', grandTotalBase);
 
         // حساب مجموع المدفوعات بالعملة الأساسية
-        // في صفحة التعديل حالياً يوجد حقل واحد للدفع
-        let totalPaid = 0;
+        let totalPaidInBase = 0;
         document.querySelectorAll('.payment-row').forEach(row => {
-            let inp = row.closest('div').parentElement.querySelector('.payment-input');
-            if (!inp) return;
+            const amount = parseFloat(row.querySelector('.payment-input').value) || 0;
+            const rate = parseFloat(row.querySelector('.pay-rate-hidden').value) || 1;
+            totalPaidInBase += amount * rate;
             
-            let hiddenRate = document.getElementById('pay_rate_0'); // استخدام المعرف الفريد للصف الأول حالياً
-            let rate = hiddenRate ? (parseFloat(hiddenRate.value) || 1) : 1;
-            
-            let amt = parseFloat(inp.value) || 0;
-            totalPaid += amt * rate; 
+            // تحديث حقل "المعادل" المرئي
+            const rateInput = row.querySelector('.rate-input');
+            if(rateInput) rateInput.value = formatNum(amount * rate);
         });
 
-        const diff = parseFloat((totalPaid - grandTotalBase).toFixed(2));
+        const diff = parseFloat((totalPaidInBase - grandTotalBase).toFixed(2));
         const balDiv = document.getElementById('balanceAlert');
         
         if(balDiv) {
@@ -791,6 +843,95 @@ document.getElementById('currency_id').addEventListener('focus', function() {
                 document.getElementById('balanceAmount').innerText = formatNum(diff) + " " + baseCurrCode;
             }
         }
+    }
+
+    function onPayCurrencyChange(select, idx) {
+        let opt = select.options[select.selectedIndex];
+        let row = select.closest('.payment-row');
+        let isBase = opt.dataset.isBase === '1';
+        let currId = select.value;
+        let rateHidden = row.querySelector('.pay-rate-hidden');
+        let currIdHidden = row.querySelector('.pay-currency-id');
+        let rateRow = row.querySelector('.rate-row');
+        let rateNote = row.querySelector('.rate-note');
+        let code = opt.text;
+
+        currIdHidden.value = currId;
+
+        if (isBase) {
+            rateHidden.value = 1;
+            rateRow.classList.add('d-none');
+            calculateGrandTotal();
+        } else {
+            // البحث عن سعر الصرف في البيانات المحملة مسبقاً
+            let preRate = preloadedRates.find(r => r.id == currId);
+            if (preRate) {
+                rateHidden.value = preRate.exchange_rate;
+                rateRow.classList.remove('d-none');
+                if (rateNote) rateNote.innerText = `1 ${code} = ${preRate.exchange_rate} {{ optional($baseCurrency)->code }}`;
+                calculateGrandTotal();
+            } else {
+                // جلب من الـ API
+                fetch(`{{ route('store.purchases.exchange-rate') }}?from=${code}&to={{ optional($baseCurrency)->code }}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        rateHidden.value = data.rate || 1;
+                        rateRow.classList.remove('d-none');
+                        if (rateNote) rateNote.innerText = `1 ${code} = ${data.rate || 1} {{ optional($baseCurrency)->code }}`;
+                        calculateGrandTotal();
+                    });
+            }
+        }
+    }
+
+    function addPaymentRow() {
+        const grandTotalInBase = parseFloat(document.getElementById('grandTotalDisplay').getAttribute('data-grand-total')) || 0;
+        let currentPaidInBase = 0;
+        document.querySelectorAll('.payment-row').forEach(row => {
+            let amount = parseFloat(row.querySelector('.payment-input').value) || 0;
+            let rate = parseFloat(row.querySelector('.pay-rate-hidden').value) || 1;
+            currentPaidInBase += amount * rate;
+        });
+
+        let remainingInBase = grandTotalInBase - currentPaidInBase;
+        if (remainingInBase < 0) remainingInBase = 0;
+
+        const baseCurrId = "{{ optional($baseCurrency)->id }}";
+        const baseCurrCode = "{{ optional($baseCurrency)->code }}";
+
+        let currencyOptions = `<option value="${baseCurrId}" data-is-base="1" selected>${baseCurrCode}</option>`;
+        @foreach($currencies as $cur)
+            @if($baseCurrency && $cur->id != $baseCurrency->id)
+                currencyOptions += `<option value="{{ $cur->id }}" data-is-base="0">{{ $cur->code }}</option>`;
+            @endif
+        @endforeach
+
+        const div = document.createElement('div');
+        div.className = 'payment-row mb-2';
+        div.innerHTML = `
+            <div class="input-group mb-1">
+                <select name="payments[${paymentIdx}][method]" class="form-select method-select" style="max-width: 120px;">
+                    <option value="cash">💰 {{ __('cash_method') }}</option>
+                    <option value="card">💳 {{ __('card_method') }}</option>
+                    <option value="bank">🏦 {{ __('bank_method') }}</option>
+                </select>
+                <input type="text" inputmode="decimal" name="payments[${paymentIdx}][amount]" class="form-control text-center payment-input" value="${formatNum(remainingInBase)}" oninput="calculateGrandTotal()">
+                <select class="form-select currency-select pay-currency" style="max-width:110px;" onchange="onPayCurrencyChange(this, ${paymentIdx})">${currencyOptions}</select>
+                <button type="button" class="btn btn-outline-danger" onclick="this.closest('.payment-row').remove(); calculateGrandTotal();"><i class="fas fa-trash"></i></button>
+            </div>
+            <input type="hidden" name="payments[${paymentIdx}][currency_id]" class="pay-currency-id" value="${baseCurrId}">
+            <input type="hidden" name="payments[${paymentIdx}][exchange_rate]" class="pay-rate-hidden" value="1">
+            <div class="rate-row d-none">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text text-muted small">{{ __('يعادل') }} (${baseCurrCode})</span>
+                    <input type="text" readonly class="form-control bg-light text-center fw-bold rate-input" value="0.00">
+                    <span class="input-group-text rate-note small text-info"></span>
+                </div>
+            </div>
+        `;
+        document.getElementById('paymentsContainer').appendChild(div);
+        paymentIdx++;
+        calculateGrandTotal();
     }
 
     function toggleDetails(idx) {
@@ -1024,6 +1165,8 @@ document.getElementById('currency_id').addEventListener('focus', function() {
             time_24hr: true,
             allowInput: true
         });
+
+        updateInvoiceCurrencySymbols();
 
         // 1. تشغيل البحث عن الموردين والمنتجات
         

@@ -192,6 +192,7 @@ Route::middleware(['auth'])->group(function () {
         
 
 
+        Route::get('purchases/exchange-rate', [PurchaseController::class, 'getExchangeRateApi'])->name('purchases.exchange-rate');
         Route::resource('purchases', PurchaseController::class);
 
         // Purchase Management

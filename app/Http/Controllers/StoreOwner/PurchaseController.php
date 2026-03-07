@@ -485,6 +485,11 @@ class PurchaseController extends Controller
                         'cost_per_base_unit' => $costPerBase,
                         'expiry_date' => $itemData['expiry_date'] ?? null,
                         'alert_days'  => (isset($itemData['alert_days']) && $itemData['alert_days'] > 0) ? $itemData['alert_days'] : 10,
+                        // ✅ إضافة الحقول التاريخية الجديدة
+                        'selling_price' => (float)($itemData['selling_price'] ?? 0),
+                        'discount' => (float)($itemData['discount'] ?? 0),
+                        'discount_type' => $itemData['discount_type'] ?? 'fixed',
+                        'tax_percent' => (float)($itemData['tax'] ?? 0),
                     ]);
 
                     // تحديث أسعار الوحدات المرتبطة
@@ -710,7 +715,7 @@ class PurchaseController extends Controller
     public function edit($id)
     {
         // 1. Fetch only necessary relations (removed media from items.product.units to save memory initially)
-        $purchase = Purchase::with(['items.product', 'items.unit', 'supplier'])->findOrFail($id);
+        $purchase = Purchase::with(['items.product', 'items.unit', 'supplier', 'payments.currency'])->findOrFail($id);
         
         // 2. Prepare Items Array Manually to avoid JSON recursion crash
         $itemsData = [];
@@ -737,6 +742,11 @@ class PurchaseController extends Controller
                     'purchase_price' => $u->purchase_price,
                     'selling_price' => $u->selling_price,
                     'profit_percent' => $u->profit_percent,
+                    // ✅ Add missing currency fields for units
+                    'purchase_price_currency_id' => $u->purchase_price_currency_id ?? $u->purchase_currency_id,
+                    'purchase_exchange_rate' => $u->purchase_exchange_rate ?? $u->store_custom_purchase_rate,
+                    'sell_price_currency_id' => $u->sell_price_currency_id ?? $u->sell_currency_id,
+                    'sell_exchange_rate' => $u->sell_exchange_rate ?? $u->store_custom_sell_rate,
                     'image_url' => $u->image // accessor
                  ];
             });
@@ -750,6 +760,11 @@ class PurchaseController extends Controller
                 'total_cost' => $item->total_cost,
                 'expiry_date' => $item->expiry_date,
                 'alert_days' => $item->alert_days,
+                // ✅ الحقول التاريخية المخزنة في الفاتورة (نتركها كما هي لتتمكن JS من التعامل مع الفواتير القديمة)
+                'selling_price' => $item->selling_price,
+                'discount' => $item->discount ?? 0,
+                'discount_type' => $item->discount_type ?? 'fixed',
+                'tax_percent' => $item->tax_percent ?? 0,
                 'product' => [
                     'id' => $item->product->id,
                     'name' => $item->product->name,
