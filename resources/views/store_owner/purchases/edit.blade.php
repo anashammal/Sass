@@ -935,6 +935,14 @@ document.getElementById('currency_id').addEventListener('focus', function() {
     }
 
     function applyRateToAll(currId, rate, code) {
+        // حساب المتبقي قبل تحديث هذه العملة (بالعملة الأساسية)
+        const grandTotalInBase = parseFloat(document.getElementById('grandTotalDisplay').getAttribute('data-grand-total')) || 0;
+        let otherPaidBase = 0;
+        
+        // نحتاج لمعرفة أي صف هو الذي يتم تعديله حالياً لتعبئة مبلغه
+        // نعتبر الصف "النشط" هو أول صف يحمل هذه العملة ومبلغه 0 أو هو قيد التعديل
+        let targetRow = null;
+
         document.querySelectorAll('.payment-row').forEach(r => {
             let rCurrIdField = r.querySelector('.pay-currency-id');
             if (rCurrIdField && rCurrIdField.value == currId) {
@@ -943,8 +951,28 @@ document.getElementById('currency_id').addEventListener('focus', function() {
                 let rateNote = r.querySelector('.rate-note');
                 if (rateRow) rateRow.classList.remove('d-none');
                 if (rateNote) rateNote.innerText = `1 ${code} = ${rate} {{ optional($baseCurrency)->code }}`;
+                targetRow = r; // آخر صف بهذه العملة
+            } else {
+                // حساب مبالغ العملات الأخرى
+                let amt = parseFloat(r.querySelector('.payment-input').value) || 0;
+                let rRate = parseFloat(r.querySelector('.pay-rate-hidden').value) || 1;
+                otherPaidBase += amt * rRate;
             }
         });
+
+        // إذا وجدنا الصف المستهدف، نقوم بتعبئة المبلغ المتبقي فيه
+        if (targetRow) {
+            let remainingInBase = grandTotalInBase - otherPaidBase;
+            if (remainingInBase < 0) remainingInBase = 0;
+            
+            let amountInput = targetRow.querySelector('.payment-input');
+            if (amountInput) {
+                // تحويل المتبقي من العملة الأساسية إلى عملة الدفع
+                let valInPayCurr = rate > 0 ? (remainingInBase / rate) : 0;
+                amountInput.value = formatNum(valInPayCurr);
+            }
+        }
+
         calculateGrandTotal();
     }
 
