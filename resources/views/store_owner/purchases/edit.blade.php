@@ -855,6 +855,8 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         let rateRow = row.querySelector('.rate-row');
         let rateNote = row.querySelector('.rate-note');
         let code = opt.text;
+        let baseCurrId = '{{ optional($baseCurrency)->id }}';
+        let baseCurrCode = '{{ optional($baseCurrency)->code }}';
 
         currIdHidden.value = currId;
 
@@ -862,26 +864,88 @@ document.getElementById('currency_id').addEventListener('focus', function() {
             rateHidden.value = 1;
             rateRow.classList.add('d-none');
             calculateGrandTotal();
-        } else {
-            // البحث عن سعر الصرف في البيانات المحملة مسبقاً
-            let preRate = preloadedRates.find(r => r.id == currId);
-            if (preRate) {
-                rateHidden.value = preRate.exchange_rate;
-                rateRow.classList.remove('d-none');
-                if (rateNote) rateNote.innerText = `1 ${code} = ${preRate.exchange_rate} {{ optional($baseCurrency)->code }}`;
-                calculateGrandTotal();
-            } else {
-                // جلب من الـ API
-                fetch(`{{ route('store.purchases.exchange-rate') }}?from=${code}&to={{ optional($baseCurrency)->code }}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        rateHidden.value = data.rate || 1;
-                        rateRow.classList.remove('d-none');
-                        if (rateNote) rateNote.innerText = `1 ${code} = ${data.rate || 1} {{ optional($baseCurrency)->code }}`;
-                        calculateGrandTotal();
-                    });
-            }
+            return;
         }
+
+        // 🔄 البحث عن سعر صرف محلي تم استخدامه لنفس العملة في صفوف أخرى
+        let existingRate = null;
+        document.querySelectorAll('.payment-row').forEach(r => {
+            if (r === row) return;
+            let rCurrId = r.querySelector('.pay-currency-id').value;
+            if (rCurrId == currId) {
+                existingRate = r.querySelector('.pay-rate-hidden').value;
+            }
+        });
+
+        if (existingRate) {
+            // إذا كان السعر موجود مسبقاً في صف آخر، نستخدمه مباشرة دون سؤال
+            applyRateToAll(currId, existingRate, code);
+            return;
+        }
+
+        // جلب السعر المقترح (من البيانات المحملة أو API)
+        let preRate = preloadedRates.find(r => r.id == currId);
+        let suggestedRate = preRate ? parseFloat(preRate.exchange_rate).toFixed(6) : '1.000000';
+
+        const performShowModal = (finalSuggested) => {
+            Swal.fire({
+                title: `💱 سعر صرف الفاتورة: ${code} ↔ ${baseCurrCode}`,
+                icon: 'info',
+                width: '32rem',
+                html: `
+                    <div class="text-start mb-3">
+                        <label class="form-label fw-bold">✏️ سعر صرف (1 ${code} = ؟ ${baseCurrCode}):</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-primary text-white fw-bold">1 ${code}</span>
+                            <input type="text" inputmode="decimal" id="swalPayRate" class="form-control text-center fw-bold fs-5" value="${finalSuggested}">
+                            <span class="input-group-text fw-bold">${baseCurrCode}</span>
+                        </div>
+                        <small class="text-muted">يمكنك تعديل السعر قبل التأكيد</small>
+                    </div>
+                `,
+                confirmButtonText: '✅ تأكيد',
+                showCancelButton: true,
+                cancelButtonText: '❌ إلغاء',
+                preConfirm: () => {
+                    let val = parseFloat(document.getElementById('swalPayRate').value);
+                    if (!val || val <= 0) {
+                        Swal.showValidationMessage('⚠️ يرجى إدخال سعر صرف صحيح');
+                        return false;
+                    }
+                    return val;
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    applyRateToAll(currId, result.value, code);
+                } else {
+                    // العودة للعملة الأساسية في حال الإلغاء
+                    select.value = baseCurrId;
+                    onPayCurrencyChange(select, idx);
+                }
+            });
+        };
+
+        if (preRate) {
+            performShowModal(suggestedRate);
+        } else {
+            fetch(`{{ route('store.purchases.exchange-rate') }}?from=${code}&to=${baseCurrCode}`)
+                .then(r => r.json())
+                .then(data => performShowModal(parseFloat(data.rate || 1).toFixed(6)));
+        }
+    }
+
+    function applyRateToAll(currId, rate, code) {
+        document.querySelectorAll('.payment-row').forEach(r => {
+            let rCurrIdField = r.querySelector('.pay-currency-id');
+            if (rCurrIdField && rCurrIdField.value == currId) {
+                r.querySelector('.pay-rate-hidden').value = rate;
+                let rateRow = r.querySelector('.rate-row');
+                let rateNote = r.querySelector('.rate-note');
+                if (rateRow) rateRow.classList.remove('d-none');
+                if (rateNote) rateNote.innerText = `1 ${code} = ${rate} {{ optional($baseCurrency)->code }}`;
+            }
+        });
+        calculateGrandTotal();
     }
 
     function addPaymentRow() {
