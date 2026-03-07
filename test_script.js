@@ -1,201 +1,18 @@
-@extends('layouts.app')
 
-@section('content')
-<div class="container-fluid">
-    {{-- نرسل الطلب إلى update ونحدد النوع الافتراضي approved --}}
-    <form action="{{ route('store.purchases.update', $purchase->id) }}" method="POST" id="purchaseForm" enctype="multipart/form-data" novalidate>
-        @csrf
-        @method('PUT')
-        
-        {{-- حقل مخفي يجبر الفاتورة لتكون معتمدة عند الضغط على زر الحفظ اليدوي --}}
-        <input type="hidden" name="save_type" value="approved">
-        <input type="hidden" name="purchase_id" value="{{ $purchase->id }}">
-        
-        <div class="row">
-            {{-- رأس الفاتورة --}}
-            <div class="col-lg-12 mb-4">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-warning bg-opacity-10 text-dark d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-edit me-2"></i> {{ __('edit_invoice_title') }} (#{{ $purchase->invoice_number }})</h5>
-                        <div class="d-flex align-items-center">
-                             <span id="saveStatus" class="badge bg-white text-success me-3 d-none"><i class="fas fa-check"></i> {{ __('saved_status') }}</span>
-                             <a href="{{ route('store.purchases.index') }}" class="btn btn-sm btn-light text-dark fw-bold">{{ __('back_btn') }}</a>
-                        </div>
-                    </div>
-                    <div class="card-body bg-light">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">{{ __('supplier_label') }} <span class="text-danger">*</span></label>
-                                <div class="position-relative">
-                                    <div class="input-group">
-                                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSupplierModal" title="{{ __('new_supplier') }}"><i class="fas fa-plus"></i></button>
-                                        {{-- ملء بيانات المورد القديم --}}
-                                        <input type="text" id="supplierSearchInput" class="form-control" 
-                                               value="{{ $purchase->supplier ? ($purchase->supplier->company_name ?? $purchase->supplier->contact_name) : '' }}" 
-                                               placeholder="{{ __('search_supplier_placeholder') }}" autocomplete="off">
-                                        <input type="hidden" name="supplier_id" id="supplierId" value="{{ $purchase->supplier_id }}" required>
-                                    </div>
-                                    <div id="supplierResults" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1000; display: none;"></div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">{{ __('invoice_date_time') }}</label>
-                                <input type="text" name="invoice_date" class="form-control custom-date-input" 
-                                       value="{{ \Carbon\Carbon::parse($purchase->invoice_date)->format('Y-m-d H:i') }}" required>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-bold">{{ __('العملة') }}</label>
-                                <select name="currency_id" id="currency_id" class="form-select" onchange="onInvoiceCurrencyChange(this)">
-                                    @foreach($currencies as $cur)
-                                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-symbol="{{ $cur->symbol ?? $cur->code }}" 
-                                            {{ $cur->id == $purchase->currency_id ? 'selected' : ($purchase->currency_id == null && $cur->id == optional($baseCurrency)->id ? 'selected' : '') }}>
-                                            {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <input type="hidden" name="exchange_rate" id="invoice_exchange_rate" value="{{ $purchase->exchange_rate ?? 1 }}">
-                                <div id="invoice_rate_info" class="small text-info mt-1 {{ ($purchase->exchange_rate && $purchase->exchange_rate != 1) ? '' : 'd-none' }}" style="font-size: 0.7rem;">
-                                    {{ __('سعر الصرف:') }} 1 <span id="selected_curr_code">{{ $purchase->currency ? $purchase->currency->code : '' }}</span> = <span id="selected_curr_rate">{{ $purchase->exchange_rate ?? 1 }}</span> {{ optional($baseCurrency)->code }}
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">{{ __('invoice_number_label') }}</label>
-                                <input type="text" name="invoice_number" class="form-control" value="{{ $purchase->invoice_number }}" placeholder="{{ __('invoice_number_placeholder') }}">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- جدول المنتجات --}}
-            <div class="col-lg-12 mb-4">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body p-0">
-                        <div class="p-3 bg-white border-bottom position-relative">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search"></i></span>
-                                <input type="text" id="productSearch" class="form-control border-start-0" 
-                                       placeholder="{{ __('search_product_placeholder') }}" autocomplete="off">
-                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quickProductModal"><i class="fas fa-plus-circle me-1"></i> {{ __('new_product') }}</button>
-                            </div>
-                            <div id="searchResults" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1000; top: 100%; display: none;"></div>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-bordered text-center align-middle mb-0" id="itemsTable">
-                                <thead class="bg-dark text-white small">
-                                     <tr>
-                                        <th style="width: 10%">{{ __('image_label') }}</th>
-                                        <th style="width: 7%">{{ __('product_label') }}</th>
-                                        <th style="width: 14%">{{ __('barcode_label') }}</th>
-                                        <th style="width: 9%">{{ __('unit_label') }}</th>
-                                        <th style="width: 6%">{{ __('qty_label') }}</th>
-                                        <th style="width: 8%">{{ __('buy_price_label') }}</th>
-                                        <th style="width: 7%">{{ __('profit_percent_label') }}</th> 
-                                        <th style="width: 7%">{{ __('discount_label') }}</th>
-                                        <th style="width: 7%">{{ __('sell_price_label') }}</th>
-                                        <th width="5%">{{ __('expiry_date_label') }}</th>
-                                        <th width="5%">{{ __('alert_days_label') }}</th>
-                                        <th style="width: 7%">{{ __('tax_label') }}</th>
-                                        <th style="width: 14%">{{ __('total_label') }}</th>
-                                        <th style="width: 2%"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- الحسابات والدفع --}}
-            <div class="col-lg-5 ms-auto">
-                <div class="card shadow border-primary">
-                    <div class="card-header bg-primary bg-opacity-10 py-2">
-                        <h6 class="mb-0 fw-bold text-primary">{{ __('payment_summary') }}</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>{{ __('subtotal_label') }}:</span> 
-                            <div><span id="subTotalDisplay" class="fw-bold">{{ $purchase->sub_total }}</span> <span class="currency-label text-muted small">{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}</span></div>
-                        </div>
-                        <div class="input-group input-group-sm mb-3">
-                            <span class="input-group-text">{{ __('additional_discount') }}</span>
-                            <input type="number" name="discount" id="discountInput" class="form-control text-center fw-bold text-danger" value="{{ $purchase->discount_amount }}" step="any" oninput="calculateGrandTotal()">
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center border-top border-bottom py-2 mb-3">
-                            <span class="fs-5 fw-bold">{{ __('final_net_label') }}:</span>
-                            <div><span id="grandTotalDisplay" class="fs-4 fw-bold text-primary">{{ $purchase->grand_total }}</span> <span class="currency-label fw-bold text-primary">{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}</span></div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="small text-muted mb-1">{{ __('payments_label') }}</label>
-                            <div id="paymentsContainer">
-                                @php
-                                    $invoiceRate = $purchase->exchange_rate ?? 1;
-                                    $displayAmount = ($invoiceRate > 0) ? ($purchase->paid_amount / $invoiceRate) : $purchase->paid_amount;
-                                @endphp
-                                <div class="input-group mb-2 payment-row">
-                                    <select name="payments[0][method]" class="form-select" style="max-width: 120px;">
-                                        <option value="cash" {{ $purchase->payment_method == 'cash' ? 'selected' : '' }}>{{ __('cash_method') }}</option>
-                                        <option value="card" {{ $purchase->payment_method == 'card' ? 'selected' : '' }}>{{ __('card_method') }}</option>
-                                        <option value="bank" {{ $purchase->payment_method == 'bank' ? 'selected' : '' }}>{{ __('bank_method') }}</option>
-                                    </select>
-                                    <input type="number" name="payments[0][amount]" class="form-control text-center payment-input" value="{{ number_format($displayAmount, 2, '.', '') }}" step="any" oninput="calculateGrandTotal()">
-                                </div>
-                                <input type="hidden" name="payments[0][currency_id]" id="pay_curr_id_0" value="{{ $purchase->currency_id ?? optional($baseCurrency)->id }}">
-                                <input type="hidden" name="payments[0][exchange_rate]" id="pay_rate_0" value="{{ $purchase->exchange_rate ?? 1 }}">
-                            </div>
-                        </div>
-
-                        <div class="alert p-2 text-center fw-bold" id="balanceAlert" style="display: none;">
-                            <span id="balanceLabel">{{ __('remaining_label') }}:</span> <span id="balanceAmount">0.00</span>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-warning w-100 btn-lg mt-3" id="saveBtn"><i class="fas fa-save me-2"></i> {{ __('save_invoice_btn') }}</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </form>
-</div>
-
-{{-- نفس المودالات --}}
-<div class="modal fade" id="addSupplierModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-success text-white"><h5 class="modal-title">{{ __('add_new_supplier_title') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="quickSupplierForm"><div class="mb-2"><label class="small fw-bold">{{ __('name_label') }} *</label><input type="text" id="suppName" name="name" class="form-control" required></div><div class="mb-2"><label class="small">{{ __('company_label') }}</label><input type="text" id="suppComp" name="company" class="form-control"></div><button type="submit" class="btn btn-success w-100">{{ __('save_add_btn') }}</button></form></div></div></div></div>
-<div class="modal fade" id="quickProductModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-success text-white"><h5 class="modal-title">{{ __('quick_add_product_title') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">{{ __('coming_soon_msg') }}</div></div></div></div>
-{{-- 🔥 كود تجهيز الصور للمنتجات القديمة 🔥 --}}
-@php
-    // هذا الكود لم يعد ضرورياً لأن البيانات تأتي جاهزة من الكنترولر (itemsData)
-@endphp
-
-@section('scripts')
-{{-- 🔥 Flatpickr Localization 🔥 --}}
-@if(app()->getLocale() != 'en')
-    <script src="https://npmcdn.com/flatpickr/dist/l10n/{{ app()->getLocale() == 'pt-BR' ? 'pt' : app()->getLocale() }}.js"></script>
-@endif
-
-<script>
     // --- المتغيرات العامة ---
-    let rowIdx = {{ count($purchase->items) }};
+    let rowIdx = 1;
     let paymentIdx = 1;
-    const storeTaxRates = @json($taxRates); 
-    const oldItems = @json($itemsData ?? []); 
+    const storeTaxRates = []; 
+    const oldItems = []; 
     window.productsData = {}; 
 
-    // خريطة أسعار الصرف
-    const preloadedRates = @json($currenciesData ?? []);
-    const ratesMap = {};
-    if (Array.isArray(preloadedRates)) {
-        preloadedRates.forEach(r => ratesMap[r.id] = r);
-    }
-
     // Currency setup
-    const defaultCurrencyCode = "{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}";
-    const baseCurrencyId = "{{ optional($baseCurrency)->id }}";
-    const baseCurrencyCode = "{{ optional($baseCurrency)->code }}";
+    const defaultCurrencyCode = "1";
+    const baseCurrencyId = "1";
+    const baseCurrencyCode = "1";
 
     // Current Locale for JS
-    const CURRENT_LOCALE = "{{ app()->getLocale() == 'pt-BR' ? 'pt' : app()->getLocale() }}";
+    const CURRENT_LOCALE = "1";
 
     function parseMoney(value) {
         if (!value) return 0;
@@ -205,30 +22,37 @@
 
     // Localization helper
     const LANG = {
-        buy: "{{ __('buy_label') }}",
-        profit_percent: "{{ __('profit_percent_label') }}",
-        sell: "{{ __('sell_label') }}",
-        loss: "{{ __('loss_warning') }}",
-        low_profit: "{{ __('low_profit_warning') }}",
-        credit_for_you: "{{ __('credit_for_you') }}",
-        paid_settled: "{{ __('paid_settled') }}",
-        remaining_due: "{{ __('remaining_due') }}",
-        updated_related_units: "{{ __('updated_related_units') }}"
+        buy: "1",
+        profit_percent: "1",
+        sell: "1",
+        loss: "1",
+        low_profit: "1",
+        credit_for_you: "1",
+        paid_settled: "1",
+        remaining_due: "1",
+        updated_related_units: "1"
     };
 
-// --- دوال التنسيق والحسابات ---
+    // --- دوال التنسيق والحسابات ---
+
+// دالة جديدة لا تقرب الأرقام وتعرضها كما هي
 function formatNum(num) { 
     if (num === null || num === undefined || num === '') return 0;
     let val = parseFloat(num) || 0;
     return parseFloat(val.toFixed(4)); 
 }
 
+// أسعار الصرف المحملة مسبقاً
+const preloadedRates = [];
+const ratesMap = {};
+preloadedRates.forEach(c => { ratesMap[c.id] = c; });
+
 function onInvoiceCurrencyChange(select) {
     let opt = select.options[select.selectedIndex];
     let currId = select.value;
     let currCode = opt.dataset.code;
-    let baseCurrId = "{{ optional($baseCurrency)->id }}";
-    let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+    let baseCurrId = "1";
+    let baseCurrCode = "1";
 
     // Update labels in UI (Priority: Symbol > Code)
     let label = opt.dataset.symbol || currCode;
@@ -302,21 +126,14 @@ function onInvoiceCurrencyChange(select) {
     });
 }
 
-let prevCurrencyId = "{{ $purchase->currency_id ?? optional($baseCurrency)->id }}";
+let prevCurrencyId = "1";
 document.getElementById('currency_id').addEventListener('focus', function() {
     prevCurrencyId = this.value;
 });
 
     // إضافة صف منتج (سواء جديد أو قادم من الداتابيس)
     function addProductRow(product, savedItem = null) {
-        console.log("Adding row for product:", product?.name, "savedItem:", savedItem?.id);
         document.getElementById('emptyState') ? document.getElementById('emptyState').style.display = 'none' : '';
-        
-        // 🟢 ضمان أن الوحدات مصفوفة دائماً (لتفادي تعليق الـ try/catch لو عادت من PHP ككائن)
-        if (product && product.units && !Array.isArray(product.units)) {
-            product.units = Object.values(product.units);
-        }
-
         window.productsData[rowIdx] = product; // 🟢 حفظ المنتج في الذاكرة
 
         if (!product || !product.units || product.units.length === 0) {
@@ -348,12 +165,6 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         }
 
         let selectedUnit = product.units.find(u => u.id == selectedUnitId);
-        // حماية في حال تم حذف الوحدة المربوطة بالفاتورة القديمة من قاعدة البيانات
-        if (!selectedUnit) {
-            selectedUnit = product.units.find(u => u.is_base_unit) || product.units[0];
-            selectedUnitId = selectedUnit.id;
-        }
-        
         let selectedFactor = (selectedUnit.is_base_unit) ? 1 : (parseFloat(selectedUnit.conversion_factor) || 1);
         
         // التكلفة بالعملة الأساسية (TRY)
@@ -361,6 +172,7 @@ document.getElementById('currency_id').addEventListener('focus', function() {
 
         // جلب سعر صرف الفاتورة
         let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
+        let baseCurrencyId = "1";
 
         // التكلفة بعملة الفاتورة
         let calculatedPrice = priceInBase / invRate;
@@ -394,21 +206,11 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         let expiryValue = savedItem ? (savedItem.expiry_date || '') : '';
         let alertValue = savedItem ? (savedItem.alert_days || 10) : 10;
 
-        // الخصم
-        let discountVal = savedItem ? parseFloat(savedItem.discount) : 0;
-        let discountType = (savedItem && savedItem.discount_type) ? savedItem.discount_type : 'fixed';
-
         // حساب نسبة الربح
         let profitPercent = (price > 0 && sellPrice > 0) ? ((sellPrice - price) / price) * 100 : 0;
         
         let imgUrl = product.image_url; 
-        
-        // تجهيز خيارات الضريبة مع تحديد المختار منها
-        let savedTax = savedItem ? parseFloat(savedItem.tax_percent) : 0;
-        let taxOptionsHtml = storeTaxRates.map(rate => {
-            let r = parseFloat(rate);
-            return `<option value="${r}" ${r == savedTax ? 'selected' : ''}>${r}%</option>`;
-        }).join('');
+        let taxOptionsHtml = storeTaxRates.map(rate => `<option value="${rate}">${rate}%</option>`).join('');
 
         const tr = document.createElement('tr');
         tr.id = `row_${rowIdx}`;
@@ -468,8 +270,8 @@ document.getElementById('currency_id').addEventListener('focus', function() {
                 <div class="input-group input-group-sm" style="min-width: 90px;">
                     <input type="text" inputmode="decimal" name="items[${rowIdx}][discount]" class="form-control text-center discount px-1" value="${discountVal}" oninput="calcTotals(${rowIdx})">
                     <select name="items[${rowIdx}][discount_type]" class="form-select discount-type px-0" style="max-width: 40px;" onchange="calcTotals(${rowIdx})">
-                        <option value="fixed" ${discountType === 'fixed' ? 'selected' : ''} class="currency-label">{{ optional($baseCurrency)->symbol ?? optional($baseCurrency)->code }}</option>
-                        <option value="percent" ${discountType === 'percent' ? 'selected' : ''}>%</option>
+                        <option value="fixed" class="currency-label">1</option>
+                        <option value="percent">%</option>
                     </select>
                 </div>
             </td>
@@ -483,14 +285,14 @@ document.getElementById('currency_id').addEventListener('focus', function() {
                 <div class="main-warning-container mt-1" style="min-height:18px;"></div>
             </td>
 
-            {{-- 🟢 عرض التاريخ المخزن 🟢 --}}
+            1
             <td>
                 <input type="text" name="items[${rowIdx}][expiry_date]" 
                        class="form-control form-control-sm text-center expiry-date-input" 
                        value="${expiryValue}" title="${LANG.expiry_date || 'تاريخ الانتهاء'}" placeholder="YYYY-MM-DD">
             </td>
 
-            {{-- 🟢 عرض أيام التنبيه المخزنة 🟢 --}}
+            1
             <td>
                 <input type="number" name="items[${rowIdx}][alert_days]" 
                        class="form-control form-control-sm text-center text-danger fw-bold" 
@@ -541,7 +343,7 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
         let priceBase = priceInvoice * invRate;
         let sellBase = sellInvoice * invRate;
-        let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+        let baseCurrCode = "1";
 
         // 🟢 سعر الشراء الإضافي
         let costOriginal = row.querySelector('.cost-original');
@@ -736,7 +538,7 @@ document.getElementById('currency_id').addEventListener('focus', function() {
 
     function calculateGrandTotal() {
         let invoiceRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
-        let baseCurrCode = "{{ optional($baseCurrency)->code }}";
+        let baseCurrCode = "1";
 
         // 1. حساب الإجمالي بعملة الفاتورة أولاً
         let subTotalInvoice = 0;
@@ -878,8 +680,8 @@ document.getElementById('currency_id').addEventListener('focus', function() {
             let calculatedCost = trueBaseCost * safeFactor; 
             
             let rawSell = parseFloat(u.selling_price) || 0;
-            let sCurrId = u.sell_currency_id || u.sell_price_currency_id || "{{ optional($baseCurrency)->id }}";
-            let sRate = (sCurrId == "{{ optional($baseCurrency)->id }}") ? 1 : (parseFloat(u.sell_exchange_rate) || parseFloat(u.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
+            let sCurrId = u.sell_currency_id || u.sell_price_currency_id || "1";
+            let sRate = (sCurrId == "1") ? 1 : (parseFloat(u.sell_exchange_rate) || parseFloat(u.store_custom_sell_rate) || ratesMap[sCurrId]?.exchange_rate || 1);
             
             let sInBase = rawSell * sRate;
             let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
@@ -1033,28 +835,21 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         //     document.querySelectorAll('.currency-label').forEach(el => el.innerText = selectedCode);
         // });
 
-        setupSearch('supplierSearchInput', 'supplierResults', "{{ url('store-owner/contacts/search') }}", function(s) {
+        setupSearch('supplierSearchInput', 'supplierResults', '/store-owner/contacts/search', function(s) {
             document.getElementById('supplierSearchInput').value = s.contact_name;
             document.getElementById('supplierId').value = s.id;
         });
 
-        setupSearch('productSearch', 'searchResults', "{{ url('store-owner/products/search') }}", function(p) {
+        setupSearch('productSearch', 'searchResults', '/store-owner/products/search', function(p) {
             addProductRow(p); // منتج جديد
             document.getElementById('productSearch').value = ''; 
             document.getElementById('productSearch').focus();
         });
 
         // 2. 🔥 تعبئة المنتجات القديمة (Fix) 🔥
-        console.log("oldItems raw:", oldItems);
-        let normalizedOldItems = oldItems;
-        // إذا جاءت ككائن (Object) بدلاً من مصفوفة، نحولها
-        if (normalizedOldItems && !Array.isArray(normalizedOldItems) && typeof normalizedOldItems === 'object') {
-            normalizedOldItems = Object.values(normalizedOldItems);
-        }
-
-        if (normalizedOldItems && Array.isArray(normalizedOldItems) && normalizedOldItems.length > 0) {
-            console.log("Loading saved items:", normalizedOldItems);
-            normalizedOldItems.forEach(item => {
+        if (oldItems && Array.isArray(oldItems) && oldItems.length > 0) {
+            console.log("Loading saved items:", oldItems);
+            oldItems.forEach(item => {
                 if (item.product) {
                     try {
                         // نمرر الـ item المحفوظ للدالة ليتم أخذ الكمية والسعر منه
@@ -1069,6 +864,3 @@ document.getElementById('currency_id').addEventListener('focus', function() {
     });
 
 
-</script>
-@endsection
-@endsection

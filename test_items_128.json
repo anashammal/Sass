@@ -1,0 +1,58 @@
+﻿
+Deprecated: optional(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Support\helpers.php on line 184
+
+Deprecated: with(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Support\helpers.php on line 375
+
+Deprecated: Illuminate\Container\Container::beforeResolving(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Container\Container.php on line 1114
+
+Deprecated: Illuminate\Container\Container::resolving(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Container\Container.php on line 1134
+
+Deprecated: Illuminate\Container\Container::afterResolving(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Container\Container.php on line 1154
+
+Deprecated: Illuminate\Container\Container::setInstance(): Implicitly marking parameter $container as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Container\Container.php on line 1393
+
+Deprecated: Illuminate\Contracts\Container\Container::resolving(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Contracts\Container\Container.php on line 173
+
+Deprecated: Illuminate\Contracts\Container\Container::afterResolving(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Contracts\Container\Container.php on line 182
+
+Deprecated: Illuminate\Support\Arr::first(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Collections\Arr.php on line 183
+
+Deprecated: Illuminate\Support\Arr::last(): Implicitly marking parameter $callback as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Collections\Arr.php on line 212
+
+Deprecated: Illuminate\Events\Dispatcher::__construct(): Implicitly marking parameter $container as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Events\Dispatcher.php on line 65
+
+Deprecated: Illuminate\Support\Str::createUuidsUsing(): Implicitly marking parameter $factory as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\laravel\framework\src\Illuminate\Support\Str.php on line 1007
+
+Deprecated: voku\helper\ASCII::to_ascii(): Implicitly marking parameter $replace_single_chars_only as nullable is deprecated, the explicit nullable type must be used instead in C:\xampp\htdocs\system\vendor\voku\portable-ascii\src\voku\helper\ASCII.php on line 830
+[
+    {
+        "id": 221,
+        "product_id": 85,
+        "product_unit_id": 126,
+        "quantity": "10.00",
+        "unit_price": "6.00",
+        "total_cost": "60.00",
+        "expiry_date": "2026-04-11",
+        "alert_days": 10,
+        "product": {
+            "id": 85,
+            "name": "╪│┘à┘è╪»",
+            "image_url": "https:\/\/tech-sys.online\/system\/storage-files\/store_7\/media\/130\/conversions\/mutlu-paket-irmik-500-gr-162-800x1004-thumb.jpg",
+            "scanned_unit_id": 126,
+            "units": [
+                {
+                    "id": 126,
+                    "unit_name": "┘é╪╖╪╣╪ر",
+                    "is_base_unit": true,
+                    "conversion_factor": "12.0000",
+                    "is_purchase": true,
+                    "barcode": "68319006",
+                    "cost_price": "2.00000000",
+                    "purchase_price": "2.00",
+                    "selling_price": "5.00000000",
+                    "profit_percent": "150.0000000000"
+                }
+            ]
+        }
+    }
+]
