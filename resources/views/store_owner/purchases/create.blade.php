@@ -695,7 +695,7 @@
     // --- دوال مساعدة ---
     function parseMoney(value) {
         if (!value) return 0;
-        let clean = String(value).replace(/[^0-9.]/g, ''); 
+        let clean = String(value).replace(/,/g, '.').replace(/[^0-9.]/g, ''); 
         return parseFloat(clean) || 0;
     }
 
@@ -1074,12 +1074,12 @@
         calcTotals(idx);
         let row = document.getElementById(`row_${idx}`);
         
-        let mainPrice = parseFloat(row.querySelector('.price').value) || 0; 
+        let mainPrice = parseMoney(row.querySelector('.price').value); 
         
         // تحديث ربح الوحدة الأساسية والتحذير الخاص بها
         let mainSellInput = row.querySelector('.sell');
         let mainProfitInput = row.querySelector('.profit');
-        let currentSell = parseFloat(mainSellInput.value) || 0;
+        let currentSell = parseMoney(mainSellInput.value);
         
         // جلب الربح الأصلي للوحدة الأساسية
         let select = row.querySelector('.unit-select');
@@ -1119,7 +1119,7 @@
                 subRow.querySelector('.sub-cost').value = formatNum(newSubCost);
                 subRow.querySelector('.hidden-sub-cost').value = newSubCost.toFixed(4);
 
-                let currentSubSell = parseFloat(subRow.querySelector('.sub-sell').value) || 0;
+                let currentSubSell = parseMoney(subRow.querySelector('.sub-sell').value);
                 let newSubProfit = 0;
                 if(newSubCost > 0) {
                     newSubProfit = ((currentSubSell - newSubCost) / newSubCost) * 100;
@@ -1198,10 +1198,10 @@
     function calcProfitPercent(idx, rawVal) {
         let row = document.getElementById(`row_${idx}`);
         if (!row) return;
-        let cost = parseFloat(row.querySelector('.price').value) || 0;
-        let sell = parseFloat(rawVal) || 0;
-        // كتب القيمة الجديدة في الحقل بشكل صريح
-        row.querySelector('.sell').value = sell;
+        let cost = parseMoney(row.querySelector('.price').value);
+        let sell = parseMoney(rawVal);
+        // تم إزالة السطر الذي يكتب القيمة في الحقل نفسه لتجنب مسح الفاصلة العشرية أثناء الكتابة
+
         let profitEl = row.querySelector('.profit');
         if (cost > 0 && profitEl) {
             profitEl.value = formatNum(((sell - cost) / cost) * 100);
@@ -1213,8 +1213,8 @@
     function calcSellPrice(idx, rawVal) {
         let row = document.getElementById(`row_${idx}`);
         if (!row) return;
-        let cost = parseFloat(row.querySelector('.price').value) || 0;
-        let profit = parseFloat(rawVal) || 0;
+        let cost = parseMoney(row.querySelector('.price').value);
+        let profit = parseMoney(rawVal);
         let sellEl = row.querySelector('.sell');
         let newSell = cost * (1 + profit / 100);
         if (sellEl) sellEl.value = formatNum(newSell);
@@ -1461,7 +1461,7 @@
             }
         });
         
-        const diff = parseFloat((totalPaid - grandTotalInBase).toFixed(2));
+        const diff = parseFloat((totalPaid - grandTotalBase).toFixed(2));
         const balDiv = document.getElementById('balanceAlert');
         const balLbl = document.getElementById('balanceLabel');
         const balAmt = document.getElementById('balanceAmount');
@@ -1594,8 +1594,7 @@
         // 1. حساب الإجمالي والمتبقي بالعملة الأساسية (مرجع موحد لكافة الحالات)
         const invoiceId = document.getElementById('currency_id').value;
         const invoiceRateVal = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
-        const grandTotalInInvoice = parseFloat(document.getElementById('grandTotalDisplay').innerText) || 0;
-        const grandTotalInBase = grandTotalInInvoice * invoiceRateVal;
+        const grandTotalInBase = parseFloat(document.getElementById('grandTotalDisplay').getAttribute('data-grand-total')) || 0;
 
         let otherPaidBase = 0;
         document.querySelectorAll('.payment-row').forEach(r2 => {
@@ -1626,7 +1625,7 @@
             if (rateRow) rateRow.classList.add('d-none');
 
             if (amountInput && remainingInBase > 1e-6) {
-                amountInput.value = formatNum(remainingInBase);
+                amountInput.value = remainingInBase.toFixed(8).replace(/\.?0+$/, '');
             } else if (amountInput) {
                 amountInput.value = 0;
             }
@@ -1644,7 +1643,7 @@
 
             let remInPaymentCurr = remainingInBase / invoiceRateVal;
             if (amountInput && remInPaymentCurr > 1e-6) {
-                amountInput.value = formatNum(remInPaymentCurr);
+                amountInput.value = remInPaymentCurr.toFixed(8).replace(/\.?0+$/, '');
             } else if (amountInput) {
                 amountInput.value = 0;
             }
@@ -1654,6 +1653,29 @@
         }
 
         // 4. حالة العملات الأخرى (تطلب سعر صرف وتظهر نافذة منبثقة)
+        // 🔄 تحسين: البحث عن سعر صرف محلي تم استخدامه لنفس العملة في صفوف أخرى
+        let existingRate = null;
+        document.querySelectorAll('.payment-row').forEach(r => {
+            if (r === row) return;
+            let rCurrIdField = r.querySelector('.pay-currency-id');
+            if (rCurrIdField && rCurrIdField.value == currId) {
+                existingRate = parseFloat(r.querySelector('.pay-rate-hidden').value) || null;
+            }
+        });
+
+        if (existingRate) {
+            // إذا كان السعر موجود مسبقاً، نستخدمه ونحدث الحقول
+            let hiddenCurr = row.querySelector('.pay-currency-id');
+            if (hiddenCurr) hiddenCurr.value = currId;
+            updatePayRate(row, existingRate, currCode);
+            if (amountInput && remainingInBase > 0) {
+                let valInPayCurr = remainingInBase / existingRate;
+                amountInput.value = valInPayCurr.toFixed(8).replace(/\.?0+$/, '');
+            }
+            calculateGrandTotal();
+            return;
+        }
+
         let currData = ratesMap[currId];
         let suggestedRate = currData ? parseFloat(currData.exchange_rate).toFixed(6) : '1.000000';
 
@@ -1732,10 +1754,18 @@
                 let hiddenCurr = row.querySelector('.pay-currency-id');
                 if (hiddenCurr) hiddenCurr.value = currId;
                 
-                updatePayRate(row, rate, currCode);
+                // 🔄 تحديث كافة الصفوف الأخرى التي تستخدم نفس العملة بالسعر الجديد
+                document.querySelectorAll('.payment-row').forEach(r => {
+                    let rCurrIdField = r.querySelector('.pay-currency-id');
+                    if (rCurrIdField && rCurrIdField.value == currId) {
+                        updatePayRate(r, rate, currCode);
+                    }
+                });
 
                 if (amountInput && remainingInBase > 0) {
-                    amountInput.value = formatNum(remainingInBase / rate);
+                    // استخدام دقة عالية للحساب لضمان أن الفاتورة تكون "خالصة" تماماً 
+                    let valInPayCurr = remainingInBase / rate;
+                    amountInput.value = valInPayCurr.toFixed(8).replace(/\.?0+$/, ''); // حتى 8 أرقام عشرية مع إزالة الأصفار الزائدة
                 }
                 calculateGrandTotal();
             } else {
@@ -1748,8 +1778,7 @@
 
     function addPaymentRow() {
         const invoiceRateVal = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
-        const grandTotalInInvoice = parseFloat(document.getElementById('grandTotalDisplay').innerText) || 0;
-        const grandTotalInBase = grandTotalInInvoice * invoiceRateVal;
+        const grandTotalInBase = parseFloat(document.getElementById('grandTotalDisplay').getAttribute('data-grand-total')) || 0;
 
         let currentPaidInBase = 0;
         document.querySelectorAll('.payment-row').forEach(row => {
@@ -1790,7 +1819,7 @@
             @endif
         @endforeach
 
-        let finalDefaultVal = (remainingInBase > 0 && selectedRate > 0) ? formatNum(remainingInBase / selectedRate) : 0;
+        let finalDefaultVal = (remainingInBase > 0 && selectedRate > 0) ? (remainingInBase / selectedRate).toFixed(8).replace(/\.?0+$/, '') : 0;
         
         const div = document.createElement('div');
         div.className = 'payment-row mb-2';
@@ -1891,7 +1920,7 @@
         }
 
         // ✅ إذا تجاوزنا الفحوصات أعلاه، نكمل الكود الطبيعي للحسابات والمودال
-        let grandTotal = parseFloat(document.getElementById('grandTotalDisplay').innerText) || 0;
+        let grandTotal = parseFloat(document.getElementById('grandTotalDisplay').getAttribute('data-grand-total')) || 0;
         let totalPaid = 0;
         document.querySelectorAll('.payment-row').forEach(row => {
             let amount = parseMoney(row.querySelector('.payment-input')?.value || 0);

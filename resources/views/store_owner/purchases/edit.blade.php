@@ -251,7 +251,7 @@
 
     function parseMoney(value) {
         if (!value) return 0;
-        let clean = String(value).replace(/[^0-9.]/g, ''); 
+        let clean = String(value).replace(/,/g, '.').replace(/[^0-9.]/g, ''); 
         return parseFloat(clean) || 0;
     }
 
@@ -654,8 +654,8 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         let priceInvoice = parseMoney(row.querySelector('.price').value);
         let invoiceRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
 
-        let taxRate = parseFloat(row.querySelector('.tax').value) || 0;
-        let discountVal = parseFloat(row.querySelector('.discount').value) || 0;
+        let taxRate = parseMoney(row.querySelector('.tax').value);
+        let discountVal = parseMoney(row.querySelector('.discount').value);
         let discountType = row.querySelector('.discount-type').value;
 
         // الحسابات بعملة الفاتورة لأن الأسعار أصبحت بها
@@ -678,8 +678,8 @@ document.getElementById('currency_id').addEventListener('focus', function() {
 
     function calcProfitPercent(idx) {
         let row = document.getElementById(`row_${idx}`);
-        let price = parseFloat(row.querySelector('.price').value) || 0;
-        let sell = parseFloat(row.querySelector('.sell').value) || 0;
+        let price = parseMoney(row.querySelector('.price').value);
+        let sell = parseMoney(row.querySelector('.sell').value);
         if(price > 0) {
             let profit = ((sell - price) / price) * 100;
             row.querySelector('.profit').value = formatNum(profit);
@@ -688,8 +688,8 @@ document.getElementById('currency_id').addEventListener('focus', function() {
 
     function calcSellPrice(idx) {
         let row = document.getElementById(`row_${idx}`);
-        let price = parseFloat(row.querySelector('.price').value) || 0;
-        let profit = parseFloat(row.querySelector('.profit').value) || 0;
+        let price = parseMoney(row.querySelector('.price').value);
+        let profit = parseMoney(row.querySelector('.profit').value);
         let sell = price * (1 + profit / 100);
         row.querySelector('.sell').value = formatNum(sell);
         
@@ -967,9 +967,9 @@ document.getElementById('currency_id').addEventListener('focus', function() {
             
             let amountInput = targetRow.querySelector('.payment-input');
             if (amountInput) {
-                // تحويل المتبقي من العملة الأساسية إلى عملة الدفع
+                // تحويل المتبقي من العملة الأساسية إلى عملة الدفع بدقة عالية
                 let valInPayCurr = rate > 0 ? (remainingInBase / rate) : 0;
-                amountInput.value = formatNum(valInPayCurr);
+                amountInput.value = valInPayCurr.toFixed(8).replace(/\.?0+$/, '');
             }
         }
 
@@ -1035,12 +1035,12 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         calcTotals(idx);
         let row = document.getElementById(`row_${idx}`);
         
-        let mainPrice = parseFloat(row.querySelector('.price').value) || 0; 
+        let mainPrice = parseMoney(row.querySelector('.price').value); 
         
         // تحديث ربح الوحدة الأساسية
         let mainSellInput = row.querySelector('.sell');
         let mainProfitInput = row.querySelector('.profit');
-        let currentSell = parseFloat(mainSellInput.value) || 0;
+        let currentSell = parseMoney(mainSellInput.value);
         
         if (mainPrice > 0) {
             let newMainProfit = ((currentSell - mainPrice) / mainPrice) * 100;
@@ -1064,7 +1064,7 @@ document.getElementById('currency_id').addEventListener('focus', function() {
                 subRow.querySelector('.sub-cost').value = formatNum(newSubCost);
                 subRow.querySelector('.hidden-sub-cost').value = newSubCost.toFixed(4);
 
-                let currentSubSell = parseFloat(subRow.querySelector('.sub-sell').value) || 0;
+                let currentSubSell = parseMoney(subRow.querySelector('.sub-sell').value);
                 let newSubProfit = 0;
                 if(newSubCost > 0) {
                     newSubProfit = ((currentSubSell - newSubCost) / newSubCost) * 100;
