@@ -1214,21 +1214,31 @@ document.getElementById('currency_id').addEventListener('focus', function() {
     }
 
     // --- Search Logic ---
-    function setupSearch(inputId, resultsId, url, onSelect) {
+    function setupSearch(inputId, resultsId, url, onSelect, autoSelect = false) {
         const input = document.getElementById(inputId);
         const results = document.getElementById(resultsId);
         if(!input) return;
 
         let debounce;
+        let activeIndex = -1;
+
         input.addEventListener('input', function() {
             clearTimeout(debounce);
+            activeIndex = -1;
             const term = this.value.trim();
             if(term.length < 1) { results.style.display='none'; return; }
 
             debounce = setTimeout(() => {
                 fetch(`${url}?term=${term}`).then(r => r.json()).then(data => {
                     results.innerHTML = '';
-                    if (data.length > 0) {
+                    if (data && data.length > 0) {
+                        // الاختيار التلقائي عند نتيجة واحدة
+                        if (autoSelect && data.length === 1) {
+                            onSelect(data[0]);
+                            results.style.display = 'none';
+                            return;
+                        }
+
                         data.forEach((item, index) => {
                             let div = document.createElement('a');
                             div.className = 'list-group-item list-group-item-action cursor-pointer';
@@ -1240,6 +1250,30 @@ document.getElementById('currency_id').addEventListener('focus', function() {
                     } else { results.style.display = 'none'; }
                 });
             }, 300);
+        });
+
+        // ⬆️⬇️ التنقل بالأسهم
+        input.addEventListener('keydown', function(e) {
+            const items = results.querySelectorAll('a');
+            if (!items.length) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = (activeIndex + 1) % items.length;
+                items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+                items[activeIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+                items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+                items[activeIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter' && activeIndex >= 0) {
+                e.preventDefault();
+                items[activeIndex].click();
+            } else if (e.key === 'Escape') {
+                results.style.display = 'none';
+                activeIndex = -1;
+            }
         });
         
         document.addEventListener("click", function (e) { 
@@ -1269,15 +1303,15 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         // });
 
         setupSearch('supplierSearchInput', 'supplierResults', "{{ url('store-owner/contacts/search') }}", function(s) {
-            document.getElementById('supplierSearchInput').value = s.contact_name;
+            document.getElementById('supplierSearchInput').value = s.contact_name || s.company_name;
             document.getElementById('supplierId').value = s.id;
-        });
+        }, true);
 
         setupSearch('productSearch', 'searchResults', "{{ url('store-owner/products/search') }}", function(p) {
             addProductRow(p); // منتج جديد
             document.getElementById('productSearch').value = ''; 
             document.getElementById('productSearch').focus();
-        });
+        }, true);
 
         // 2. 🔥 تعبئة المنتجات القديمة (Fix) 🔥
         console.log("oldItems raw:", oldItems);

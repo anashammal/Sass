@@ -478,8 +478,20 @@
             if (!productInput || !productResultsEl) { console.error('Product search elements missing!'); return; }
 
             let prodTimer;
+            let activeIndex = -1;
+
+            function selectProduct(item) {
+                productInput.value = '';
+                productResultsEl.style.display = 'none';
+                addProductRow(item);
+                productInput.value = '';
+                productInput.focus();
+                activeIndex = -1;
+            }
+
             productInput.addEventListener('input', function() {
                 clearTimeout(prodTimer);
+                activeIndex = -1;
                 const term = this.value.trim();
                 if (term.length < 1) { productResultsEl.style.display = 'none'; return; }
                 prodTimer = setTimeout(function() {
@@ -493,11 +505,7 @@
 
                         // اختيار تلقائي عند نتيجة واحدة (باركود أو اسم)
                         if (data.length === 1) {
-                            productInput.value = '';
-                            productResultsEl.style.display = 'none';
-                            addProductRow(data[0]);
-                            productInput.value = '';
-                            productInput.focus();
+                            selectProduct(data[0]);
                             return;
                         }
 
@@ -507,11 +515,7 @@
                             a.innerHTML = `<strong>${item.name || ''}</strong> <small class="text-muted">${item.sku || ''}</small>`;
                             a.addEventListener('mousedown', function(e) {
                                 e.preventDefault();
-                                productInput.value = '';
-                                productResultsEl.style.display = 'none';
-                                addProductRow(item);
-                                productInput.value = '';
-                                productInput.focus();
+                                selectProduct(item);
                             });
                             productResultsEl.appendChild(a);
                         });
@@ -520,6 +524,31 @@
                     .catch(err => console.error('Product search error:', err));
                 }, 300);
             });
+
+            // ⬆️⬇️ التنقل بالأسهم للمنتجات
+            productInput.addEventListener('keydown', function(e) {
+                const items = productResultsEl.querySelectorAll('a');
+                if (!items.length) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex + 1) % items.length;
+                    items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+                    items[activeIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex - 1 + items.length) % items.length;
+                    items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+                    items[activeIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'Enter' && activeIndex >= 0) {
+                    e.preventDefault();
+                    items[activeIndex].dispatchEvent(new MouseEvent('mousedown'));
+                } else if (e.key === 'Escape') {
+                    productResultsEl.style.display = 'none';
+                    activeIndex = -1;
+                }
+            });
+
             document.addEventListener('click', function(e) {
                 if (e.target !== productInput) productResultsEl.style.display = 'none';
             });
