@@ -88,7 +88,7 @@
             <form action="{{ route('store.purchases.index') }}" method="GET" id="filterForm">
                 <div class="row g-3">
                     {{-- بحث عام --}}
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small fw-bold text-muted">{{ __('smart_search') }}</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
@@ -97,7 +97,7 @@
                     </div>
 
                     {{-- فلتر المورد --}}
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small fw-bold text-muted">{{ __('supplier_label') }}</label>
                         <select name="supplier_id" class="form-select auto-filter">
                             <option value="">{{ __('all_suppliers') }}</option>

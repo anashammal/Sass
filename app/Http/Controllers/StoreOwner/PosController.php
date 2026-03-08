@@ -520,6 +520,11 @@ class PosController extends Controller
             // تجهيز بيانات الواتساب للعرض في النافذة (إذا كانت الخدمة مفعلة)
             $whatsappData = null;
             if ($store->whatsapp_auto_prompt && $sale->contact && $sale->contact->phone) {
+                $baseCurrency = \App\Models\Currency::find($store->base_currency_id);
+                $foreignPayments = $sale->payments->filter(function($p) use ($store) {
+                    return $p->currency_id && $p->currency_id != $store->base_currency_id;
+                });
+
                 $itemsLines = [];
                 foreach($sale->items as $item) {
                     $uName = $item->unit->unit_name ?? ($item->product->baseUnit->unit_name ?? 'قطعة');
@@ -532,8 +537,20 @@ class PosController extends Controller
                 $msgBody .= "--------------------------\n";
                 $msgBody .= implode("\n", $itemsLines) . "\n";
                 $msgBody .= "--------------------------\n";
-                $msgBody .= "*الإجمالي:* " . number_format($sale->total, 2) . " د.أ\n";
-                $msgBody .= "*المدفوع:* " . number_format($sale->paid, 2) . " د.أ\n";
+                $msgBody .= "*الإجمالي:* " . number_format($sale->total, 2) . " " . optional($baseCurrency)->code . "\n";
+                $msgBody .= "*المدفوع:* " . number_format($sale->paid, 2) . " " . optional($baseCurrency)->code . "\n";
+
+                if ($foreignPayments->count() > 0) {
+                    $msgBody .= "🌍 العملات:\n";
+                    foreach($foreignPayments as $fp) {
+                        $msgBody .= "• " . number_format($fp->amount_in_foreign_currency, 2) . " " . $fp->currency->code . " (سعر " . $fp->exchange_rate . ")\n";
+                    }
+                }
+
+                if ($sale->due > 0.01) {
+                    $msgBody .= "*المتبقي:* " . number_format($sale->due, 2) . " " . optional($baseCurrency)->code . "\n";
+                }
+
                 $msgBody .= "شكرًا لتعاملكم معنا 🙏\n";
                 $msgBody .= "📞 للتواصل معنا واتساب: " . ($store->phone_number ?? '-') . "\n";
                 $msgBody .= "*" . $store->name . "*";

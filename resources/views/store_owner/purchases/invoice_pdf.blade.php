@@ -91,6 +91,10 @@
         };
 
         $logo = $base64Image($store->logo_path ?? $store->logo);
+        $baseCurrency = \App\Models\Currency::find($store->base_currency_id);
+        $foreignCurrency = $purchase->currency;
+        $exchangeRate = (float)($purchase->exchange_rate ?: 1);
+        $hasForeign = ($foreignCurrency && $baseCurrency && $foreignCurrency->id != $baseCurrency->id && $exchangeRate != 1);
     @endphp
 
     <div class="header">
@@ -186,19 +190,32 @@
         </div>
         <div class="total-row final">
             <span>{{ $arabicService->shape('الإجمالي النهائي:') }} / Total:</span>
-            <span>{{ number_format($purchase->grand_total, 2) }} {{ $store->currency ?? 'SAR' }}</span>
+            <span>{{ number_format($purchase->grand_total, 2) }} {{ $foreignCurrency ? $foreignCurrency->code : (optional($baseCurrency)->code ?: 'SAR') }}</span>
             <div class="clearfix"></div>
         </div>
+
+        @if($hasForeign)
+        <div class="total-row" style="background: #f1f2f6; border-radius: 4px; padding: 4px;">
+            <span style="font-size: 11px;">{{ $arabicService->shape('المعادل بالعملة الأساسية:') }} / Base Equiv:</span>
+            <span style="font-size: 11px;">{{ number_format($purchase->grand_total_in_base_currency, 2) }} {{ optional($baseCurrency)->code }}</span>
+            <div class="clearfix"></div>
+        </div>
+        <div class="total-row" style="font-size: 10px; color: #666;">
+            <span>{{ $arabicService->shape('سعر الصرف المحتسب:') }} / Rate:</span>
+            <span>1 {{ $foreignCurrency->code }} = {{ (1* $exchangeRate == (int)($exchangeRate) ? number_format($exchangeRate, 0) : number_format($exchangeRate, 4)) }} {{ optional($baseCurrency)->code }}</span>
+            <div class="clearfix"></div>
+        </div>
+        @endif
         <div class="total-row">
             <span>{{ $arabicService->shape('المدفوع:') }} / Paid:</span>
-            <span>{{ number_format($purchase->paid_amount, 2) }}</span>
+            <span>{{ number_format($purchase->paid_amount, 2) }} {{ optional($baseCurrency)->code }}</span>
             <div class="clearfix"></div>
         </div>
-        @php $due = $purchase->grand_total - $purchase->paid_amount; @endphp
-        @if($due > 0)
+        @php $due = $purchase->remaining_amount_in_base_currency; @endphp
+        @if($due > 0.01)
         <div class="total-row" style="color: #d35400;">
             <span>{{ $arabicService->shape('المتبقي (آجل):') }} / Due:</span>
-            <span>{{ number_format($due, 2) }}</span>
+            <span>{{ number_format($due, 2) }} {{ optional($baseCurrency)->code }}</span>
             <div class="clearfix"></div>
         </div>
         @endif

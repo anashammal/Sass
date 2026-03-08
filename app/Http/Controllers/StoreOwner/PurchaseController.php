@@ -639,15 +639,29 @@ class PurchaseController extends Controller
                         $itemsLines[] = "• " . ($item->product->name ?? 'منتج') . " ({$item->quantity} {$uName})";
                     }
                     
+                    $baseCurrency = \App\Models\Currency::find($store->base_currency_id);
+                    $foreignCurrency = $purchase->currency;
+                    $exchangeRate = (float)($purchase->exchange_rate ?: 1);
+                    $hasForeign = ($foreignCurrency && $baseCurrency && $foreignCurrency->id != $baseCurrency->id && $exchangeRate != 1);
+
                     $msgBody = "*أمر شراء / فاتورة مشتريات #{$purchase->invoice_number}*\n";
                     $msgBody .= "التاريخ: " . ($purchase->invoice_date ? $purchase->invoice_date->format('Y-m-d') : now()->format('Y-m-d')) . "\n";
                     $msgBody .= "المورد: " . ($purchase->supplier->contact_name ?? $purchase->supplier->company_name) . "\n";
                     $msgBody .= "--------------------------\n";
                     $msgBody .= implode("\n", $itemsLines) . "\n";
                     $msgBody .= "--------------------------\n";
-                    $msgBody .= "*الإجمالي:* " . number_format($purchase->grand_total, 2) . " د.أ\n";
-                    $due = $purchase->grand_total - $purchase->paid_amount;
-                    if($due > 0) $msgBody .= "*المتبقي:* " . number_format($due, 2) . " د.أ\n";
+                    
+                    if ($hasForeign) {
+                        $msgBody .= "*الإجمالي:* " . number_format($purchase->grand_total, 2) . " {$foreignCurrency->code}\n";
+                        $msgBody .= "*المعادل:* " . number_format($purchase->grand_total_in_base_currency, 2) . " " . optional($baseCurrency)->code . "\n";
+                        $msgBody .= "*سعر الصرف:* " . (1* $exchangeRate == (int)($exchangeRate) ? number_format($exchangeRate, 0) : number_format($exchangeRate, 2)) . "\n";
+                    } else {
+                        $msgBody .= "*الإجمالي:* " . number_format($purchase->grand_total, 2) . " " . ($foreignCurrency ? $foreignCurrency->code : optional($baseCurrency)->code) . "\n";
+                    }
+
+                    $due = $purchase->grand_total_in_base_currency - $purchase->paid_amount;
+                    if($due > 0.01) $msgBody .= "*المتبقي (آجل):* " . number_format($due, 2) . " " . optional($baseCurrency)->code . "\n";
+                    
                     $msgBody .= "عن متجر: *" . $store->name . "*";
 
                     $whatsappData = [

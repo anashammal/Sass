@@ -38,7 +38,7 @@ class ProcessPurchaseNotifications implements ShouldQueue
     public function handle(WhatsAppService $whatsappService)
     {
         try {
-            $purchase = Purchase::with(['store', 'supplier', 'items.product', 'items.unit', 'user'])->find($this->purchaseId);
+            $purchase = Purchase::with(['store', 'supplier', 'items.product', 'items.unit', 'user', 'currency'])->find($this->purchaseId);
 
             if (!$purchase) {
                 Log::error("ProcessPurchaseNotifications: Purchase #{$this->purchaseId} not found.");
@@ -99,8 +99,15 @@ class ProcessPurchaseNotifications implements ShouldQueue
             
             $sup = $purchase->supplier;
             $supplierName = $sup ? ($sup->contact_name ?? $sup->company_name ?? 'مورد عام') : 'مورد عام';
-            // Ensure UTF-8
             $supplierName = mb_convert_encoding($supplierName, 'UTF-8', 'UTF-8');
+
+            $baseCurrency = \App\Models\Currency::find($store->base_currency_id);
+            $foreignCurrency = $purchase->currency;
+            $exchangeRate = (float)($purchase->exchange_rate ?: 1);
+            $hasForeign = ($foreignCurrency && $baseCurrency && $foreignCurrency->id != $baseCurrency->id && $exchangeRate != 1);
+            
+            $currencyIcon = $foreignCurrency ? ($foreignCurrency->symbol ?? $foreignCurrency->code) : (optional($baseCurrency)->symbol ?? 'TRY');
+            $baseIcon = optional($baseCurrency)->symbol ?? 'TRY';
 
             // ============================================================
             // 3. WhatsApp Notification (To Store Owner)
@@ -118,8 +125,19 @@ class ProcessPurchaseNotifications implements ShouldQueue
                     if ($waSend) {
                         $msg = "🚛 *فاتورة مشتريات جديدة #{$purchase->invoice_number}*\n";
                         $msg .= "👤 المورد: {$supplierName}\n";
-                        $msg .= "💰 القيمة: " . number_format($netTotal, 2) . "\n";
-                        if($isCredit) $msg .= "❗️ آجل (دين): " . number_format($due, 2) . "\n";
+                        
+                        if ($hasForeign) {
+                            $msg .= "💰 القيمة: " . number_format($netTotal, 2) . " {$foreignCurrency->code}\n";
+                            $msg .= "🔄 المعادل: " . number_format($purchase->grand_total_in_base_currency, 2) . " {$baseCurrency->code}\n";
+                            $msg .= "📈 سعر الصرف: " . (1* $exchangeRate == (int)($exchangeRate) ? number_format($exchangeRate, 0) : number_format($exchangeRate, 2)) . "\n";
+                        } else {
+                            $msg .= "💰 القيمة: " . number_format($netTotal, 2) . " " . ($foreignCurrency ? $foreignCurrency->code : optional($baseCurrency)->code) . "\n";
+                        }
+
+                        if($isCredit) {
+                            $dueAmount = $purchase->grand_total_in_base_currency - $totalPaid;
+                            $msg .= "❗️ آجل (دين): " . number_format($dueAmount, 2) . " " . optional($baseCurrency)->code . "\n";
+                        }
                         $userName = $user ? $user->name : 'غير معروف';
                         $msg .= "✍️ بواسطة: {$userName}";
 
@@ -151,9 +169,18 @@ class ProcessPurchaseNotifications implements ShouldQueue
                         $emailMsg = "تم تسجيل فاتورة مشتريات جديدة.\n\n";
                         $emailMsg .= "رقم الفاتورة: #{$purchase->invoice_number}\n";
                         $emailMsg .= "المورد: {$supplierName}\n";
-                        $emailMsg .= "الإجمالي: " . number_format($netTotal, 2) . "\n";
-                        $emailMsg .= "المدفوع: " . number_format($totalPaid, 2) . "\n";
-                        $emailMsg .= "المتبقي (آجل): " . number_format($due, 2) . "\n";
+                        
+                        if ($hasForeign) {
+                            $emailMsg .= "الإجمالي: " . number_format($netTotal, 2) . " {$foreignCurrency->code}\n";
+                            $emailMsg .= "المعادل بالعملة الأساسية: " . number_format($purchase->grand_total_in_base_currency, 2) . " {$baseCurrency->code}\n";
+                            $emailMsg .= "سعر الصرف: " . $exchangeRate . "\n";
+                        } else {
+                            $emailMsg .= "الإجمالي: " . number_format($netTotal, 2) . " " . ($foreignCurrency ? $foreignCurrency->code : optional($baseCurrency)->code) . "\n";
+                        }
+
+                        $emailMsg .= "المدفوع: " . number_format($totalPaid, 2) . " " . optional($baseCurrency)->code . "\n";
+                        $dueAmount = $purchase->grand_total_in_base_currency - $totalPaid;
+                        $emailMsg .= "المتبقي (آجل): " . number_format($dueAmount, 2) . " " . optional($baseCurrency)->code . "\n";
                         $userName = $user ? $user->name : 'غير معروف';
                         $emailMsg .= "بواسطة: {$userName}";
 

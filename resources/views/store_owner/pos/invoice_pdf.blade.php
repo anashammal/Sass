@@ -125,6 +125,10 @@
         $logo = $base64Image($store->logo_path ?? $store->logo);
         $stamp = $base64Image($store->stamp_path);
         $signature = $base64Image($store->signature_path);
+        $baseCurrency = \App\Models\Currency::find($store->base_currency_id);
+        $foreignPayments = $sale->payments->filter(function($p) use ($store) {
+            return $p->currency_id && $p->currency_id != $store->base_currency_id;
+        });
     @endphp
 
     <div class="header">
@@ -216,18 +220,33 @@
             </div>
             <div class="total-row final">
                 <span>{{ $arabicService->shape(__('final_total') . ':') }} / Total:</span>
-                <span>{{ number_format($sale->total, 2) }} {{ $store->currency ?? 'SAR' }}</span>
+                <span>{{ number_format($sale->total, 2) }} {{ optional($baseCurrency)->code ?: ($store->currency ?? 'SAR') }}</span>
                 <div class="clearfix"></div>
             </div>
+
+            @if($foreignPayments->count() > 0)
+            <div style="background: #f8f9fa; padding: 5px; border-radius: 4px; margin-top: 5px;">
+                <div style="font-size: 10px; font-weight: bold; margin-bottom: 3px; border-bottom: 1px solid #ddd; padding-bottom: 2px;">
+                    {{ $arabicService->shape('تفاصيل العملات:') }} / Currency Details:
+                </div>
+                @foreach($foreignPayments as $fp)
+                <div class="total-row">
+                    <span style="font-size: 11px;">{{ $arabicService->shape($fp->currency->name ?? $fp->currency->code) }}:</span>
+                    <span style="font-size: 11px;">{{ number_format($fp->amount_in_foreign_currency, 2) }} {{ $fp->currency->code }} (Rate: {{ $fp->exchange_rate }})</span>
+                    <div class="clearfix"></div>
+                </div>
+                @endforeach
+            </div>
+            @endif
             <div class="total-row">
                 <span>{{ $arabicService->shape(__('paid') . ':') }} / Paid:</span>
-                <span>{{ number_format($sale->paid, 2) }}</span>
+                <span>{{ number_format($sale->paid, 2) }} {{ optional($baseCurrency)->code }}</span>
                 <div class="clearfix"></div>
             </div>
-            @if($sale->due > 0)
+            @if($sale->due > 0.01)
             <div class="total-row" style="color: #d35400;">
                 <span>{{ $arabicService->shape(__('due') . ':') }} / Due:</span>
-                <span>{{ number_format($sale->due, 2) }}</span>
+                <span>{{ number_format($sale->due, 2) }} {{ optional($baseCurrency)->code }}</span>
                 <div class="clearfix"></div>
             </div>
             @endif

@@ -35,7 +35,7 @@ class ProcessPaymentNotification implements ShouldQueue
     public function handle(WhatsAppService $whatsappService)
     {
         try {
-            $payment = Payment::with(['store', 'contact', 'sale'])->find($this->paymentId);
+            $payment = Payment::with(['store', 'contact', 'sale', 'currency'])->find($this->paymentId);
 
             if (!$payment) {
                 Log::error("ProcessPaymentNotification: Payment #{$this->paymentId} not found.");
@@ -48,24 +48,34 @@ class ProcessPaymentNotification implements ShouldQueue
 
             // نرسل الإشعار فقط إذا كان العميل لديه رقم هاتف وإعدادات المتجر تسمح بـ WhatsApp
             if ($store->notify_whatsapp && $store->phone_number && $contact && $contact->phone) {
-                
+                $baseCurrency = \App\Models\Currency::find($store->base_currency_id);
+                $hasForeign = ($payment->currency_id && $payment->currency_id != $store->base_currency_id && $payment->amount_in_foreign_currency > 0);
+
                 $msg = "✅ *تم استلام دفعة مالية جديدة*\n";
                 $msg .= "--------------------------\n";
                 $msg .= "👤 العميل: " . ($contact->contact_name ?? '-') . "\n";
-                $msg .= "💰 المبلغ: " . number_format($payment->amount, 2) . "\n";
+                
+                if ($hasForeign) {
+                    $msg .= "💰 المبلغ: " . number_format($payment->amount_in_foreign_currency, 2) . " " . $payment->currency->code . "\n";
+                    $msg .= "🔄 المعادل: " . number_format($payment->amount, 2) . " " . optional($baseCurrency)->code . "\n";
+                    $msg .= "📈 سعر الصرف: " . $payment->exchange_rate . "\n";
+                } else {
+                    $msg .= "💰 المبلغ: " . number_format($payment->amount, 2) . " " . (optional($payment->currency)->code ?: optional($baseCurrency)->code) . "\n";
+                }
+
                 $msg .= "📅 التاريخ: " . ($payment->payment_date ? $payment->payment_date->format('Y-m-d') : $payment->created_at->format('Y-m-d')) . "\n";
                 $msg .= "💳 الطريقة: " . ($payment->method == 'cash' ? 'نقدي' : ($payment->method == 'card' ? 'شبكة' : 'تحويل')) . "\n";
                 
                 if ($sale) {
                     $msg .= "🧾 مربوطة بفاتورة ر قم #{$sale->id}\n";
                     if ($sale->due > 0) {
-                        $msg .= "⚠️ المتبقي في الفاتورة: " . number_format($sale->due, 2) . "\n";
+                        $msg .= "⚠️ المتبقي في الفاتورة: " . number_format($sale->due, 2) . " " . optional($baseCurrency)->code . "\n";
                     }
                 }
 
                 if ($contact->balance != 0) {
                      $balanceType = $contact->balance < 0 ? 'متبقي عليه' : 'رصيد له';
-                     $msg .= "📊 إجمالي الحساب: " . abs(number_format($contact->balance, 2)) . " ({$balanceType})\n";
+                     $msg .= "📊 إجمالي الحساب: " . abs(number_format($contact->balance, 2)) . " " . optional($baseCurrency)->code . " ({$balanceType})\n";
                 }
 
                 $msg .= "--------------------------\n";

@@ -42,7 +42,7 @@ class ProcessSaleNotifications implements ShouldQueue
     {
         try {
             // Re-fetch sale with relations to ensure fresh data
-            $sale = Sale::with(['store', 'contact', 'items.product.baseUnit', 'user', 'items.product.recipes'])->find($this->saleId);
+            $sale = Sale::with(['store', 'contact', 'items.product.baseUnit', 'user', 'items.product.recipes', 'payments.currency'])->find($this->saleId);
 
             if (!$sale) {
                 Log::error("ProcessSaleNotifications: Sale #{$this->saleId} not found.");
@@ -151,6 +151,11 @@ class ProcessSaleNotifications implements ShouldQueue
             
             $stockBody = !empty($stockAlertLines) ? implode("\n", $stockAlertLines) : "";
 
+            $baseCurrency = \App\Models\Currency::find($store->base_currency_id);
+            $foreignPayments = $sale->payments->filter(function($p) use ($store) {
+                return $p->currency_id && $p->currency_id != $store->base_currency_id;
+            });
+
             // ============================================================
             // 3. WhatsApp Notification
             // ============================================================
@@ -170,10 +175,18 @@ class ProcessSaleNotifications implements ShouldQueue
 
                         if ($sendInv) {
                             $waMsg .= "🧾 *فاتورة جديدة #{$sale->id}*\n";
-                            $waMsg .= "💰 القيمة: {$netTotal}\n";
-                            $waMsg .= "✅ المدفوع: " . ($sale->paid ?? 0) . "\n";
+                            $waMsg .= "💰 القيمة: " . number_format($netTotal, 2) . " " . optional($baseCurrency)->code . "\n";
+                            $waMsg .= "✅ المدفوع: " . number_format($sale->paid ?? 0, 2) . " " . optional($baseCurrency)->code . "\n";
+                            
+                            if ($foreignPayments->count() > 0) {
+                                $waMsg .= "🌍 تفاصيل العملات:\n";
+                                foreach ($foreignPayments as $fp) {
+                                    $waMsg .= "• " . number_format($fp->amount_in_foreign_currency, 2) . " " . $fp->currency->code . " (سعر " . $fp->exchange_rate . ")\n";
+                                }
+                            }
+
                             $waMsg .= "👤 العميل: " . ($sale->contact ? $sale->contact->contact_name : 'نقدي') . "\n";
-                            if ($isCredit) $waMsg .= "⚠️ متبقي عليه: {$sale->due}\n";
+                            if ($isCredit) $waMsg .= "⚠️ متبقي عليه: " . number_format($sale->due, 2) . " " . optional($baseCurrency)->code . "\n";
                             $waMsg .= "\n📞 للتواصل معنا واتساب: " . ($store->phone_number ?? '-') . "\n";
                             $waMsg .= "شكراً لتعاملكم معنا 🙏\n";
                         } else {
@@ -218,7 +231,15 @@ class ProcessSaleNotifications implements ShouldQueue
                     // Invoice Email
                     if (!$isWithdrawal && $pdfPath && file_exists($pdfPath)) {
                         $subject = "فاتورة مبيعات جديدة #{$sale->id}";
-                        $body = "مرفق طيه فاتورة المبيعات رقم #{$sale->id}.\nالقيمة الإجمالية: {$netTotal}";
+                        $body = "مرفق طيه فاتورة المبيعات رقم #{$sale->id}.\n";
+                        $body .= "القيمة الإجمالية: " . number_format($netTotal, 2) . " " . optional($baseCurrency)->code . "\n";
+                        
+                        if ($foreignPayments->count() > 0) {
+                            $body .= "\nتفاصيل الدفع بالعملات الأجنبية:\n";
+                            foreach ($foreignPayments as $fp) {
+                                $body .= "- " . number_format($fp->amount_in_foreign_currency, 2) . " " . $fp->currency->code . " (سعر الصرف: " . $fp->exchange_rate . ")\n";
+                            }
+                        }
                         
                         Mail::to($store->email)->send(new ReportMail(
                             $subject,

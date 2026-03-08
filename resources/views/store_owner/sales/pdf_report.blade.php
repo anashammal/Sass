@@ -188,6 +188,7 @@
         {{-- QR Code Injection (Report Summary) --}}
         @inject('qrService', 'App\Services\ZatcaQrService')
         @php
+            $baseCurrency = \App\Models\Currency::find($store->base_currency_id);
             $qrData = $qrService->generate(
                 $store->name,
                 $store->tax_number ?? '000000000000000',
@@ -226,19 +227,19 @@
                 <span class="kpi-label">
                     @if(app()->getLocale() == 'ar') {{ $arabicService->shape(__('remaining_amount')) }} @else {{ __('remaining_amount') }} @endif
                 </span>
-                <span class="kpi-value text-danger">{{ number_format($totals['sum_due'], 2) }}</span>
+                <span class="kpi-value text-danger">{{ number_format($totals['sum_due'], 2) }} {{ optional($baseCurrency)->code }}</span>
             </td>
             <td width="25%">
                 <span class="kpi-label">
                     @if(app()->getLocale() == 'ar') {{ $arabicService->shape(__('paid_amount')) }} @else {{ __('paid_amount') }} @endif
                 </span>
-                <span class="kpi-value text-success">{{ number_format($totals['sum_paid'], 2) }}</span>
+                <span class="kpi-value text-success">{{ number_format($totals['sum_paid'], 2) }} {{ optional($baseCurrency)->code }}</span>
             </td>
             <td width="25%">
                 <span class="kpi-label">
                     @if(app()->getLocale() == 'ar') {{ $arabicService->shape(__('total_amount')) }} @else {{ __('total_amount') }} @endif
                 </span>
-                <span class="kpi-value text-primary">{{ number_format($totals['sum_total'], 2) }}</span>
+                <span class="kpi-value text-primary">{{ number_format($totals['sum_total'], 2) }} {{ optional($baseCurrency)->code }}</span>
             </td>
             <td width="25%">
                 <span class="kpi-label">
@@ -273,7 +274,15 @@
                 $status = $s->due == 0 ? 'paid' : ($s->due >= $s->total ? 'unpaid' : 'partial');
             @endphp
             <tr>
-                <td class="fw-bold">{{ number_format($s->total, 2) }}</td>
+                <td class="fw-bold">
+                    {{ number_format($s->total, 2) }} {{ optional($baseCurrency)->code }}
+                    @php
+                        $foreignPaymentsCount = $s->payments->whereNotNull('currency_id')->where('currency_id', '!=', $store->base_currency_id)->count();
+                    @endphp
+                    @if($foreignPaymentsCount > 0)
+                        <div style="font-size: 8px; color: #666;">(+ {{ $foreignPaymentsCount }} currencies)</div>
+                    @endif
+                </td>
                 <td>
                     <span class="badge {{ $status == 'paid' ? 'badge-paid' : ($status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
                         @if($status == 'paid') 
@@ -336,7 +345,8 @@
                 </tr>
                 <tr>
                     <td align="{{ app()->getLocale() == 'ar' ? 'right' : 'left' }}">
-                        <strong>@if(app()->getLocale() == 'ar') {{ $arabicService->shape(__('total')) }}: @else {{ __('total') }}: @endif</strong> <span class="text-primary fw-bold">{{ number_format($s->total, 2) }}</span>
+                        <strong>@if(app()->getLocale() == 'ar') {{ $arabicService->shape(__('total')) }}: @else {{ __('total') }}: @endif</strong> 
+                        <span class="text-primary fw-bold">{{ number_format($s->total, 2) }} {{ optional($baseCurrency)->code }}</span>
                     </td>
                     <td align="{{ app()->getLocale() == 'ar' ? 'right' : 'left' }}">
                         <strong>@if(app()->getLocale() == 'ar') {{ $arabicService->shape(__('status')) }}: @else {{ __('status') }}: @endif</strong> 
@@ -351,6 +361,19 @@
                         </span>
                     </td>
                 </tr>
+                @php
+                    $sForeignPayments = $s->payments->whereNotNull('currency_id')->where('currency_id', '!=', $store->base_currency_id);
+                @endphp
+                @if($sForeignPayments->count() > 0)
+                <tr>
+                    <td colspan="2" align="{{ app()->getLocale() == 'ar' ? 'right' : 'left' }}" style="background-color: #f8f9fa; padding: 5px; font-size: 10px;">
+                        <strong>{{ $arabicService->shape('تفاصيل العملات:') }} / Currencies:</strong>
+                        @foreach($sForeignPayments as $fp)
+                            {{ number_format($fp->amount_in_foreign_currency, 2) }} {{ $fp->currency->code }} ({{ $fp->exchange_rate }}){{ !$loop->last ? ' | ' : '' }}
+                        @endforeach
+                    </td>
+                </tr>
+                @endif
             </table>
         </div>
         
