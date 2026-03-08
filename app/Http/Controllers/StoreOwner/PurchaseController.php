@@ -96,61 +96,30 @@ class PurchaseController extends Controller
             'sum_due' => (clone $query)->get()->sum(function($p) { return $p->remaining_amount_in_base_currency; }),
         ];
 
-        // تفصيل حسب العملة
+        // تفصيل حسب العملة (المتوسط المرجح لأسعار الصرف)
         $purchasesForBreakdown = (clone $query)->get();
-        // تفصيل حسب العملة (يجمع المدفوعات بكل عملة + المتبقيات بعملة الفاتورة)
-        $purchaseIds = $purchasesForBreakdown->pluck('id');
-        $paymentGroups = \App\Models\Payment::whereIn('purchase_id', $purchaseIds)
-            ->select('currency_id', 
-                DB::raw('SUM(IFNULL(amount_in_foreign_currency, amount / IF(exchange_rate > 0, exchange_rate, 1))) as total_amt'), 
-                DB::raw('AVG(exchange_rate) as avg_rate')
-            )
-            ->groupBy('currency_id')
-            ->get();
+        $currencyBreakdown = $purchasesForBreakdown->groupBy(function($purchase) use ($baseCurrency) {
+                return $purchase->currency_id ?: optional($baseCurrency)->id;
+            })
+            ->map(function($group, $cid) use ($baseCurrency) {
+                $currency = \App\Models\Currency::find($cid) ?? $baseCurrency;
+                if (!$currency) return null;
 
-        $dueGroups = $purchasesForBreakdown->where('payment_status', '!=', 'paid')
-            ->groupBy('currency_id')
-            ->map(function($group) {
-                return $group->sum(function($p) {
-                    $paidInForeign = $p->exchange_rate > 0 ? ($p->paid_amount / $p->exchange_rate) : $p->paid_amount;
-                    return max(0, $p->grand_total - $paidInForeign);
+                $totalForeign = (float) $group->sum('grand_total');
+                $totalBase = (float) $group->sum(function($p) {
+                    return $p->grand_total_in_base_currency;
                 });
-            });
 
-        $breakdownByCurrency = [];
-        foreach($paymentGroups as $pg) {
-            $cid = $pg->currency_id ?? optional($baseCurrency)->id;
-            if(!$cid) continue;
-            if(!isset($breakdownByCurrency[$cid])) {
-                $breakdownByCurrency[$cid] = [
-                    'currency' => \App\Models\Currency::find($cid) ?? $baseCurrency,
-                    'total_amount' => 0,
-                    'exchange_rate' => (float)$pg->avg_rate ?: 1,
-                    'in_base' => 0
-                ];
-            }
-            $breakdownByCurrency[$cid]['total_amount'] += (float)$pg->total_amt;
-            $breakdownByCurrency[$cid]['in_base'] += ((float)$pg->total_amt * ((float)$pg->avg_rate ?: 1));
-        }
+                // Weighted Average Rate = Total Base / Total Foreign
+                $weightedRate = $totalForeign > 0 ? ($totalBase / $totalForeign) : 1;
 
-        foreach($dueGroups as $cid => $dueAmt) {
-            if($dueAmt <= 0.001) continue;
-            $cid = $cid ?? optional($baseCurrency)->id;
-            if(!$cid) continue;
-            if(!isset($breakdownByCurrency[$cid])) {
-                $lastP = $purchasesForBreakdown->where('currency_id', $cid)->first();
-                $rate = $lastP->exchange_rate ?? 1;
-                $breakdownByCurrency[$cid] = [
-                    'currency' => \App\Models\Currency::find($cid) ?? $baseCurrency,
-                    'total_amount' => 0,
-                    'exchange_rate' => (float)$rate ?: 1,
-                    'in_base' => 0
+                return [
+                    'currency'      => $currency,
+                    'total_amount'  => $totalForeign,
+                    'exchange_rate' => $weightedRate,
+                    'in_base'       => $totalBase
                 ];
-            }
-            $breakdownByCurrency[$cid]['total_amount'] += (float)$dueAmt;
-            $breakdownByCurrency[$cid]['in_base'] += ((float)$dueAmt * (float)$breakdownByCurrency[$cid]['exchange_rate']);
-        }
-        $currencyBreakdown = collect($breakdownByCurrency)->values();
+            })->filter()->values();
 
         $purchases = $query->paginate(10)->withQueryString();
         $suppliers = Contact::where('store_id', $storeId)->whereIn('type', ['supplier', 'both'])->get();

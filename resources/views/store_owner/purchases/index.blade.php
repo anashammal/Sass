@@ -23,7 +23,7 @@
                     </div>
                     <div>
                         <div class="kpi-label">{{ __('total_invoices') }} ({{ $totals['count'] }})</div>
-                        <div class="kpi-value english-num">{{ number_format($totals['sum_total'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
+                        <div class="kpi-value english-num">{{ $totals['sum_total'] == (int)$totals['sum_total'] ? number_format($totals['sum_total'], 0) : number_format($totals['sum_total'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
                     </div>
                 </div>
             </div>
@@ -36,7 +36,7 @@
                     </div>
                     <div>
                         <div class="kpi-label">{{ __('total_paid') }}</div>
-                        <div class="kpi-value english-num">{{ number_format($totals['sum_paid'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
+                        <div class="kpi-value english-num">{{ $totals['sum_paid'] == (int)$totals['sum_paid'] ? number_format($totals['sum_paid'], 0) : number_format($totals['sum_paid'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
                     </div>
                 </div>
             </div>
@@ -49,7 +49,7 @@
                     </div>
                     <div>
                         <div class="kpi-label">{{ __('remaining_balance_credit') }}</div>
-                        <div class="kpi-value english-num">{{ number_format($totals['sum_due'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
+                        <div class="kpi-value english-num">{{ $totals['sum_due'] == (int)$totals['sum_due'] ? number_format($totals['sum_due'], 0) : number_format($totals['sum_due'], 2) }} <small>{{ $globalCurrencySymbol }}</small></div>
                     </div>
                 </div>
             </div>
@@ -66,12 +66,12 @@
                 <div class="col-md-3">
                     <div class="p-3 bg-white rounded border border-secondary border-opacity-25 text-center">
                         <span class="d-block mt-1 fw-bold fs-5 text-dark">
-                            {{ number_format($breakdown['total_amount'], 2) }} <small class="text-muted">{{ isset($breakdown['currency']) ? $breakdown['currency']->code : optional($baseCurrency)->code }}</small>
+                            {{ $breakdown['total_amount'] == (int)$breakdown['total_amount'] ? number_format($breakdown['total_amount'], 0) : number_format($breakdown['total_amount'], 2) }} <small class="text-muted">{{ isset($breakdown['currency']) ? $breakdown['currency']->code : optional($baseCurrency)->code }}</small>
                         </span>
                         @if(isset($breakdown['currency']) && optional($baseCurrency)->id != $breakdown['currency']->id)
                             <div class="mt-2 pt-2 border-top small text-muted">
-                                سعر الصرف المحتسب: {{ number_format($breakdown['exchange_rate'], 4) }} <br>
-                                ≈ {{ number_format($breakdown['in_base'], 2) }} {{ optional($baseCurrency)->code }}
+                                متوسط سعر الصرف: {{ (float)number_format($breakdown['exchange_rate'], 4, '.', '') }} <br>
+                                ≈ {{ $breakdown['in_base'] == (int)$breakdown['in_base'] ? number_format($breakdown['in_base'], 0) : number_format($breakdown['in_base'], 2) }} {{ optional($baseCurrency)->code }}
                             </div>
                         @endif
                     </div>
@@ -235,7 +235,7 @@
                                     <span class="badge bg-secondary">{{ $purchase->currency ? $purchase->currency->code : optional($baseCurrency)->code }}</span>
                                     @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
                                         <div class="small text-muted mt-1" style="font-size: 0.70rem;" title="سعر الصرف">
-                                            <i class="fas fa-exchange-alt"></i> {{ number_format($purchase->exchange_rate, 4) }}
+                                            <i class="fas fa-exchange-alt"></i> {{ (float)number_format($purchase->exchange_rate, 4, '.', '') }}
                                         </div>
                                     @endif
                                 </td>
@@ -249,26 +249,35 @@
                                     @endif
                                 </td>
                                 <td class="fw-bold">
-                                    {{ number_format($purchase->grand_total, 2) }} 
+                                    {{ $purchase->grand_total == (int)$purchase->grand_total ? number_format($purchase->grand_total, 0) : number_format($purchase->grand_total, 2) }} 
                                     @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
                                     <div class="text-muted small" style="font-size: 0.75rem;">
-                                        ≈ {{ number_format($purchase->grand_total_in_base_currency, 2) }} {{ optional($baseCurrency)->code }}
+                                        ≈ {{ $purchase->grand_total_in_base_currency == (int)$purchase->grand_total_in_base_currency ? number_format($purchase->grand_total_in_base_currency, 0) : number_format($purchase->grand_total_in_base_currency, 2) }} {{ optional($baseCurrency)->code }}
                                     </div>
                                     @endif
                                 </td>
                                 <td class="text-success">
-                                    {{ number_format($purchase->paid_amount / ($purchase->exchange_rate ?: 1), 2) }} 
+                                    @php
+                                        $paidInForeign = $purchase->paid_amount / ($purchase->exchange_rate ?: 1);
+                                    @endphp
+                                    {{ $paidInForeign == (int)$paidInForeign ? number_format($paidInForeign, 0) : number_format($paidInForeign, 2) }} 
                                     @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
                                     <div class="text-muted small" style="font-size: 0.75rem;">
-                                        ≈ {{ number_format($purchase->paid_amount, 2) }} {{ optional($baseCurrency)->code }}
+                                        ≈ {{ $purchase->paid_amount == (int)$purchase->paid_amount ? number_format($purchase->paid_amount, 0) : number_format($purchase->paid_amount, 2) }} {{ optional($baseCurrency)->code }}
                                     </div>
                                     @endif
                                 </td>
                                 <td class="text-danger fw-bold">
-                                    {{ number_format($purchase->grand_total - ($purchase->paid_amount / ($purchase->exchange_rate ?: 1)), 2) }} 
+                                    @php
+                                        $remainingInForeign = $purchase->grand_total - ($purchase->paid_amount / ($purchase->exchange_rate ?: 1));
+                                    @endphp
+                                    {{ $remainingInForeign == (int)$remainingInForeign ? number_format($remainingInForeign, 0) : number_format($remainingInForeign, 2) }} 
                                     @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
                                     <div class="text-muted small" style="font-size: 0.75rem;">
-                                        ≈ {{ number_format($purchase->grand_total_in_base_currency - $purchase->paid_amount, 2) }} {{ optional($baseCurrency)->code }}
+                                        @php
+                                            $remainingInBase = $purchase->grand_total_in_base_currency - $purchase->paid_amount;
+                                        @endphp
+                                        ≈ {{ $remainingInBase == (int)$remainingInBase ? number_format($remainingInBase, 0) : number_format($remainingInBase, 2) }} {{ optional($baseCurrency)->code }}
                                     </div>
                                     @endif
                                 </td>
@@ -304,9 +313,18 @@
                     <tfoot class="bg-light fw-bold">
                         <tr class="table-active">
                             <td colspan="6" class="text-end">{{ __('totals_current_page') }} ({{ optional($baseCurrency)->code }})</td>
-                            <td>{{ number_format($purchases->sum(function($p) { return $p->grand_total_in_base_currency; }), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
-                            <td class="text-success">{{ number_format($purchases->sum('paid_amount'), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
-                            <td class="text-danger">{{ number_format($purchases->sum(function($p) { return $p->remaining_amount_in_base_currency; }), 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
+                            @php
+                                $totalSum = $purchases->sum(function($p) { return $p->grand_total_in_base_currency; });
+                            @endphp
+                            <td>{{ $totalSum == (int)$totalSum ? number_format($totalSum, 0) : number_format($totalSum, 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
+                            @php
+                                $paidSum = $purchases->sum('paid_amount');
+                            @endphp
+                            <td class="text-success">{{ $paidSum == (int)$paidSum ? number_format($paidSum, 0) : number_format($paidSum, 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
+                            @php
+                                $dueSum = $purchases->sum(function($p) { return $p->remaining_amount_in_base_currency; });
+                            @endphp
+                            <td class="text-danger">{{ $dueSum == (int)$dueSum ? number_format($dueSum, 0) : number_format($dueSum, 2) }} <small>{{ optional($baseCurrency)->code }}</small></td>
                             <td class="no-print"></td>
                         </tr>
                     </tfoot>
