@@ -600,16 +600,11 @@ class PurchaseController extends Controller
 
             DB::commit();
 
-            // 🔥 تحديث تكلفة الوجبات المتأثرة بتغير أسعار المكونات (للمطاعم)
+            // 🔥 تحديث تكلفة الوجبات المتأثرة بتغير أسعار المكونات (للمطاعم) - تم النقل للخلفية
             if (!$isDraft && $store->type == 'restaurant') {
-                foreach ($request->items as $itemData) {
-                    $ingredientId = $itemData['product_id'];
-                    $affectedMeals = \App\Models\Product::whereHas('recipes', function($q) use ($ingredientId) {
-                                            $q->where('ingredient_product_id', $ingredientId);
-                                        })->get();
-                    foreach ($affectedMeals as $meal) {
-                        $meal->recalculateMealCost();
-                    }
+                $ingredientIds = array_filter(array_column($request->items, 'product_id'));
+                if (!empty($ingredientIds)) {
+                    \App\Jobs\RecalculateMealCostsJob::dispatch($ingredientIds);
                 }
             }
 
@@ -633,6 +628,7 @@ class PurchaseController extends Controller
             if ($request->ajax()) {
                 $whatsappData = null;
                 if (!$isDraft && isset($store) && $store->whatsapp_auto_prompt && $purchase->supplier && $purchase->supplier->phone) {
+                    $purchase->load(['items.product.baseUnit', 'items.unit']);
                     $itemsLines = [];
                     foreach($purchase->items as $item) {
                         $uName = $item->unit->unit_name ?? ($item->product->baseUnit->unit_name ?? 'قطعة');
