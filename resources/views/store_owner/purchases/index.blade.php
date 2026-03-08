@@ -257,10 +257,20 @@
                                     @endif
                                 </td>
                                 <td class="text-success">
-                                    {{ number_format($purchase->paid_amount, 2) }} 
+                                    {{ number_format($purchase->paid_amount / ($purchase->exchange_rate ?: 1), 2) }} 
+                                    @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
+                                    <div class="text-muted small" style="font-size: 0.75rem;">
+                                        ≈ {{ number_format($purchase->paid_amount, 2) }} {{ optional($baseCurrency)->code }}
+                                    </div>
+                                    @endif
                                 </td>
                                 <td class="text-danger fw-bold">
-                                    {{ number_format($purchase->grand_total - $purchase->paid_amount, 2) }} 
+                                    {{ number_format($purchase->grand_total - ($purchase->paid_amount / ($purchase->exchange_rate ?: 1)), 2) }} 
+                                    @if($purchase->exchange_rate && $purchase->exchange_rate != 1)
+                                    <div class="text-muted small" style="font-size: 0.75rem;">
+                                        ≈ {{ number_format($purchase->grand_total_in_base_currency - $purchase->paid_amount, 2) }} {{ optional($baseCurrency)->code }}
+                                    </div>
+                                    @endif
                                 </td>
                                 <td>
     <a href="javascript:void(0);" 

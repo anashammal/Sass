@@ -210,9 +210,9 @@ class PurchaseController extends Controller
         
         $totals = [
             'count' => $purchases->count(),
-            'sum_total' => $purchases->sum('grand_total'),
+            'sum_total' => $purchases->sum(function($p){ return $p->grand_total_in_base_currency; }),
             'sum_paid' => $purchases->sum('paid_amount'),
-            'sum_due' => $purchases->sum(function($p){ return $p->grand_total - $p->paid_amount; }),
+            'sum_due' => $purchases->sum(function($p){ return $p->remaining_amount_in_base_currency; }),
         ];
 
         // استخدام خدمة معالجة النص العربي
@@ -289,9 +289,9 @@ class PurchaseController extends Controller
         
         $totals = [
             'count' => $purchases->count(),
-            'sum_total' => $purchases->sum('grand_total'),
+            'sum_total' => $purchases->sum(function($p){ return $p->grand_total_in_base_currency; }),
             'sum_paid' => $purchases->sum('paid_amount'),
-            'sum_due' => $purchases->sum(function($p){ return $p->grand_total - $p->paid_amount; }),
+            'sum_due' => $purchases->sum(function($p){ return $p->remaining_amount_in_base_currency; }),
         ];
 
         return view('store_owner.purchases.interactive_report', compact('purchases', 'store', 'totals'));

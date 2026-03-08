@@ -724,6 +724,7 @@
     // --- دوال مساعدة ---
     function parseMoney(value) {
         if (!value) return 0;
+        // التعامل مع الفاصلة والنقطة وإزالة أي رموز غير رقمية
         let clean = String(value).replace(/,/g, '.').replace(/[^0-9.]/g, ''); 
         return parseFloat(clean) || 0;
     }
@@ -732,6 +733,31 @@
         if (num === null || num === undefined || num === '') return 0;
         let val = parseFloat(num) || 0;
         return parseFloat(val.toFixed(4)); 
+    }
+
+    function validateQty(idx) {
+        let row = document.getElementById(`row_${idx}`);
+        if (!row) return;
+        
+        let qtyInp = row.querySelector('.qty');
+        let select = row.querySelector('.unit-select');
+        let unitName = select.options[select.selectedIndex].text.toLowerCase();
+        
+        let val = qtyInp.value;
+        
+        // إذا لم تكن الوحدة كيلو، لا نقبل أرقام عشرية
+        if (!unitName.includes('كيلو') && !unitName.includes('kilo')) {
+            if (val.includes('.') || val.includes(',')) {
+                // تنبيه المستخدم (مرة واحدة أو عند كل إدخال خاطئ)
+                if (typeof toastr !== 'undefined') {
+                    toastr.warning('هذه الوحدة لا تقبل أنصاف أو أرباع، يرجى إدخال رقم صحيح');
+                } else {
+                    console.warn('Decimal not allowed for this unit');
+                }
+                // تحويل للرقم الصحيح
+                qtyInp.value = parseInt(val) || 0;
+            }
+        }
     }
 
     // --- دالة إضافة صف المنتج المصححة ---
@@ -846,7 +872,7 @@
             <td class="col-shrink">
                 <select name="items[${rowIdx}][unit_id]" class="form-select form-select-sm unit-select input-unit" onchange="updateRowData(${rowIdx})">${optionsHtml}</select>
             </td>
-            <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty input-qty" value="1" oninput="calcTotals(${rowIdx})" onfocus="this.select()"></td>
+            <td class="col-shrink"><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty input-qty" value="1" oninput="validateQty(${rowIdx}); calcTotals(${rowIdx})" onfocus="this.select()"></td>
             <td class="col-shrink">
                 <div class="input-group input-group-sm">
                     <input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control text-center price text-danger fw-bold input-price" value="${parseFloat(calculatedCost.toFixed(4))}" oninput="syncSubUnits(${rowIdx}, 'purchase')" onfocus="this.select()">
@@ -1115,10 +1141,12 @@
         let selectedOption = select.options[select.selectedIndex];
         let originalMainProfit = parseFloat(selectedOption.getAttribute('data-profit')) || 0;
 
-        let newMainProfit = 0;
         if (mainPrice > 0) {
             newMainProfit = ((currentSell - mainPrice) / mainPrice) * 100;
-            mainProfitInput.value = formatNum(newMainProfit);
+            // التحقق من أننا لسنا في حقل الربح حالياً لتجنب مشاكل الكتابة
+            if (mainProfitInput !== document.activeElement) {
+                mainProfitInput.value = formatNum(newMainProfit);
+            }
         }
 
         // 🟢 تحديث تحذير الوحدة الأساسية (بدون إطار)
@@ -1233,7 +1261,10 @@
 
         let profitEl = row.querySelector('.profit');
         if (cost > 0 && profitEl) {
-            profitEl.value = formatNum(((sell - cost) / cost) * 100);
+            let newProfit = ((sell - cost) / cost) * 100;
+            if (profitEl !== document.activeElement) {
+                profitEl.value = formatNum(newProfit);
+            }
         }
         calcTotals(idx);
     }
@@ -1246,7 +1277,9 @@
         let profit = parseMoney(rawVal);
         let sellEl = row.querySelector('.sell');
         let newSell = cost * (1 + profit / 100);
-        if (sellEl) sellEl.value = formatNum(newSell);
+        if (sellEl && sellEl !== document.activeElement) {
+            sellEl.value = formatNum(newSell);
+        }
         // تحديث فوري للمعادل بالعملة الافتراضية
         let invRate = parseFloat(document.getElementById('invoice_exchange_rate').value) || 1;
         let bCode = "{{ optional($baseCurrency)->code }}";

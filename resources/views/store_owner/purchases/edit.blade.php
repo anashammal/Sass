@@ -255,6 +255,26 @@
         return parseFloat(clean) || 0;
     }
 
+    function validateQty(idx) {
+        let row = document.getElementById(`row_${idx}`);
+        if (!row) return;
+        
+        let qtyInp = row.querySelector('.qty');
+        let select = row.querySelector('.unit-select');
+        let unitName = select.options[select.selectedIndex].text.toLowerCase();
+        
+        let val = qtyInp.value;
+        
+        if (!unitName.includes('كيلو') && !unitName.includes('kilo')) {
+            if (val.includes('.') || val.includes(',')) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.warning('هذه الوحدة لا تقبل أنصاف أو أرباع، يرجى إدخال رقم صحيح');
+                }
+                qtyInp.value = parseInt(val) || 0;
+            }
+        }
+    }
+
     // Localization helper
     const LANG = {
         buy: "{{ __('buy_label') }}",
@@ -507,7 +527,7 @@ document.getElementById('currency_id').addEventListener('focus', function() {
                 </select>
             </td>
             
-            <td><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty" value="${qty}" oninput="calcTotals(${rowIdx})"></td>
+            <td><input type="text" inputmode="decimal" name="items[${rowIdx}][quantity]" class="form-control form-control-sm text-center qty" value="${qty}" oninput="validateQty(${rowIdx}); calcTotals(${rowIdx})"></td>
             <td>
                 <div class="input-group input-group-sm" style="min-width: 90px;">
                     <input type="text" inputmode="decimal" name="items[${rowIdx}][unit_price]" class="form-control form-control-sm text-center price text-danger fw-bold" value="${price}" oninput="syncSubUnits(${rowIdx})">
@@ -682,7 +702,10 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         let sell = parseMoney(row.querySelector('.sell').value);
         if(price > 0) {
             let profit = ((sell - price) / price) * 100;
-            row.querySelector('.profit').value = formatNum(profit);
+            let profitEl = row.querySelector('.profit');
+            if (profitEl && profitEl !== document.activeElement) {
+                profitEl.value = formatNum(profit);
+            }
         }
     }
 
@@ -691,7 +714,10 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         let price = parseMoney(row.querySelector('.price').value);
         let profit = parseMoney(row.querySelector('.profit').value);
         let sell = price * (1 + profit / 100);
-        row.querySelector('.sell').value = formatNum(sell);
+        let sellEl = row.querySelector('.sell');
+        if (sellEl && sellEl !== document.activeElement) {
+            sellEl.value = formatNum(sell);
+        }
         
         updateDualPriceDisplay(idx);
         calculateGrandTotal();
@@ -1044,7 +1070,9 @@ document.getElementById('currency_id').addEventListener('focus', function() {
         
         if (mainPrice > 0) {
             let newMainProfit = ((currentSell - mainPrice) / mainPrice) * 100;
-            mainProfitInput.value = formatNum(newMainProfit);
+            if (mainProfitInput !== document.activeElement) {
+                mainProfitInput.value = formatNum(newMainProfit);
+            }
         }
 
         // جلب المعامل الحالي

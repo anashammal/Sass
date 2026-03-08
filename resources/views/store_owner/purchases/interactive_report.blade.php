@@ -201,11 +201,21 @@
                             </tr>
                             <tr>
                                 <td colspan="3" class="text-end">{{ __('paid_label') }}:</td>
-                                <td class="text-end text-success">{{ number_format($p->paid_amount, 2) }}</td>
+                                <td class="text-end text-success">
+                                    {{ number_format($p->paid_amount / ($p->exchange_rate ?: 1), 2) }}
+                                    @if($p->exchange_rate && $p->exchange_rate != 1)
+                                        <div class="small text-muted">≈ {{ number_format($p->paid_amount, 2) }} TRY</div>
+                                    @endif
+                                </td>
                             </tr>
                             <tr>
                                 <td colspan="3" class="text-end">{{ __('remaining_label') }}:</td>
-                                <td class="text-end text-danger">{{ number_format($p->grand_total - $p->paid_amount, 2) }}</td>
+                                <td class="text-end text-danger fw-bold">
+                                    {{ number_format($p->grand_total - ($p->paid_amount / ($p->exchange_rate ?: 1)), 2) }}
+                                    @if($p->exchange_rate && $p->exchange_rate != 1)
+                                        <div class="small text-muted">≈ {{ number_format($p->remaining_amount_in_base_currency, 2) }} TRY</div>
+                                    @endif
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
