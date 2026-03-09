@@ -46,6 +46,35 @@
                     /* Ensure preview clocks look like the header ones but bigger/centered */
                     .preview-clock-container .digital-container { transform: scale(1.5); margin: 20px 0; }
                     .preview-clock-container .analog-face { transform: scale(3); margin: 40px 0; }
+
+                    /* 🔥 Perfect Button Group Joining (LTR/RTL) 🔥 */
+                    .clock-type-group { gap: 0 !important; }
+                    .clock-type-group .btn { border-radius: 0 !important; border: 1px solid #0d6efd !important; margin: 0 !important; }
+                    
+                    /* Round leftmost corner */
+                    .clock-type-group .btn:nth-child(2) { 
+                        border-top-left-radius: 50px !important; 
+                        border-bottom-left-radius: 50px !important; 
+                        border-right: 0 !important;
+                    }
+                    /* Round rightmost corner */
+                    .clock-type-group .btn:last-child { 
+                        border-top-right-radius: 50px !important; 
+                        border-bottom-right-radius: 50px !important; 
+                        border-left: 1px solid #0d6efd !important;
+                    }
+
+                    /* Handle RTL swap visually (Bootstrap 5 logic) */
+                    [dir="rtl"] .clock-type-group .btn:nth-child(2) { 
+                        border-radius: 0 50px 50px 0 !important;
+                        border-left: 0 !important;
+                        border-right: 1px solid #0d6efd !important;
+                    }
+                    [dir="rtl"] .clock-type-group .btn:last-child { 
+                        border-radius: 50px 0 0 50px !important;
+                        border-right: 0 !important;
+                        border-left: 1px solid #0d6efd !important;
+                    }
                 </style>
 
                 <div class="card shadow-sm border-0 mb-4">
@@ -100,17 +129,64 @@
                         <h6 class="mb-0 fw-bold"><i class="fas fa-palette me-2"></i> {{ __('شكل الساعة الافتراضية للوحة التحكم') }}</h6>
                     </div>
                     <div class="card-body text-center">
-                        <div class="row align-items-center justify-content-center mb-3">
-                            <div class="col-md-6 text-center">
-                                <div class="btn-group w-100 shadow-sm" role="group">
-                                    <input type="radio" class="btn-check" name="clock_type" id="clock_digital" value="digital" {{ $store->clock_type == 'digital' ? 'checked' : '' }}>
-                                    <label class="btn btn-outline-primary" for="clock_digital"><i class="fas fa-font me-1"></i> {{ __('رقمية') }}</label>
-        
-                                    <input type="radio" class="btn-check" name="clock_type" id="clock_analog" value="analog" {{ $store->clock_type == 'analog' ? 'checked' : '' }}>
-                                    <label class="btn btn-outline-primary" for="clock_analog"><i class="far fa-clock me-1"></i> {{ __('عقارب') }}</label>
-                                </div>
-                            </div>
-                        </div>
+            <div class="col-12 text-center py-2">
+                <style>
+                    /* Premium Capsule Toggle */
+                    .capsule-group {
+                        display: inline-flex;
+                        border: 1px solid #0d6efd;
+                        border-radius: 50px;
+                        overflow: hidden;
+                        padding: 0;
+                        background: transparent;
+                        box-shadow: 0 2px 5px rgba(13, 110, 253, 0.1);
+                    }
+                    .capsule-group label.btn {
+                        margin: 0 !important;
+                        border: 0 !important;
+                        border-radius: 0 !important;
+                        padding: 10px 30px;
+                        font-weight: 600;
+                        transition: all 0.2s ease;
+                        min-width: 140px;
+                        background-color: white;
+                        color: #0d6efd;
+                    }
+                    .capsule-group .btn-check:checked + label.btn {
+                        background-color: #0d6efd !important;
+                        color: white !important;
+                    }
+                    /* Middle Separator */
+                    .capsule-group label.btn:not(:last-of-type) {
+                        border-right: 1px solid #0d6efd !important;
+                    }
+                    
+                    /* RTL correction for separator */
+                    [dir="rtl"] .capsule-group label.btn:not(:last-of-type) {
+                        border-right: 0 !important;
+                        border-left: 1px solid #0d6efd !important;
+                    }
+
+                    .capsule-group label.btn:hover:not(.active) {
+                        background-color: #f8f9fa;
+                    }
+                </style>
+
+                <div class="capsule-group">
+                    {{-- Visual Order (LTR): [Analog][Digital] --}}
+                    {{-- Visual Order (RTL): [Digital][Analog] --}}
+                    
+                    <input type="radio" class="btn-check" name="clock_type" id="clock_analog" value="analog" {{ $store->clock_type == 'analog' ? 'checked' : '' }} autocomplete="off">
+                    <label class="btn" for="clock_analog">
+                        <i class="far fa-clock me-1"></i> {{ __('عقارب') }}
+                    </label>
+
+                    <input type="radio" class="btn-check" name="clock_type" id="clock_digital" value="digital" {{ $store->clock_type == 'digital' ? 'checked' : '' }} autocomplete="off">
+                    <label class="btn" for="clock_digital">
+                        <i class="fas fa-font me-1"></i> {{ __('رقمية') }}
+                    </label>
+                </div>
+            </div>
         
                         <div id="digital_themes" style="display: {{ $store->clock_type == 'digital' ? 'block' : 'none' }};">
                             <p class="small text-muted mb-2">{{ __('اختر شكل الساعة الرقمية الافتراضي') }}</p>
