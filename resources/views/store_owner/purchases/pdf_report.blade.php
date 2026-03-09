@@ -216,15 +216,15 @@
         <tr>
             <td width="25%">
                 <span class="kpi-label">{{ $arabicService->shape('مبلغ المتبقي') }}</span>
-                <span class="kpi-value text-danger">{{ number_format($totals['sum_due'], 2) }}</span>
+                <span class="kpi-value text-danger">{{ number_format($totals['sum_due'], 2) }} {{ optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY' }}</span>
             </td>
             <td width="25%">
                 <span class="kpi-label">{{ $arabicService->shape('مبلغ المدفوع') }}</span>
-                <span class="kpi-value text-success">{{ number_format($totals['sum_paid'], 2) }}</span>
+                <span class="kpi-value text-success">{{ number_format($totals['sum_paid'], 2) }} {{ optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY' }}</span>
             </td>
             <td width="25%">
                 <span class="kpi-label">{{ $arabicService->shape('مبلغ الإجمالي') }}</span>
-                <span class="kpi-value text-primary">{{ number_format($totals['sum_total'], 2) }}</span>
+                <span class="kpi-value text-primary">{{ number_format($totals['sum_total'], 2) }} {{ optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY' }}</span>
             </td>
             <td width="25%">
                 <span class="kpi-label">{{ $arabicService->shape('عدد الفواتير') }}</span>
@@ -254,7 +254,7 @@
                 $status = $p->payment_status; // paid, partial, unpaid
             @endphp
             <tr>
-                <td class="fw-bold">{{ number_format($p->grand_total, 2) }}</td>
+                <td class="fw-bold">{{ number_format($p->grand_total, 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}</td>
                 <td>
                     <span class="badge {{ $status == 'paid' ? 'badge-paid' : ($status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
                         @if($status == 'paid') {{ $arabicService->shape('مدفوع') }} @elseif($status == 'partial') {{ $arabicService->shape('جزئي') }} @else {{ $arabicService->shape('غير مدفوع') }} @endif
@@ -297,7 +297,7 @@
                     <td align="right" width="50%"><strong>{{ $arabicService->shape('المورد:') }}</strong> {{ $arabicService->shape(optional($p->supplier)->contact_name ?? '---') }}</td>
                 </tr>
                 <tr>
-                    <td align="right"><strong>{{ $arabicService->shape('الإجمالي:') }}</strong> <span class="text-primary fw-bold">{{ number_format($p->grand_total, 2) }}</span></td>
+                    <td align="right"><strong>{{ $arabicService->shape('الإجمالي:') }}</strong> <span class="text-primary fw-bold">{{ number_format($p->grand_total, 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}</span></td>
                     <td align="right"><strong>{{ $arabicService->shape('الحالة:') }}</strong> 
                         <span class="badge {{ $status == 'paid' ? 'badge-paid' : ($status == 'partial' ? 'badge-partial' : 'badge-unpaid') }}">
                             @if($status == 'paid') {{ $arabicService->shape('مدفوع') }} @elseif($status == 'partial') {{ $arabicService->shape('جزئي') }} @else {{ $arabicService->shape('غير مدفوع') }} @endif
@@ -320,8 +320,8 @@
             <tbody>
                 @foreach($p->items as $item)
                 <tr>
-                    <td class="fw-bold">{{ number_format($item->total_cost, 2) }}</td>
-                    <td>{{ number_format($item->unit_price, 2) }}</td>
+                    <td class="fw-bold">{{ number_format($item->total_cost, 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}</td>
+                    <td>{{ number_format($item->unit_price, 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}</td>
                     <td>{{ $item->quantity }}</td>
                     <td>{{ $arabicService->shape($item->product->name ?? $item->product->name ?? '---') }}</td>
                     <td>{{ $loop->iteration }}</td>

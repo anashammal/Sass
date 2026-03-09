@@ -120,19 +120,19 @@
         <div class="col-md-3 col-6">
             <div class="kpi-box">
                 <div class="kpi-label">{{ __('total_purchases') }}</div>
-                <div class="kpi-value">{{ number_format($totals['sum_total'], 2) }}</div>
+                <div class="kpi-value">{{ number_format($totals['sum_total'], 2) }} <small style="font-size: 0.8rem;">{{ optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY' }}</small></div>
             </div>
         </div>
         <div class="col-md-3 col-6">
             <div class="kpi-box">
                 <div class="kpi-label">{{ __('total_paid') }}</div>
-                <div class="kpi-value text-success">{{ number_format($totals['sum_paid'], 2) }}</div>
+                <div class="kpi-value text-success">{{ number_format($totals['sum_paid'], 2) }} <small style="font-size: 0.8rem;">{{ optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY' }}</small></div>
             </div>
         </div>
         <div class="col-md-3 col-6">
             <div class="kpi-box">
                 <div class="kpi-label">{{ __('total_due') }}</div>
-                <div class="kpi-value text-danger">{{ number_format($totals['sum_due'], 2) }}</div>
+                <div class="kpi-value text-danger">{{ number_format($totals['sum_due'], 2) }} <small style="font-size: 0.8rem;">{{ optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY' }}</small></div>
             </div>
         </div>
     </div>
@@ -155,7 +155,12 @@
                     </span>
                 </div>
                 <div class="d-flex align-items-center">
-                    <span class="me-3 fw-bold text-primary">{{ number_format($p->grand_total, 2) }}</span>
+                    @if($p->currency_id && $p->currency_id != $store->base_currency_id)
+                        <span class="me-2 badge bg-light text-dark border small">
+                            ≈ {{ number_format($p->grand_total_in_base_currency, 2) }} {{ optional($store->baseCurrency)->code ?? 'TRY' }}
+                        </span>
+                    @endif
+                    <span class="me-3 fw-bold text-primary">{{ number_format($p->grand_total, 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}</span>
                     <i class="fas fa-chevron-down text-muted toggle-icon-{{ $p->id }}"></i>
                 </div>
             </div>
@@ -189,31 +194,31 @@
                             <tr class="{{ $loop->even ? 'bg-alternating' : '' }}">
                                 <td>{{ $item->product->name ?? $item->product->name }}</td>
                                 <td class="text-center">{{ $item->quantity }} {{ $item->unit->unit_name ?? '' }}</td>
-                                <td class="text-center">{{ number_format($item->unit_price, 2) }}</td>
-                                <td class="text-end">{{ number_format($item->total_cost, 2) }}</td>
+                                <td class="text-center">{{ number_format($item->unit_price, 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}</td>
+                                <td class="text-end">{{ number_format($item->total_cost, 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}</td>
                             </tr>
                             @endforeach
                         </tbody>
                         <tfoot>
                             <tr>
                                 <td colspan="3" class="text-end fw-bold">{{ __('net_total_label') }}</td>
-                                <td class="text-end fw-bold text-primary">{{ number_format($p->grand_total, 2) }}</td>
+                                <td class="text-end fw-bold text-primary">{{ number_format($p->grand_total, 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}</td>
                             </tr>
                             <tr>
                                 <td colspan="3" class="text-end">{{ __('paid_label') }}:</td>
                                 <td class="text-end text-success">
-                                    {{ number_format($p->paid_amount / ($p->exchange_rate ?: 1), 2) }}
+                                    {{ number_format($p->paid_amount / ($p->exchange_rate ?: 1), 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}
                                     @if($p->exchange_rate && $p->exchange_rate != 1)
-                                        <div class="small text-muted">≈ {{ number_format($p->paid_amount, 2) }} TRY</div>
+                                        <div class="small text-muted">≈ {{ number_format($p->paid_amount, 2) }} {{ optional($store->baseCurrency)->code ?? 'TRY' }}</div>
                                     @endif
                                 </td>
                             </tr>
                             <tr>
                                 <td colspan="3" class="text-end">{{ __('remaining_label') }}:</td>
                                 <td class="text-end text-danger fw-bold">
-                                    {{ number_format($p->grand_total - ($p->paid_amount / ($p->exchange_rate ?: 1)), 2) }}
+                                    {{ number_format($p->grand_total - ($p->paid_amount / ($p->exchange_rate ?: 1)), 2) }} {{ optional($p->currency)->symbol ?? optional($p->currency)->code ?? (optional($store->baseCurrency)->symbol ?? optional($store->baseCurrency)->code ?? 'TRY') }}
                                     @if($p->exchange_rate && $p->exchange_rate != 1)
-                                        <div class="small text-muted">≈ {{ number_format($p->remaining_amount_in_base_currency, 2) }} TRY</div>
+                                        <div class="small text-muted">≈ {{ number_format($p->remaining_amount_in_base_currency, 2) }} {{ optional($store->baseCurrency)->code ?? 'TRY' }}</div>
                                     @endif
                                 </td>
                             </tr>
