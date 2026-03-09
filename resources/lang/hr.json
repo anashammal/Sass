@@ -574,7 +574,7 @@
     "أصغر وحدة": "Najmanja jed.",
     "خالص": "Plaćeno",
     "اختيار ملف": "Odaberi datoteku",
-    "لم يتم اختيار ملف": "Datoteka nije odabrana",
+    "لم يتم اختيار ملف": "Nije odabrana datoteka",
     "تعديل المنتج": "Uredi proizvod",
     "الوحدة الأساسية": "Osnovna jedinica",
     "سعر الشراء": "Nabavna cijena",
@@ -5865,5 +5865,17 @@
     "Modern (أسود عصري)": "Modern (Sleek Black)",
     "Station (محطة القطار)": "Station (Railway)",
     "Minimal (مفاهيمي نظيف)": "Minimal (Clean Conceptual)",
-    "Vintage (خشب عتيق)": "Vintage (Antique Wood)"
+    "Vintage (خشب عتيق)": "Vintage (Antique Wood)",
+    "الهوية البصرية للعلامة التجارية": "Vizualni identitet brenda",
+    "ملفات الهوية البصرية": "Datoteke vizualnog identiteta",
+    "شعار المتجر (Logo)": "Logotip trgovine",
+    "لا يوجد شعار": "Nema logotipa",
+    "تحميل شعار جديد": "Prenesi novi logotip",
+    "الختم الإلكتروني (Stamp)": "Elektronički pečat",
+    "لا يوجد ختم": "Nema pečata",
+    "تحميل ختم إلكتروني": "Učitaj elektronički pečat",
+    "التوقيع المعتمد (Signature)": "Ovlašteni potpis",
+    "لا يوجد توقيع": "Nema potpisa",
+    "تحميل توقيع معتمد": "Učitaj ovlašteni potpis",
+    "حفظ تحديثات الهوية": "Spremi ažuriranja identiteta"
 }
