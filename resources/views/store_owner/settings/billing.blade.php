@@ -4,7 +4,7 @@
 <div class="container pb-5">
     <div class="row mb-4">
         <div class="col-12 d-flex justify-content-between align-items-center">
-            <h3 class="mb-0 text-primary fw-bold"><i class="fas fa-file-invoice-dollar me-2"></i> المالية والفوترة</h3>
+            <h3 class="mb-0 text-primary fw-bold"><i class="fas fa-file-invoice-dollar me-2"></i> {{ __('المالية والفوترة') }}</h3>
         </div>
     </div>
 
@@ -22,34 +22,34 @@
             <div class="col-md-6 mb-4">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-header bg-white text-danger fw-bold border-bottom">
-                        <i class="fas fa-file-signature me-2"></i> نظام الفوترة والضرائب
+                        <i class="fas fa-file-signature me-2"></i> {{ __('نظام الفوترة والضرائب') }}
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">الدولة التشغيلية</label>
+                            <label class="form-label fw-bold">{{ __('الدولة التشغيلية') }}</label>
                             <select name="country_code" class="form-control">
-                                <option value="SA" {{ $store->country_code == 'SA' ? 'selected' : '' }}>السعودية 🇸🇦</option>
-                                <option value="TR" {{ $store->country_code == 'TR' ? 'selected' : '' }}>تركيا 🇹🇷</option>
-                                <option value="EG" {{ $store->country_code == 'EG' ? 'selected' : '' }}>مصر 🇪🇬</option>
-                                <option value="OTHER" {{ $store->country_code == 'OTHER' ? 'selected' : '' }}>أخرى</option>
+                                <option value="SA" {{ $store->country_code == 'SA' ? 'selected' : '' }}>{{ __('السعودية 🇸🇦') }}</option>
+                                <option value="TR" {{ $store->country_code == 'TR' ? 'selected' : '' }}>{{ __('تركيا 🇹🇷') }}</option>
+                                <option value="EG" {{ $store->country_code == 'EG' ? 'selected' : '' }}>{{ __('مصر 🇪🇬') }}</option>
+                                <option value="OTHER" {{ $store->country_code == 'OTHER' ? 'selected' : '' }}>{{ __('أخرى') }}</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">نظام الفوترة</label>
+                            <label class="form-label fw-bold">{{ __('نظام الفوترة') }}</label>
                             <select name="invoice_mode" class="form-control bg-light">
                                 <option value="zatca_phase_1" {{ $store->invoice_mode == 'zatca_phase_1' ? 'selected' : '' }}>ZATCA (السعودية)</option>
                                 <option value="turkey_kdv" {{ $store->invoice_mode == 'turkey_kdv' ? 'selected' : '' }}>KDV (تركيا)</option>
-                                <option value="simple" {{ $store->invoice_mode == 'simple' ? 'selected' : '' }}>ضريبة مبسطة</option>
+                                <option value="simple" {{ $store->invoice_mode == 'simple' ? 'selected' : '' }}>{{ __('ضريبة مبسطة') }}</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">نسب الضرائب المتاحة</label>
+                            <label class="form-label fw-bold">{{ __('نسب الضرائب المتاحة') }}</label>
                             <input type="text" name="tax_rates" class="form-control" 
                                    value="{{ old('tax_rates', $store->tax_rates ?? '0,15') }}" 
                                    placeholder="0,5,15">
-                            <small class="text-muted d-block mt-1">افصل بين النسب بفاصلة (,). مثال: 0,15</small>
+                            <small class="text-muted d-block mt-1">{{ __('افصل بين النسب بفاصلة (,). مثال: 0,15') }}</small>
                         </div>
                     </div>
                 </div>
@@ -58,26 +58,26 @@
             <div class="col-md-6 mb-4">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-header bg-white text-primary fw-bold border-bottom">
-                        <i class="fas fa-university me-2"></i> بيانات الحساب البنكي
+                        <i class="fas fa-university me-2"></i> {{ __('بيانات الحساب البنكي') }}
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">دولة البنك</label>
+                            <label class="form-label fw-bold">{{ __('دولة البنك') }}</label>
                             <select name="bank_country" id="bank_country_select" class="form-select"></select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">اسم البنك</label>
+                            <label class="form-label fw-bold">{{ __('اسم البنك') }}</label>
                             <select name="iban_bank_name" id="bank_name_select" class="form-select">
-                                <option value="">اختر دولة البنك أولاً...</option>
+                                <option value="">{{ __('اختر دولة البنك أولاً...') }}</option>
                             </select>
-                            <input type="text" name="bank_name_manual" id="bank_name_manual" class="form-control d-none mt-2" placeholder="اكتب اسم البنك يدوياً">
+                            <input type="text" name="bank_name_manual" id="bank_name_manual" class="form-control d-none mt-2" placeholder="{{ __('اكتب اسم البنك يدوياً') }}">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">اسم صاحب الحساب</label>
-                            <input type="text" name="bank_account_holder" class="form-control" value="{{ old('bank_account_holder', $store->bank_account_holder) }}" placeholder="الاسم كما يظهر في البنك">
+                            <label class="form-label fw-bold">{{ __('اسم صاحب الحساب') }}</label>
+                            <input type="text" name="bank_account_holder" class="form-control" value="{{ old('bank_account_holder', $store->bank_account_holder) }}" placeholder="{{ __('الاسم كما يظهر في البنك') }}">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">رقم الآيبان (IBAN)</label>
+                            <label class="form-label fw-bold">{{ __('رقم الآيبان (IBAN)') }}</label>
                             <div class="input-group" dir="ltr">
                                 <span class="input-group-text fw-bold" id="iban_prefix" style="min-width: 50px; justify-content: center; background: #e9ecef; font-family: monospace; font-size: 16px;">--</span>
                                 <input type="text" name="iban" id="iban_input" class="form-control fw-bold" 
@@ -86,11 +86,11 @@
                                        dir="ltr"
                                        style="letter-spacing: 2px; font-size: 15px; font-family: monospace;">
                             </div>
-                            <div class="form-text" id="iban_hint">اختر دولة البنك لمعرفة صيغة الآيبان الصحيحة</div>
+                            <div class="form-text" id="iban_hint">{{ __('اختر دولة البنك لمعرفة صيغة الآيبان الصحيحة') }}</div>
                         </div>
                         <div class="mt-2">
                             <div class="alert alert-info py-2 px-3 small border-0 shadow-none mb-0">
-                                <i class="fa fa-info-circle me-1"></i> هذه البيانات تظهر للعملاء في الفواتير لتسهيل التحويل البنكي اليدوي.
+                                <i class="fa fa-info-circle me-1"></i> {{ __('هذه البيانات تظهر للعملاء في الفواتير لتسهيل التحويل البنكي اليدوي.') }}
                             </div>
                         </div>
                     </div>
@@ -101,7 +101,7 @@
         <div class="row mt-2">
             <div class="col-12 text-center">
                 <button type="submit" class="btn btn-primary btn-lg px-5 shadow rounded-pill">
-                    <i class="fa fa-save me-2"></i> حفظ الإعدادات المالية
+                    <i class="fa fa-save me-2"></i> {{ __('حفظ الإعدادات المالية') }}
                 </button>
             </div>
         </div>
@@ -286,9 +286,10 @@
         const $hi = $('#iban_hint');
 
         // تعبئة الدول فوراً باستخدام جيكويري
-        $bc.empty().append('<option value="">اختر دولة البنك...</option>');
+        $bc.empty().append('<option value="">{{ __("اختر دولة البنك...") }}</option>');
         COUNTRIES_GLOBAL.forEach(c => {
-            $bc.append($('<option>', { value: c.code.toUpperCase(), text: c.ar + ' - ' + c.en }).attr('data-ar', c.ar));
+            const countryText = (document.documentElement.dir === 'rtl') ? (c.ar + ' - ' + c.en) : (c.en + ' - ' + c.ar);
+            $bc.append($('<option>', { value: c.code.toUpperCase(), text: countryText }).attr('data-ar', c.ar).attr('data-en', c.en));
         });
 
         // تفعيل Select2 إذا كان موجوداً
@@ -303,18 +304,19 @@
             const len = IBAN_LENGTHS_GLOBAL[v] || 24;
             if (v) {
                 $pr.text(v);
-                $hi.html(`صيغة الآيبان: <code dir="ltr">${v} + ${len-2} رقم/حرف</code>`);
+                $hi.html(`{{ __('صيغة الآيبان:') }} <code dir="ltr">${v} + ${len-2} {{ __('رقم/حرف') }}</code>`);
                 $bn.empty();
                 const d = BANK_DATA_GLOBAL[v];
                 if (d && d.banks) {
-                    $bn.append('<option value="">اختر البنك...</option>');
+                    $bn.append('<option value="">{{ __("اختر البنك...") }}</option>');
                     d.banks.forEach(b => $bn.append(new Option(b, b)));
-                    $bn.append('<option value="__other__">🏦 بنك آخر...</option>');
+                    $bn.append('<option value="__other__">{{ __("🏦 بنك آخر...") }}</option>');
                     $bn.prop('disabled', false);
                     $('#bank_name_manual').addClass('d-none');
                 } else {
-                    $bn.append('<option value="">أدخل اسم البنك يدوياً</option>').prop('disabled', true);
-                    $('#bank_name_manual').removeClass('d-none').attr('placeholder', 'اكتب اسم البنك في ' + (ar || 'هذه الدولة'));
+                    $bn.append('<option value="">{{ __("أدخل اسم البنك يدوياً") }}</option>').prop('disabled', true);
+                    const countryName = (document.documentElement.dir === 'rtl') ? (ar || '{{ __("هذه الدولة") }}') : ($(this).find('option:selected').attr('data-en') || '{{ __("this country") }}');
+                    $('#bank_name_manual').removeClass('d-none').attr('placeholder', '{{ __("اكتب اسم البنك في") }} ' + countryName);
                 }
             }
         });
@@ -326,9 +328,9 @@
             const exp = IBAN_LENGTHS_GLOBAL[c] || 24;
             const fullSize = (c ? c.length : 0) + v.length;
             if (c) {
-                if (fullSize < exp) $hi.html(`<span class="text-warning">⚠️ قصير (${fullSize}/${exp})</span>`);
-                else if (fullSize > exp) $hi.html(`<span class="text-danger">❌ طويل جداً (${fullSize}/${exp})</span>`);
-                else $hi.html(`<span class="text-success">✅ الطول صحيح (${exp})</span>`);
+                if (fullSize < exp) $hi.html(`<span class="text-warning">{{ __('⚠️ قصير') }} (${fullSize}/${exp})</span>`);
+                else if (fullSize > exp) $hi.html(`<span class="text-danger">{{ __('❌ طويل جداً') }} (${fullSize}/${exp})</span>`);
+                else $hi.html(`<span class="text-success">{{ __('✅ الطول صحيح') }} (${exp})</span>`);
             }
         });
 
