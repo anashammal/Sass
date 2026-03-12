@@ -57,7 +57,15 @@
 
                     <div class="col-md-4">
                         <label class="small text-muted fw-bold">التكلفة (آلي)</label>
-                        <input type="number" step="any" name="units[{{ $index }}][cost_price]" class="form-control form-control-sm bg-light unit-cost fw-bold text-danger text-center" readonly value="{{ isset($unit) ? (float)$unit->cost_price : '' }}">
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="any" name="units[{{ $index }}][purchase_price]" class="form-control bg-light unit-cost fw-bold text-danger text-center" readonly value="{{ isset($unit) ? (float)$unit->purchase_price : '' }}">
+                            <select name="units[{{ $index }}][purchase_price_currency_id]" class="form-select currency-select-unit" onchange="updateExchangeRateUnit(this, 'units_{{ $index }}_purchase_rate')">
+                                @foreach($acceptedCurrencies as $cur)
+                                    <option value="{{ $cur->id }}" data-rate="{{ $currenciesData[$cur->id] ?? 1 }}" {{ (isset($unit) && $unit->purchase_price_currency_id == $cur->id) ? 'selected' : ($cur->id == $baseCurrency->id ? 'selected' : '') }}>{{ $cur->code }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <input type="hidden" name="units[{{ $index }}][purchase_exchange_rate]" id="units_{{ $index }}_purchase_rate" value="{{ isset($unit) ? $unit->purchase_exchange_rate : 1 }}">
                     </div>
 
                     <div class="col-md-4">
@@ -67,7 +75,15 @@
 
                     <div class="col-md-4">
                         <label class="small text-success fw-bold">سعر البيع</label>
-                        <input type="number" step="any" name="units[{{ $index }}][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success text-center" oninput="calcExtraUnitProfit(this)" value="{{ isset($unit) ? (float)$unit->selling_price : '' }}">
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="any" name="units[{{ $index }}][selling_price]" class="form-control unit-sell fw-bold text-success text-center" oninput="calcExtraUnitProfit(this)" value="{{ isset($unit) ? (float)$unit->selling_price : '' }}">
+                            <select name="units[{{ $index }}][sell_price_currency_id]" class="form-select currency-select-unit" onchange="updateExchangeRateUnit(this, 'units_{{ $index }}_sell_rate')">
+                                @foreach($acceptedCurrencies as $cur)
+                                    <option value="{{ $cur->id }}" data-rate="{{ $currenciesData[$cur->id] ?? 1 }}" {{ (isset($unit) && $unit->sell_price_currency_id == $cur->id) ? 'selected' : ($cur->id == $baseCurrency->id ? 'selected' : '') }}>{{ $cur->code }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <input type="hidden" name="units[{{ $index }}][sell_exchange_rate]" id="units_{{ $index }}_sell_rate" value="{{ isset($unit) ? $unit->sell_exchange_rate : 1 }}">
                     </div>
                 </div>
             </div>

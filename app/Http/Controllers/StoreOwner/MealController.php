@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use App\Services\ExchangeRateService;
 
 class MealController extends Controller
 {
@@ -22,6 +23,9 @@ class MealController extends Controller
         }
 
         $storeId = Auth::user()->store->id;
+        $store = Auth::user()->store;
+        $baseCurrency = $store->baseCurrency;
+        
         $query = Product::where('store_id', $storeId)
             ->whereIn('product_type', ['meal', 'ingredient', 'compound', 'standard'])
             ->with(['baseUnit', 'category']);
@@ -51,7 +55,27 @@ class MealController extends Controller
             $query->where('is_active', $request->status);
         }
 
+        if ($request->currency_id) {
+            $cid = $request->currency_id;
+            $baseId = $store->base_currency_id;
+            
+            $query->whereHas('units', function ($q) use ($cid, $baseId) {
+                $q->where('is_base_unit', 1)
+                  ->where(function($sq) use ($cid, $baseId) {
+                      if ($cid == $baseId) {
+                          $sq->where('sell_price_currency_id', $cid)
+                             ->orWhereNull('sell_price_currency_id');
+                      } else {
+                          $sq->where('sell_price_currency_id', $cid);
+                      }
+                  });
+            });
+        }
+
         $products = $query->latest()->paginate($request->input('per_page', 10))->withQueryString();
+
+        // 🟢 جلب العملات المتاحة للمتجر
+        $currencies = $store->acceptedCurrencies;
 
         $prodStats = [
             'total' => Product::where('store_id', $storeId)->whereIn('product_type', ['meal', 'ingredient', 'compound', 'standard'])->count(),
@@ -70,10 +94,10 @@ class MealController extends Controller
         $store = Auth::user()->store;
 
         if ($request->ajax()) {
-            return view('store_owner.meals.partials.table_rows', compact('products', 'store'))->render();
+            return view('store_owner.meals.partials.table_rows', compact('products', 'baseCurrency', 'currencies'))->render();
         }
 
-        return view('store_owner.meals.index', compact('products', 'prodStats', 'categories', 'store'));
+        return view('store_owner.meals.index', compact('products', 'prodStats', 'categories', 'baseCurrency', 'currencies'));
     }
 
     public function getIngredientsJson(Request $request)
@@ -129,7 +153,20 @@ class MealController extends Controller
                 ->with('units')
                 ->get();
 
-        return view('store_owner.meals.create', compact('categories', 'store', 'taxRates', 'ingredients')); 
+        $acceptedCurrencies = $store->acceptedCurrencies;
+        $baseCurrency = $store->baseCurrency;
+        
+        $currenciesData = [];
+        if ($baseCurrency) {
+            $exchangeService = app(\App\Services\ExchangeRateService::class);
+            foreach ($acceptedCurrencies as $cur) {
+                if ($cur->id === $baseCurrency->id) continue;
+                $rate = $cur->pivot->custom_rate ?? ($exchangeService->getExchangeRate($cur->code, $baseCurrency->code) ?? 1);
+                $currenciesData[$cur->id] = (float)$rate;
+            }
+        }
+
+        return view('store_owner.meals.create', compact('categories', 'store', 'taxRates', 'ingredients', 'acceptedCurrencies', 'currenciesData', 'baseCurrency')); 
     }
 
     public function store(Request $request) 
@@ -179,26 +216,30 @@ class MealController extends Controller
             $baseUnitResolved = ($request->base_unit_select === 'custom') ? $request->base_unit_name : $request->base_unit_select;
             if (empty($baseUnitResolved)) $baseUnitResolved = 'وحدة';
 
+            $purchaseRate = (float)($request->purchase_exchange_rate ?? 1);
+            $sellRate = (float)($request->base_sell_exchange_rate ?? 1);
+
+            $purchasePriceInBase = $purchasePrice * $purchaseRate;
+            $sellingPriceInBase = ((float)$request->base_selling_price) * $sellRate;
+
             // If Count > 1, create Base Unit (Small) AND Purchase Unit (Big)
             if ($subUnitCount > 1 && !empty($request->sub_unit_name)) {
                 
-                $mainUnitSellingPrice = (float)$request->base_selling_price;
-                $baseUnitSellingPrice = ($subUnitCount > 0) ? ($mainUnitSellingPrice / $subUnitCount) : 0;
-
-                // 1. Create Base Unit (Smallest, e.g. Loaf)
-                $baseCost = ($subUnitCount > 0) ? ($purchasePrice / $subUnitCount) : 0;
+                $baseUnitSellingPriceInBase = ($subUnitCount > 0) ? ($sellingPriceInBase / $subUnitCount) : 0;
+                $baseCostInBase = ($subUnitCount > 0) ? ($purchasePriceInBase / $subUnitCount) : 0;
                 
+                // 1. Create Base Unit (Smallest, e.g. Loaf)
                 $product->units()->create([
                     'unit_name' => $request->sub_unit_name, 
                     'conversion_factor' => 1,
-                    'purchase_price' => $baseCost,
-                    'cost_price' => $baseCost,
-                    'selling_price' => $baseUnitSellingPrice, // Calculated from Main Input
+                    'purchase_price' => $baseCostInBase, // Base price is in base currency
+                    'cost_price' => $baseCostInBase,
+                    'selling_price' => $baseUnitSellingPriceInBase, 
                     'profit_percent' => (float)$request->base_profit_percent,
                     'barcode' => $barcode,
                     'is_base_unit' => true,
                     'is_purchase' => false, 
-                    'is_sale' => false, // Loaf is a component, not for sale usually
+                    'is_sale' => false, 
                 ]);
 
                 // 2. Create Purchase Unit (Main, e.g. Bag)
@@ -206,29 +247,39 @@ class MealController extends Controller
                     'unit_name' => $baseUnitResolved,
                     'conversion_factor' => $subUnitCount,
                     'purchase_price' => $purchasePrice,
-                    'cost_price' => $purchasePrice,
-                    'selling_price' => $mainUnitSellingPrice, // User Input IS the Main Unit Price
+                    'purchase_price_currency_id' => $request->purchase_price_currency_id,
+                    'purchase_exchange_rate' => $purchaseRate,
+                    'cost_price' => $purchasePriceInBase,
+                    'selling_price' => (float)$request->base_selling_price,
+                    'sell_price_currency_id' => $request->base_selling_price_currency_id,
+                    'sell_exchange_rate' => $sellRate,
                     'profit_percent' => (float)$request->base_profit_percent,
                     'is_base_unit' => false,
                     'is_purchase' => $request->has('base_is_purchase'), 
                     'is_sale' => $request->has('base_is_sale'), 
                 ]);
+                
+                $baseCost = $baseCostInBase; // For following auto-link logic
 
             } else {
                 // Normal Single Unit (Bottle, Kg, Piece...)
-                $baseCost = $purchasePrice; // Define baseCost for single units
                 $product->units()->create([
                     'unit_name' => $baseUnitResolved,
                     'conversion_factor' => 1,
                     'purchase_price' => $purchasePrice,
-                    'cost_price' => $purchasePrice,
+                    'purchase_price_currency_id' => $request->purchase_price_currency_id,
+                    'purchase_exchange_rate' => $purchaseRate,
+                    'cost_price' => $purchasePriceInBase,
                     'selling_price' => (float)$request->base_selling_price,
+                    'sell_price_currency_id' => $request->base_selling_price_currency_id,
+                    'sell_exchange_rate' => $sellRate,
                     'profit_percent' => (float)$request->base_profit_percent,
                     'barcode' => $barcode,
                     'is_base_unit' => true,
                     'is_purchase' => $request->has('base_is_purchase'), 
                     'is_sale' => $request->has('base_is_sale'),
                 ]);
+                $baseCost = $purchasePriceInBase;
             }
 
             // --- Auto-Link Kg/Gram Logic ---
@@ -249,7 +300,7 @@ class MealController extends Controller
                         'conversion_factor' => 0.001,
                         'purchase_price' => $baseCost * 0.001,
                         'cost_price' => $baseCost * 0.001,
-                        'selling_price' => ((float)$request->base_selling_price) * 0.001,
+                        'selling_price' => ($sellingPriceInBase) * 0.001,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
                         'is_purchase' => $baseIsPurchase,
@@ -264,7 +315,7 @@ class MealController extends Controller
                         'conversion_factor' => 1000,
                         'purchase_price' => $baseCost * 1000,
                         'cost_price' => $baseCost * 1000,
-                        'selling_price' => ((float)$request->base_selling_price) * 1000,
+                        'selling_price' => ($sellingPriceInBase) * 1000,
                         'profit_percent' => (float)$request->base_profit_percent,
                         'is_base_unit' => false,
                         'is_purchase' => $baseIsPurchase,
@@ -318,12 +369,23 @@ class MealController extends Controller
                     $uFactor = (float)($unitData['factor'] ?? 1);
                     $uCost = $baseCost * $uFactor;
 
+                    $uPurchaseRate = (float)($unitData['purchase_exchange_rate'] ?? 1);
+                    $uSellRate = (float)($unitData['sell_exchange_rate'] ?? 1);
+                    
+                    $uCostInBaseCurrency = $baseCostInBaseCurrency * $uFactor;
+                    $uSellingPriceInBaseCurrency = (float)($unitData['selling_price'] ?? 0) * $uSellRate;
+
                     $extraUnit = $product->units()->create([
                         'unit_name' => $uName,
                         'conversion_factor' => $uFactor,
                         'barcode' => $uBarcode,
-                        'cost_price' => $uCost,
-                        'selling_price' => (float)($unitData['selling_price'] ?? 0),
+                        'purchase_price' => (float)($unitData['purchase_price'] ?? 0),
+                        'purchase_price_currency_id' => $unitData['purchase_price_currency_id'] ?? null,
+                        'purchase_exchange_rate' => $uPurchaseRate,
+                        'cost_price' => $uCostInBaseCurrency,
+                        'selling_price' => $uSellingPriceInBaseCurrency,
+                        'sell_price_currency_id' => $unitData['sell_price_currency_id'] ?? null,
+                        'sell_exchange_rate' => $uSellRate,
                         'profit_percent' => (float)($unitData['profit_percent'] ?? 0),
                         'is_base_unit' => false,
                         'is_purchase' => isset($unitData['is_purchase']),
@@ -385,7 +447,20 @@ class MealController extends Controller
                 ->get();
         $meal->load('recipes.ingredient.units');
 
-        return view('store_owner.meals.edit', compact('meal', 'categories', 'store', 'taxRates', 'ingredients'));
+        $exchangeService = app(ExchangeRateService::class);
+        $baseCurrency = $store->baseCurrency;
+        $acceptedCurrencies = $store->acceptedCurrencies()->withPivot('custom_rate')->get();
+        $currenciesData = [];
+        if ($baseCurrency) {
+            $currenciesData[$baseCurrency->id] = 1.0; // Base currency rate is 1
+            foreach ($acceptedCurrencies as $cur) {
+                if ($cur->id === $baseCurrency->id) continue;
+                $rate = $cur->pivot->custom_rate ?? ($exchangeService->getExchangeRate($cur->code, $baseCurrency->code) ?? 1);
+                $currenciesData[$cur->id] = (float)$rate;
+            }
+        }
+
+        return view('store_owner.meals.edit', compact('meal', 'categories', 'store', 'taxRates', 'ingredients', 'acceptedCurrencies', 'currenciesData', 'baseCurrency'));
     }
 
     public function update(Request $request, Product $meal)
@@ -427,19 +502,29 @@ class MealController extends Controller
             $purchasePrice = (float)$request->purchase_price;
             $baseCost = ($subUnitCount > 0) ? ($purchasePrice / $subUnitCount) : 0;
 
+            // Update the main base unit (which might be the purchase unit if subUnitCount > 1, or the single unit)
+            $purchaseRate = (float)($request->purchase_exchange_rate ?? 1);
+            $sellRate = (float)($request->base_sell_exchange_rate ?? 1);
+            $baseCostInBaseCurrency = ($purchasePrice * $purchaseRate);
+            $sellingPriceInBaseCurrency = (float)$request->base_selling_price * $sellRate;
+
             $meal->baseUnit()->update([
                 'unit_name' => $request->base_unit_name,
-                'conversion_factor' => $subUnitCount,
+                'conversion_factor' => $subUnitCount, // This is the conversion factor for the main unit
                 'purchase_price' => $purchasePrice,
-                'cost_price' => $baseCost,
-                'selling_price' => (float)$request->base_selling_price,
+                'purchase_price_currency_id' => $request->purchase_price_currency_id,
+                'purchase_exchange_rate' => $request->purchase_exchange_rate,
+                'cost_price' => $baseCostInBaseCurrency, // Cost price for the main unit
+                'selling_price' => $sellingPriceInBaseCurrency,
+                'sell_price_currency_id' => $request->base_selling_price_currency_id,
+                'sell_exchange_rate' => $request->base_sell_exchange_rate,
                 'profit_percent' => (float)$request->base_profit_percent,
                 'barcode' => $request->base_barcode,
                 'is_purchase' => $request->has('base_is_purchase'),
                 'is_sale' => $request->has('base_is_sale'),
             ]);
 
-            // Handle Sub-Unit Name Update if exists
+            // Handle Sub-Unit Name Update if exists (this is the smallest unit, conversion_factor = 1)
             if ($subUnitCount > 1 && $request->filled('sub_unit_name')) {
                 // If there's a sub-unit (conversion 1), update it
                 $subUnit = $meal->units()->where('conversion_factor', 1)->where('is_base_unit', true)->first();

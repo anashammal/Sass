@@ -136,11 +136,27 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small text-danger fw-bold" id="purchase_label">تكلفة الإنتاج / الشراء</label>
-                                <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', 0) }}" required oninput="calculateBaseCost()">
+                                <div class="input-group">
+                                    <input type="number" step="any" name="purchase_price" id="purchase_price" class="form-control text-center" value="{{ old('purchase_price', 0) }}" required oninput="calculateBaseCost()">
+                                    <select name="purchase_price_currency_id" id="purchase_price_currency_id" class="form-select currency-select" style="max-width: 90px;" onchange="handleCurrencyChange(this, 'purchase_exchange_rate')">
+                                        @foreach($acceptedCurrencies as $cur)
+                                            <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-rate="{{ $currenciesData[$cur->id] ?? 1 }}" {{ $cur->id == $baseCurrency->id ? 'selected' : '' }}>{{ $cur->code }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <input type="hidden" name="purchase_exchange_rate" id="purchase_exchange_rate" value="1">
                             </div>
                             <div class="col-md-3" id="selling_price_div">
                                 <label class="form-label small text-success fw-bold">سعر البيع</label>
-                                <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', 0) }}" required oninput="calculateMargin()">
+                                <div class="input-group">
+                                    <input type="number" step="any" name="base_selling_price" id="base_sell" class="form-control text-center fw-bold" value="{{ old('base_selling_price', 0) }}" required oninput="calculateMargin()">
+                                    <select name="base_selling_price_currency_id" id="base_selling_price_currency_id" class="form-select currency-select" style="max-width: 90px;" onchange="handleCurrencyChange(this, 'base_sell_exchange_rate')">
+                                        @foreach($acceptedCurrencies as $cur)
+                                            <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-rate="{{ $currenciesData[$cur->id] ?? 1 }}" {{ $cur->id == $baseCurrency->id ? 'selected' : '' }}>{{ $cur->code }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <input type="hidden" name="base_sell_exchange_rate" id="base_sell_exchange_rate" value="1">
                             </div>
                             <div class="col-md-3" id="margin_div">
                                 <label class="form-label small text-muted">الربح %</label>
@@ -289,37 +305,123 @@
     function calculateUnitCost(input) {
         let row = input.closest('.unit-row');
         let baseCost = parseFloat(document.getElementById('purchase_price').value) || 0;
+        let baseRate = parseFloat(document.getElementById('purchase_exchange_rate').value) || 1;
+        let baseCostInBase = baseCost * baseRate;
+
         let factor = parseFloat(row.querySelector('.unit-factor').value) || 0;
         let pieces = parseFloat(document.getElementById('pieces_per_unit').value) || 1;
         
-        // Base cost per piece if sub_unit_count > 1
-        let baseCostPerPiece = (pieces > 0) ? (baseCost / pieces) : baseCost;
+        let baseCostPerPiece = (pieces > 0) ? (baseCostInBase / pieces) : baseCostInBase;
+        let newCostInBase = baseCostPerPiece * factor;
         
-        let newCost = baseCostPerPiece * factor;
-        row.querySelector('.unit-cost').value = newCost.toFixed(2);
+        let unitPurchaseRate = parseFloat(row.querySelector('[name*="purchase_exchange_rate"]').value) || 1;
+        let newCostInSelectedCurrency = newCostInBase / unitPurchaseRate;
+
+        row.querySelector('.unit-cost').value = newCostInSelectedCurrency.toFixed(2);
         
         let profitInput = row.querySelector('.unit-profit');
         calcExtraUnitSell(profitInput);
     }
 
+    function handleCurrencyChangeUnit(select) {
+        let opt = select.options[select.selectedIndex];
+        let currId = select.value;
+        let currCode = opt.dataset.code;
+        let suggestedRate = parseFloat(opt.dataset.rate) || 1;
+        let baseCurrId = "{{ $baseCurrency->id }}";
+        let baseCurrCode = "{{ $baseCurrency->code }}";
+
+        let unitRow = select.closest('.unit-row');
+        let hiddenInputName = select.name.includes('purchase') ? '[purchase_exchange_rate]' : '[sell_exchange_rate]';
+        let hiddenInput = unitRow.querySelector(`[name$="${hiddenInputName}"]`);
+
+        if (currId == baseCurrId) {
+            hiddenInput.value = 1;
+            if (select.name.includes('purchase')) calculateUnitCost(select);
+            else calcExtraUnitSell(unitRow.querySelector('.unit-profit'));
+            return;
+        }
+
+        Swal.fire({
+            title: `💱 سعر صرف: ${currCode} ↔ ${baseCurrCode}`,
+            icon: 'info',
+            html: `
+                <div class="text-start mb-3">
+                    <label class="form-label fw-bold">✏️ سعر صرف (1 ${currCode} = ؟ ${baseCurrCode}):</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white fw-bold">1 ${currCode}</span>
+                        <input type="text" inputmode="decimal" id="swalExchangeRateUnit" class="form-control text-center fw-bold fs-5" value="${suggestedRate}">
+                        <span class="input-group-text fw-bold">${baseCurrCode}</span>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: '✅ تأكيد',
+            showCancelButton: true,
+            cancelButtonText: '❌ إلغاء',
+            preConfirm: () => {
+                let val = parseFloat(document.getElementById('swalExchangeRateUnit').value);
+                if (!val || val <= 0) {
+                    Swal.showValidationMessage('يرجى إدخال سعر صرف صحيح (> 0)');
+                }
+                return val;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                hiddenInput.value = result.value;
+                if (select.name.includes('purchase')) calculateUnitCost(select);
+                else calcExtraUnitSell(unitRow.querySelector('.unit-profit'));
+                if(typeof toastr !== 'undefined') toastr.success('تم تحديث سعر الصرف');
+            } else {
+                select.value = baseCurrId;
+                hiddenInput.value = 1;
+                if (select.name.includes('purchase')) calculateUnitCost(select);
+                else calcExtraUnitSell(unitRow.querySelector('.unit-profit'));
+            }
+        });
+    }
+
+    function updateExchangeRateUnit(select, hiddenId) {
+        let rate = select.options[select.selectedIndex].dataset.rate || 1;
+        let unitRow = select.closest('.unit-row');
+        if (select.name.includes('purchase')) {
+            unitRow.querySelector('[name$="[purchase_exchange_rate]"]').value = rate;
+            calculateUnitCost(select);
+        } else {
+            unitRow.querySelector('[name$="[sell_exchange_rate]"]').value = rate;
+            calcExtraUnitSell(unitRow.querySelector('.unit-profit'));
+        }
+    }
+
     function calcExtraUnitSell(input) {
         let row = input.closest('.unit-row');
-        let cost = parseFloat(row.querySelector('.unit-cost').value) || 0;
-        let profit = parseFloat(input.value) || 0;
-        let sellInput = row.querySelector('.unit-sell');
-        if(cost > 0) {
-            let sellingPrice = cost * (1 + (profit / 100));
-            sellInput.value = sellingPrice.toFixed(2);
+        let costPrice = parseFloat(row.querySelector('.unit-cost').value) || 0;
+        let costRate = parseFloat(row.querySelector('[name$="[purchase_exchange_rate]"]').value) || 1;
+        
+        let profit = parseFloat(row.querySelector('.unit-profit').value) || 0;
+        let sellRate = parseFloat(row.querySelector('[name$="[sell_exchange_rate]"]').value) || 1;
+
+        let costInBase = costPrice * costRate;
+        if(costInBase > 0) {
+            let sellingPriceInBase = costInBase * (1 + (profit / 100));
+            let sellingPriceInSelectedCurrency = sellingPriceInBase / sellRate;
+            row.querySelector('.unit-sell').value = sellingPriceInSelectedCurrency.toFixed(2);
         }
     }
 
     function calcExtraUnitProfit(input) {
         let row = input.closest('.unit-row');
-        let cost = parseFloat(row.querySelector('.unit-cost').value) || 0;
-        let sell = parseFloat(input.value) || 0;
+        let costPrice = parseFloat(row.querySelector('.unit-cost').value) || 0;
+        let costRate = parseFloat(row.querySelector('[name$="[purchase_exchange_rate]"]').value) || 1;
+
+        let sellPrice = parseFloat(row.querySelector('.unit-sell').value) || 0;
+        let sellRate = parseFloat(row.querySelector('[name$="[sell_exchange_rate]"]').value) || 1;
+
+        let costInBase = costPrice * costRate;
+        let sellInBase = sellPrice * sellRate;
+
         let profitInput = row.querySelector('.unit-profit');
-        if(cost > 0) {
-            let profitPercent = ((sell - cost) / cost) * 100;
+        if(costInBase > 0) {
+            let profitPercent = ((sellInBase - costInBase) / costInBase) * 100;
             profitInput.value = profitPercent.toFixed(2);
         }
     }
@@ -481,23 +583,98 @@
         calculateMargin();
         updateAllUnitsCosts();
     }
+    
+    function handleCurrencyChange(select, hiddenId) {
+        let opt = select.options[select.selectedIndex];
+        let currId = select.value;
+        let currCode = opt.dataset.code;
+        let suggestedRate = parseFloat(opt.dataset.rate) || 1;
+        let baseCurrId = "{{ $baseCurrency->id }}";
+        let baseCurrCode = "{{ $baseCurrency->code }}";
+
+        if (currId == baseCurrId) {
+            document.getElementById(hiddenId).value = 1;
+            calculateMargin();
+            return;
+        }
+
+        Swal.fire({
+            title: `💱 سعر صرف: ${currCode} ↔ ${baseCurrCode}`,
+            icon: 'info',
+            html: `
+                <div class="text-start mb-3">
+                    <label class="form-label fw-bold">✏️ سعر صرف (1 ${currCode} = ؟ ${baseCurrCode}):</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white fw-bold">1 ${currCode}</span>
+                        <input type="text" inputmode="decimal" id="swalExchangeRate" class="form-control text-center fw-bold fs-5" value="${suggestedRate}">
+                        <span class="input-group-text fw-bold">${baseCurrCode}</span>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: '✅ تأكيد',
+            showCancelButton: true,
+            cancelButtonText: '❌ إلغاء',
+            preConfirm: () => {
+                let val = parseFloat(document.getElementById('swalExchangeRate').value);
+                if (!val || val <= 0) {
+                    Swal.showValidationMessage('يرجى إدخال سعر صرف صحيح (> 0)');
+                }
+                return val;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById(hiddenId).value = result.value;
+                calculateMargin();
+                if(typeof toastr !== 'undefined') toastr.success('تم تحديث سعر الصرف');
+            } else {
+                // Return to base currency if cancelled
+                select.value = baseCurrId;
+                document.getElementById(hiddenId).value = 1;
+                calculateMargin();
+            }
+        });
+    }
+
+    function updateExchangeRate(select, hiddenId) {
+        let rate = select.options[select.selectedIndex].dataset.rate || 1;
+        document.getElementById(hiddenId).value = rate;
+        calculateMargin(); 
+    }
+
     function calculateMargin() {
-        let cost = parseFloat(document.getElementById('purchase_price').value) || 0;
-        let sell = parseFloat(document.getElementById('base_sell').value) || 0;
+        let costPrice = parseFloat(document.getElementById('purchase_price').value) || 0;
+        let costRate = parseFloat(document.getElementById('purchase_exchange_rate').value) || 1;
+        
+        let sellPrice = parseFloat(document.getElementById('base_sell').value) || 0;
+        let sellRate = parseFloat(document.getElementById('base_sell_exchange_rate').value) || 1;
+        
+        // Convert both to base currency for margin calculation
+        let costInBase = costPrice * costRate;
+        let sellInBase = sellPrice * sellRate;
         
         let marginInput = document.getElementById('base_margin');
-        if(cost > 0) {
-            marginInput.value = (((sell - cost) / cost) * 100).toFixed(2);
+        if(costInBase > 0) {
+            marginInput.value = (((sellInBase - costInBase) / costInBase) * 100).toFixed(2);
         } else {
             marginInput.value = 0;
         }
         updateUnitBreakdown();
     }
+    
     function calculatePriceFromMargin() {
-        let cost = parseFloat(document.getElementById('purchase_price').value) || 0;
+        let costPrice = parseFloat(document.getElementById('purchase_price').value) || 0;
+        let costRate = parseFloat(document.getElementById('purchase_exchange_rate').value) || 1;
         let margin = parseFloat(document.getElementById('base_margin').value) || 0;
         
-        document.getElementById('base_sell').value = (cost * (1 + (margin / 100))).toFixed(2);
+        let sellRate = parseFloat(document.getElementById('base_sell_exchange_rate').value) || 1;
+        
+        let costInBase = costPrice * costRate;
+        let sellInBase = costInBase * (1 + (margin / 100));
+        
+        // Convert sell from base back to selected sell currency
+        let sellInSelectedCurrency = sellInBase / sellRate;
+        
+        document.getElementById('base_sell').value = sellInSelectedCurrency.toFixed(2);
         updateUnitBreakdown();
     }
 
@@ -510,8 +687,11 @@
         if (subDiv) {
             if (pieces > 1) {
                 subDiv.style.display = 'block';
+                let purchaseSelect = document.querySelector('[name="purchase_price_currency_id"]');
+                let currencyCode = purchaseSelect ? purchaseSelect.options[purchaseSelect.selectedIndex].text : '';
+                
                 document.getElementById('item_name_at_breakdown').innerText = itemName;
-                document.getElementById('cost_per_piece_display').innerText = (cost / pieces).toFixed(2);
+                document.getElementById('cost_per_piece_display').innerText = (cost / pieces).toFixed(2) + ' ' + currencyCode;
             } else {
                 subDiv.style.display = 'none';
             }
@@ -824,7 +1004,15 @@
 
                         <div class="col-md-4">
                             <label class="small text-muted fw-bold">التكلفة (آلي)</label>
-                            <input type="number" step="any" name="units[INDEX][cost_price]" class="form-control form-control-sm bg-light unit-cost fw-bold text-danger text-center" readonly>
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="any" name="units[INDEX][purchase_price]" class="form-control bg-light unit-cost fw-bold text-danger text-center" readonly>
+                                <select name="units[INDEX][purchase_price_currency_id]" class="form-select currency-select-unit" onchange="handleCurrencyChangeUnit(this)">
+                                    @foreach($acceptedCurrencies as $cur)
+                                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-rate="{{ $currenciesData[$cur->id] ?? 1 }}" {{ $cur->id == $baseCurrency->id ? 'selected' : '' }}>{{ $cur->code }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <input type="hidden" name="units[INDEX][purchase_exchange_rate]" id="units_INDEX_purchase_rate" value="1">
                         </div>
 
                         <div class="col-md-4">
@@ -834,7 +1022,15 @@
 
                         <div class="col-md-4">
                             <label class="small text-success fw-bold">سعر البيع</label>
-                            <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control form-control-sm unit-sell fw-bold text-success text-center" oninput="calcExtraUnitProfit(this)">
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="any" name="units[INDEX][selling_price]" class="form-control unit-sell fw-bold text-success text-center" oninput="calcExtraUnitProfit(this)">
+                                <select name="units[INDEX][sell_price_currency_id]" class="form-select currency-select-unit" onchange="handleCurrencyChangeUnit(this)">
+                                    @foreach($acceptedCurrencies as $cur)
+                                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-rate="{{ $currenciesData[$cur->id] ?? 1 }}" {{ $cur->id == $baseCurrency->id ? 'selected' : '' }}>{{ $cur->code }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <input type="hidden" name="units[INDEX][sell_exchange_rate]" id="units_INDEX_sell_rate" value="1">
                         </div>
                     </div>
                 </div>

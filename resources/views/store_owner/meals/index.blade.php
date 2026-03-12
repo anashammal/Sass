@@ -123,6 +123,24 @@
                         </div>
                     </div>
 
+                    @if(isset($currencies) && count($currencies) > 0)
+                    <div class="col-auto">
+                        <select name="currency_id" class="form-select" onchange="performSearch()">
+                            <option value="">كل العملات</option>
+                            <option value="{{ $baseCurrency->id }}" {{ request('currency_id') == $baseCurrency->id ? 'selected' : '' }}>
+                                {{ $baseCurrency->code }} (الأساسية)
+                            </option>
+                            @foreach($currencies as $cur)
+                                @if($cur->id !== $baseCurrency->id)
+                                    <option value="{{ $cur->id }}" {{ request('currency_id') == $cur->id ? 'selected' : '' }}>
+                                        {{ $cur->code }} — {{ $cur->name_ar ?? $cur->name }}
+                                    </option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
                     {{-- 🟢 فلتر الحالة --}}
                     <div class="col-auto">
                         <select name="status" class="form-select" onchange="performSearch()">
@@ -191,7 +209,11 @@
         clearTimeout(timeout);
         timeout = setTimeout(() => {
             const form = document.getElementById('filterForm');
-            const params = new URLSearchParams(new FormData(form)).toString();
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData).toString();
+            
+            console.log("Searching with params:", params); // Debug for user console if they check
+            
             const fetchUrl = url ? url : "{{ route('store.meals.index') }}?" + params;
 
             document.getElementById('mealsTableBody').style.opacity = '0.5';
