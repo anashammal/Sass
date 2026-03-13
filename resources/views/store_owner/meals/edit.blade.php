@@ -152,6 +152,7 @@
                                     </select>
                                 </div>
                                 <input type="hidden" name="purchase_exchange_rate" id="purchase_exchange_rate" value="{{ old('purchase_exchange_rate', $base->purchase_exchange_rate ?? 1) }}">
+                                <div id="purchase_exchange_info" class="exchange-info mt-1" style="display: none;"></div>
                             </div>
                             <div class="col-md-3" id="selling_price_div">
                                 <label class="form-label small text-success fw-bold">سعر البيع</label>
@@ -164,6 +165,7 @@
                                     </select>
                                 </div>
                                 <input type="hidden" name="base_sell_exchange_rate" id="base_sell_exchange_rate" value="{{ old('base_sell_exchange_rate', $base->sell_exchange_rate ?? 1) }}">
+                                <div id="base_sell_exchange_info" class="exchange-info mt-1" style="display: none;"></div>
                             </div>
                             <div class="col-md-3" id="margin_div">
                                 <label class="form-label small text-muted">الربح %</label>
@@ -373,10 +375,13 @@
         let unitPurchaseRate = parseFloat(row.querySelector('[name*="purchase_exchange_rate"]').value) || 1;
         let newCostInSelectedCurrency = newCostInBase / unitPurchaseRate;
 
-        row.querySelector('.unit-cost').value = newCostInSelectedCurrency.toFixed(3);
+        let costInput = row.querySelector('.unit-cost');
+        costInput.value = Number(newCostInSelectedCurrency.toFixed(3));
+        costInput.dataset.baseValue = newCostInBase; // Preserve precision for exchange info
         
         let profitInput = row.querySelector('.unit-profit');
         calcExtraUnitSell(profitInput);
+        updateAllExchangeDisplays();
     }
 
     function handleCurrencyChangeUnit(select) {
@@ -433,6 +438,7 @@
                 if (select.name.includes('purchase')) calculateUnitCost(select);
                 else calcExtraUnitSell(unitRow.querySelector('.unit-profit'));
             }
+            updateAllExchangeDisplays();
         });
     }
 
@@ -446,6 +452,7 @@
             unitRow.querySelector('[name$="[sell_exchange_rate]"]').value = rate;
             calcExtraUnitSell(unitRow.querySelector('.unit-profit'));
         }
+        updateAllExchangeDisplays();
     }
 
     function calcExtraUnitSell(input) {
@@ -460,8 +467,11 @@
         if(costInBase > 0) {
             let sellingPriceInBase = costInBase * (1 + (profit / 100));
             let sellingPriceInSelectedCurrency = sellingPriceInBase / sellRate;
-            row.querySelector('.unit-sell').value = sellingPriceInSelectedCurrency.toFixed(2);
+            let sellInput = row.querySelector('.unit-sell');
+            sellInput.value = Number(sellingPriceInSelectedCurrency.toFixed(3));
+            sellInput.dataset.baseValue = sellingPriceInBase; // Preserve precision
         }
+        updateAllExchangeDisplays();
     }
 
     function calcExtraUnitProfit(input) {
@@ -478,8 +488,9 @@
         let profitInput = row.querySelector('.unit-profit');
         if(costInBase > 0) {
             let profitPercent = ((sellInBase - costInBase) / costInBase) * 100;
-            profitInput.value = profitPercent.toFixed(2);
+            profitInput.value = Number(profitPercent.toFixed(3));
         }
+        updateAllExchangeDisplays();
     }
 
     function updateAllUnitsCosts() {
@@ -628,6 +639,24 @@
         updateAllUnitsCosts();
     }
     
+    function updateExchangeDisplay(input, select, hiddenRateInput, infoDiv) {
+        if (!infoDiv) return;
+        let rate = parseFloat(hiddenRateInput.value) || 1;
+        let val = parseFloat(input.value) || 0;
+        let baseCurrCode = "{{ $baseCurrency->code }}";
+        let opt = select.options[select.selectedIndex];
+        let selectedCurrCode = opt ? opt.dataset.code : '';
+
+        if (rate != 1 && selectedCurrCode) {
+            // Use data-base-value if present for 100% precision
+            let inBase = input.dataset.baseValue ? parseFloat(input.dataset.baseValue) : (val * rate);
+            infoDiv.innerHTML = `<span class="small text-info fw-bold">(1 ${selectedCurrCode} = ${Number(rate.toFixed(3))} ${baseCurrCode}) ↔ ${Number(inBase.toFixed(3))} ${baseCurrCode}</span>`;
+            infoDiv.style.display = 'block';
+        } else {
+            infoDiv.style.display = 'none';
+        }
+    }
+
     function handleCurrencyChange(select, hiddenId) {
         let opt = select.options[select.selectedIndex];
         let currId = select.value;
@@ -680,6 +709,7 @@
                 document.getElementById(hiddenId).value = 1;
                 calculateMargin();
             }
+            updateAllExchangeDisplays();
         });
     }
 
@@ -702,11 +732,12 @@
         
         let marginInput = document.getElementById('base_margin');
         if(costInBase > 0) {
-            marginInput.value = (((sellInBase - costInBase) / costInBase) * 100).toFixed(2);
+            marginInput.value = Number((((sellInBase - costInBase) / costInBase) * 100).toFixed(3));
         } else {
             marginInput.value = 0;
         }
         updateUnitBreakdown();
+        updateAllExchangeDisplays();
     }
     
     function calculatePriceFromMargin() {
@@ -722,8 +753,43 @@
         // Convert sell from base back to selected sell currency
         let sellInSelectedCurrency = sellInBase / sellRate;
         
-        document.getElementById('base_sell').value = sellInSelectedCurrency.toFixed(2);
+        let sellInput = document.getElementById('base_sell');
+        sellInput.value = Number(sellInSelectedCurrency.toFixed(3));
+        sellInput.dataset.baseValue = sellInBase; // Preserve precision
         updateUnitBreakdown();
+        updateAllExchangeDisplays();
+    }
+
+    function updateAllExchangeDisplays() {
+        // Main fields
+        updateExchangeDisplay(
+            document.getElementById('purchase_price'),
+            document.getElementById('purchase_price_currency_id'),
+            document.getElementById('purchase_exchange_rate'),
+            document.getElementById('purchase_exchange_info')
+        );
+        updateExchangeDisplay(
+            document.getElementById('base_sell'),
+            document.getElementById('base_selling_price_currency_id'),
+            document.getElementById('base_sell_exchange_rate'),
+            document.getElementById('base_sell_exchange_info')
+        );
+        
+        // Extra units
+        document.querySelectorAll('.unit-row').forEach(row => {
+            updateExchangeDisplay(
+                row.querySelector('.unit-cost'),
+                row.querySelector('[name$="[purchase_price_currency_id]"]'),
+                row.querySelector('[name$="[purchase_exchange_rate]"]'),
+                row.querySelector('.unit-purchase-exchange-info')
+            );
+            updateExchangeDisplay(
+                row.querySelector('.unit-sell'),
+                row.querySelector('[name$="[sell_price_currency_id]"]'),
+                row.querySelector('[name$="[sell_exchange_rate]"]'),
+                row.querySelector('.unit-sell-exchange-info')
+            );
+        });
     }
 
     function updateUnitBreakdown() {
@@ -739,7 +805,7 @@
                 let currencyCode = purchaseSelect ? purchaseSelect.options[purchaseSelect.selectedIndex].text : '';
                 
                 document.getElementById('item_name_at_breakdown').innerText = itemName;
-                document.getElementById('cost_per_piece_display').innerText = (cost / pieces).toFixed(3) + ' ' + currencyCode;
+                document.getElementById('cost_per_piece_display').innerText = Number((cost / pieces).toFixed(3)) + ' ' + currencyCode;
             } else {
                 subDiv.style.display = 'none';
             }
@@ -922,19 +988,21 @@
             cost = unitCost * qty;
         }
         
-        tr.querySelector('.row-cost').innerText = cost.toFixed(3);
+        tr.querySelector('.row-cost').innerText = Number(cost.toFixed(3));
         calculateTotalRecipe();
     }
 
     function calculateTotalRecipe() {
         let total = 0;
         document.querySelectorAll('.row-cost').forEach(td => total += parseFloat(td.innerText) || 0);
-        document.getElementById('total_recipe_cost').innerText = total.toFixed(3);
+        document.getElementById('total_recipe_cost').innerText = Number(total.toFixed(3));
         
         let productType = document.querySelector('input[name="product_type"]:checked')?.value;
         if (productType === 'meal' || productType === 'compound') {
             let costRate = parseFloat(document.getElementById('purchase_exchange_rate').value) || 1;
-            document.getElementById('purchase_price').value = (total / costRate).toFixed(3);
+            let purchaseInput = document.getElementById('purchase_price');
+            purchaseInput.value = Number((total / costRate).toFixed(3));
+            purchaseInput.dataset.baseValue = total; // The 'total' is already in base TRY
             calculateBaseCost();
         }
     }
@@ -988,6 +1056,8 @@
             initIngredientSelect2($(this));
         });
 
+        // Initial exchange rate displays
+        updateAllExchangeDisplays();
     });
 
 

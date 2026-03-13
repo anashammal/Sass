@@ -66,6 +66,7 @@
                             </select>
                         </div>
                         <input type="hidden" name="units[{{ $index }}][purchase_exchange_rate]" id="units_{{ $index }}_purchase_rate" value="{{ isset($unit) ? $unit->purchase_exchange_rate : 1 }}">
+                        <div class="unit-purchase-exchange-info exchange-info mt-1 small" style="display: none;"></div>
                     </div>
 
                     <div class="col-md-4">
@@ -84,6 +85,7 @@
                             </select>
                         </div>
                         <input type="hidden" name="units[{{ $index }}][sell_exchange_rate]" id="units_{{ $index }}_sell_rate" value="{{ isset($unit) ? $unit->sell_exchange_rate : 1 }}">
+                        <div class="unit-sell-exchange-info exchange-info mt-1 small" style="display: none;"></div>
                     </div>
                 </div>
             </div>
