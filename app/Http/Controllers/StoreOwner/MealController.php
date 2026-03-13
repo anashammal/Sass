@@ -153,8 +153,12 @@ class MealController extends Controller
                 ->with('units')
                 ->get();
 
-        $acceptedCurrencies = $store->acceptedCurrencies;
+        $acceptedCurrencies = $store->acceptedCurrencies()->get();
         $baseCurrency = $store->baseCurrency;
+        
+        if ($baseCurrency && !$acceptedCurrencies->contains('id', $baseCurrency->id)) {
+            $acceptedCurrencies->prepend($baseCurrency);
+        }
         
         $currenciesData = [];
         if ($baseCurrency) {
@@ -368,11 +372,10 @@ class MealController extends Controller
 
                     $uFactor = (float)($unitData['factor'] ?? 1);
                     $uCost = $baseCost * $uFactor;
-
                     $uPurchaseRate = (float)($unitData['purchase_exchange_rate'] ?? 1);
                     $uSellRate = (float)($unitData['sell_exchange_rate'] ?? 1);
                     
-                    $uCostInBaseCurrency = $baseCostInBaseCurrency * $uFactor;
+                    $uCostInBaseCurrency = $baseCost * $uFactor;
                     $uSellingPriceInBaseCurrency = (float)($unitData['selling_price'] ?? 0) * $uSellRate;
 
                     $extraUnit = $product->units()->create([
@@ -450,6 +453,10 @@ class MealController extends Controller
         $exchangeService = app(ExchangeRateService::class);
         $baseCurrency = $store->baseCurrency;
         $acceptedCurrencies = $store->acceptedCurrencies()->withPivot('custom_rate')->get();
+        
+        if ($baseCurrency && !$acceptedCurrencies->contains('id', $baseCurrency->id)) {
+            $acceptedCurrencies->prepend($baseCurrency);
+        }
         $currenciesData = [];
         if ($baseCurrency) {
             $currenciesData[$baseCurrency->id] = 1.0; // Base currency rate is 1
@@ -500,7 +507,9 @@ class MealController extends Controller
 
             $subUnitCount = (float)($request->pieces_per_unit ?? 1);
             $purchasePrice = (float)$request->purchase_price;
-            $baseCost = ($subUnitCount > 0) ? ($purchasePrice / $subUnitCount) : 0;
+            $purchaseRate = (float)($request->purchase_exchange_rate ?? 1);
+            $totalPurchaseCostInBase = $purchasePrice * $purchaseRate;
+            $baseCost = ($subUnitCount > 0) ? ($totalPurchaseCostInBase / $subUnitCount) : 0;
 
             // Update the main base unit (which might be the purchase unit if subUnitCount > 1, or the single unit)
             $purchaseRate = (float)($request->purchase_exchange_rate ?? 1);
@@ -514,7 +523,7 @@ class MealController extends Controller
                 'purchase_price' => $purchasePrice,
                 'purchase_price_currency_id' => $request->purchase_price_currency_id,
                 'purchase_exchange_rate' => $request->purchase_exchange_rate,
-                'cost_price' => $baseCostInBaseCurrency, // Cost price for the main unit
+                'cost_price' => $purchasePrice * $purchaseRate, // Cost price for the main unit
                 'selling_price' => $sellingPriceInBaseCurrency,
                 'sell_price_currency_id' => $request->base_selling_price_currency_id,
                 'sell_exchange_rate' => $request->base_sell_exchange_rate,

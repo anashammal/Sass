@@ -236,7 +236,8 @@ class ProductController extends Controller
 
             $factor = (float)($request->pieces_per_unit ?? 1);
             $purchasePrice = (float)$request->purchase_price;
-            $baseCost = ($factor > 0) ? ($purchasePrice / $factor) : 0;
+            $purchaseRate = (float)($request->purchase_exchange_rate ?? 1);
+            $baseCost = ($factor > 0) ? (($purchasePrice * $purchaseRate) / $factor) : 0;
 
             $product->units()->create([
                 'unit_name' => $request->base_unit_name, 
@@ -394,7 +395,8 @@ class ProductController extends Controller
 
             $factor = (float)($request->pieces_per_unit ?? 1);
             $purchasePrice = (float)$request->purchase_price;
-            $baseCost = ($factor > 0) ? ($purchasePrice / $factor) : 0;
+            $purchaseRate = (float)($request->purchase_exchange_rate ?? 1);
+            $baseCost = ($factor > 0) ? (($purchasePrice * $purchaseRate) / $factor) : 0;
 
             $product->baseUnit()->update([
                 'unit_name' => $request->base_unit_name,
@@ -402,7 +404,7 @@ class ProductController extends Controller
                 'purchase_price' => $purchasePrice,
                 'purchase_price_currency_id' => $request->purchase_price_currency_id,
                 'purchase_exchange_rate' => $request->purchase_exchange_rate,
-                'cost_price' => $baseCost,
+                'cost_price' => $purchasePrice * $purchaseRate,
                 'selling_price' => (float)$request->base_selling_price,
                 'sell_price_currency_id' => $request->base_selling_price_currency_id,
                 'sell_exchange_rate' => $request->base_sell_exchange_rate,

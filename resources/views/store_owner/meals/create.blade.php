@@ -317,7 +317,7 @@
         let unitPurchaseRate = parseFloat(row.querySelector('[name*="purchase_exchange_rate"]').value) || 1;
         let newCostInSelectedCurrency = newCostInBase / unitPurchaseRate;
 
-        row.querySelector('.unit-cost').value = newCostInSelectedCurrency.toFixed(2);
+        row.querySelector('.unit-cost').value = newCostInSelectedCurrency.toFixed(3);
         
         let profitInput = row.querySelector('.unit-profit');
         calcExtraUnitSell(profitInput);
@@ -595,6 +595,7 @@
         if (currId == baseCurrId) {
             document.getElementById(hiddenId).value = 1;
             calculateMargin();
+            calculateTotalRecipe();
             return;
         }
 
@@ -625,6 +626,7 @@
             if (result.isConfirmed) {
                 document.getElementById(hiddenId).value = result.value;
                 calculateMargin();
+                calculateTotalRecipe();
                 if(typeof toastr !== 'undefined') toastr.success('تم تحديث سعر الصرف');
             } else {
                 // Return to base currency if cancelled
@@ -691,7 +693,7 @@
                 let currencyCode = purchaseSelect ? purchaseSelect.options[purchaseSelect.selectedIndex].text : '';
                 
                 document.getElementById('item_name_at_breakdown').innerText = itemName;
-                document.getElementById('cost_per_piece_display').innerText = (cost / pieces).toFixed(2) + ' ' + currencyCode;
+                document.getElementById('cost_per_piece_display').innerText = (cost / pieces).toFixed(3) + ' ' + currencyCode;
             } else {
                 subDiv.style.display = 'none';
             }
@@ -814,6 +816,8 @@
                 },
                 cache: true
             },
+            dropdownParent: $(tr),
+            closeOnSelect: true,
             language: {
                 inputTooShort: function() { return "ابدأ الكتابة للبحث..."; },
                 noResults: function() { return "لا توجد نتائج"; },
@@ -878,18 +882,19 @@
             cost = unitCost * qty;
         }
         
-        tr.querySelector('.row-cost').innerText = cost.toFixed(2);
+        tr.querySelector('.row-cost').innerText = cost.toFixed(3);
         calculateTotalRecipe();
     }
 
     function calculateTotalRecipe() {
         let total = 0;
         document.querySelectorAll('.row-cost').forEach(td => total += parseFloat(td.innerText) || 0);
-        document.getElementById('total_recipe_cost').innerText = total.toFixed(2);
+        document.getElementById('total_recipe_cost').innerText = total.toFixed(3);
         
         let productType = document.querySelector('input[name="product_type"]:checked')?.value;
         if (productType === 'meal' || productType === 'compound') {
-            document.getElementById('purchase_price').value = total.toFixed(2);
+            let costRate = parseFloat(document.getElementById('purchase_exchange_rate').value) || 1;
+            document.getElementById('purchase_price').value = (total / costRate).toFixed(3);
             calculateBaseCost();
         }
     }
